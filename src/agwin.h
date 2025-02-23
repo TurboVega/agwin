@@ -57,8 +57,8 @@ typedef struct {
     uint8_t     icons: 1;       // paint the icons in the title bar
     uint8_t     background : 1; // paint the client background
     uint8_t     foreground : 1; // paint the client foreground
-    uint8_t     reserved1 : 1;  // reserved
-    uint8_t     reserved2 : 1;  // reserved
+    uint8_t     enabled : 1;    // whether the window is enabled
+    uint8_t     selected : 1;   // whether the window is selected
 } AwPaintFlags;
 
 typedef struct {
@@ -224,6 +224,29 @@ typedef struct {
     AwMsgType       msg_type;
 } AwMsgWindowHidden;
 
+typedef struct {
+    uint8_t         border : 1;     // whether the window has a border
+    uint8_t         title_bar : 1;  // whether the window has a title bar
+    uint8_t         icons : 1;      // whether the window has icons in the title bar
+    uint8_t         sizeable : 1;   // whether the window can be resized
+    uint8_t         active : 1;     // whether the window is active
+    uint8_t         enabled : 1;    // whether the window is enabled
+    uint8_t         selected : 1;   // whether the window is selected
+    uint8_t         visible : 1;    // whether the window is visible
+} AwWindowFlags;
+
+typedef struct {
+    AwWindow*       parent;         // points to the parent window
+    AwWindow*       first_child;    // points to the first child window
+    AwWindow*       next_sibling;   // points to the next sibling window
+    uint16_t        class_id;       // non-unique class ID for the window
+    uint16_t        instance_id;    // unique instance ID for the window
+    uint16_t        context_id;     // VDP context ID for the window
+    AwRect          window_rect;    // rectangle enclosing the entire window
+    AwRect          client_rect;    // rectangle enclosing the client area
+    AwWindowFlags   flags;          // flags describing the window
+} AwWindow;
+
 typedef union {
     AwMsgPaintBackground    paint_background;
     AwMsgPaintBorder        paint_border;
@@ -239,10 +262,16 @@ typedef union {
     AwMsgMouseAction        mouse_action;
     AwMsgLeftButtonDown     left_button_down;
     AwMsgLeftButtonUp       left_button_up;
+    AwMsgLeftButtonClick    left_button_click;
+    AwMsgLeftButtonDoubleClick left_button_double_click;
     AwMsgMiddleButtonDown   middle_button_down;
     AwMsgMiddleButtonUp     middle_button_up;
+    AwMsgMiddleButtonClick  middle_button_click;
+    AwMsgMiddleButtonDoubleClick middle_button_double_click;
     AwMsgRightButtonDown    right_button_down;
     AwMsgRightButtonUp      right_button_up;
+    AwMsgRightButtonClick   right_button_click;
+    AwMsgRightButtonDoubleClick right_button_double_click;
     AwMsgWindowResized      window_resized;
     AwMsgWindowMoved        window_moved;
     AwMsgWindowCreated      window_created;
