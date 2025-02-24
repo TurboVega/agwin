@@ -45,6 +45,10 @@ typedef AwWindow* (*AwGetTopLevelWindow)(const AwWindow* window);
 typedef AwWindow* (*AwCreateWindow)(AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
                         int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text);
 
+typedef void (*AwInvalidateWindow)(AwWindow* window);
+
+typedef void (*AwInvalidateWindowRect)(AwWindow* window, const AwRect* rect);
+
 typedef AwRect (*AwGetGlobalWindowRect)(AwWindow* window);
 
 typedef AwRect (*AwGetGlobalClientRect)(AwWindow* window);
@@ -104,6 +108,8 @@ typedef struct {
     AwGetActiveWindow       get_active_window;
     AwGetTopLevelWindow     get_top_level_window;
     AwCreateWindow          create_window;
+    AwInvalidateWindow      invalidate_window;
+    AwInvalidateWindowRect  invalidate_window_rect;
     AwGetGlobalWindowRect   get_global_window_rect;
     AwGetGlobalClientRect   get_global_client_rect;
     AwGetLocalWindowRect    get_local_window_rect;

@@ -118,6 +118,7 @@ typedef struct {
     uint16_t        context_id;     // VDP context ID for the window
     AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
+    AwRect          paint_rect;     // rectangle eclosing the dirty (invalid) area of the window
     AwWindowFlags   flags;          // flags describing the window
     uint32_t        text_size;      // allocated space for text (not the text length)
 } AwWindow;

@@ -215,9 +215,20 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     window->client_rect.right = window->window_rect.right - deco_thickness;
     window->client_rect.bottom = window->window_rect.bottom - deco_thickness;
 
-    
+    vdp_set_graphics_viewport();
+
     // Restore the VDP context
     vdp_context_restore();
+}
+
+void aw_invalidate_window(AwWindow* window) {
+    window->paint_rect = window->window_rect;
+}
+
+void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
+    AwRect extra_rect = aw_get_intersect_rect(&window->window_rect, rect);
+    AwRect paint_rect = aw_get_intersect_rect(&window->paint_rect, extra_rect);
+    window->paint_rect = paint_rect;
 }
 
 AwRect aw_get_global_window_rect(AwWindow* window) {
