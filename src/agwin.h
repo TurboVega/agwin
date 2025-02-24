@@ -66,6 +66,11 @@ typedef struct {
 } AwRect;
 
 typedef struct {
+    int16_t     x;          // X coordinate
+    int16_t     y;          // Y coordinate
+} AwPoint;
+
+typedef struct {
     uint16_t        top_level : 1;  // whether the window is a top-level window
     uint16_t        popup : 1;      // whether the window is a popup (e.g., dialog) window
     uint16_t        border : 1;     // whether the window has a border
@@ -128,64 +133,9 @@ typedef struct {
     AwMsgType       msg_type;
     AwRect          win_rect;
     AwRect          client_rect;
+    AwRect          paint_rect;
     AwPaintFlags    flags;
-} AwMsgPaintWindow;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwRect          win_rect;
-    AwRect          client_rect;
-    AwPaintFlags    flags;
-} AwMsgPaintBorder;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwRect          win_rect;
-    AwRect          client_rect;
-    AwPaintFlags    flags;
-} AwMsgPaintTitleBar;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwRect          win_rect;
-    AwRect          client_rect;
-    AwPaintFlags    flags;
-} AwMsgPaintTitle;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwRect          win_rect;
-    AwRect          client_rect;
-    AwPaintFlags    flags;
-} AwMsgPaintIcons;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwRect          win_rect;
-    AwRect          client_rect;
-    AwPaintFlags    flags;
-} AwMsgPaintClient;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwRect          win_rect;
-    AwRect          client_rect;
-    AwPaintFlags    flags;
-} AwMsgPaintBackground;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwRect          win_rect;
-    AwRect          client_rect;
-    AwPaintFlags    flags;
-} AwMsgPaintForeground;
+} AwMsgPaint;
 
 typedef struct {
     AwWindow*       window;
@@ -217,152 +167,51 @@ typedef struct {
     AwInputAction   action;
     uint16_t        key_code;
     int16_t         key_char;
-} AwMsgKeyAction;
+    AwPoint         mouse_screen_pt;    // Mouse location relative to entire screen
+    AwPoint         mouse_window_pt;    // Mouse location relative to window beneath it
+    AwPoint         mouse_client_pt;    // Mouse location relative to client area beneath it
+} AwMsgInputAction;
 
 typedef struct {
     AwWindow*       window;
     AwMsgType       msg_type;
-    AwInputState    state;
-    uint16_t        key_code;
-    int16_t         key_char;
-} AwMsgKeyDown;
+} AwMsgSimple;
 
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-    uint16_t        key_code;
-    int16_t         key_char;
-} AwMsgKeyRepeat;
+typedef AwMsgPaint AwMsgPaintWindow;
+typedef AwMsgPaint AwMsgPaintBorder;
+typedef AwMsgPaint AwMsgPaintTitleBar;
+typedef AwMsgPaint AwMsgPaintTitle;
+typedef AwMsgPaint AwMsgPaintIcons;
+typedef AwMsgPaint AwMsgPaintClient;
+typedef AwMsgPaint AwMsgPaintBackground;
+typedef AwMsgPaint AwMsgPaintForeground;
 
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-    uint16_t        key_code;
-    int16_t         key_char;
-} AwMsgKeyChar;
+typedef AwMsgInputAction AwMsgKeyAction;
+typedef AwMsgInputAction AwMsgKeyDown;
+typedef AwMsgInputAction AwMsgKeyRepeat;
+typedef AwMsgInputAction AwMsgKeyChar;
+typedef AwMsgInputAction AwMsgKeyUp;
+typedef AwMsgInputAction AwMsgMouseAction;
+typedef AwMsgInputAction AwMsgLeftButtonDown;
+typedef AwMsgInputAction AwMsgLeftButtonUp;
+typedef AwMsgInputAction AwMsgLeftButtonClick;
+typedef AwMsgInputAction AwMsgLeftButtonDoubleClick;
+typedef AwMsgInputAction AwMsgMiddleButtonDown;
+typedef AwMsgInputAction AwMsgMiddleButtonUp;
+typedef AwMsgInputAction AwMsgMiddleButtonClick;
+typedef AwMsgInputAction AwMsgMiddleButtonDoubleClick;
+typedef AwMsgInputAction AwMsgRightButtonDown;
+typedef AwMsgInputAction AwMsgRightButtonUp;
+typedef AwMsgInputAction AwMsgRightButtonClick;
+typedef AwMsgInputAction AwMsgRightButtonDoubleClick;
 
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-    uint16_t        key_code;
-    int16_t         key_char;
-} AwMsgKeyUp;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgMouseAction;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgLeftButtonDown;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgLeftButtonUp;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgLeftButtonClick;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgLeftButtonDoubleClick;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgMiddleButtonDown;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgMiddleButtonUp;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgMiddleButtonClick;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgMiddleButtonDoubleClick;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgRightButtonDown;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgRightButtonUp;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgRightButtonClick;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-    AwInputState    state;
-} AwMsgRightButtonDoubleClick;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-} AwMsgWindowResized;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-} AwMsgWindowMoved;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-} AwMsgWindowCreated;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-} AwMsgWindowDestroyed;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-} AwMsgWindowShown;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-} AwMsgWindowHidden;
-
-typedef struct {
-    AwWindow*       window;
-    AwMsgType       msg_type;
-} AwMsgTerminate;
+typedef AwMsgSimple AwMsgWindowResized;
+typedef AwMsgSimple AwMsgWindowMoved;
+typedef AwMsgSimple AwMsgWindowCreated;
+typedef AwMsgSimple AwMsgWindowDestroyed;
+typedef AwMsgSimple AwMsgWindowShown;
+typedef AwMsgSimple AwMsgWindowHidden;
+typedef AwMsgSimple AwMsgTerminate;
 
 typedef union {
     AwMsgPaintBackground    paint_background;
