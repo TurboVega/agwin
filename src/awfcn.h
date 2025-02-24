@@ -6,32 +6,79 @@
 extern "C" {
 #endif
 
-int get_rect_width(const AwRect* rect);
+#define AW_MAJOR        0
+#define AW_MINOR        1
+#define AW_VERSION      ((AW_MAJOR << 4) | AW_MINOR)
 
-int get_rect_height(const AwRect* rect);
+typedef uint8_t (*AwGetVersion)();
 
-AwWindow* get_desktop_window();
+typedef int (*AwGetRectWidth)(const AwRect* rect);
 
-AwWindow* get_top_level_window(const AwWindow* window);
+typedef int (*AwGetRectHeight)(const AwRect* rect);
 
-AwWindow* create_window(AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
-                        uint16_t width, uint16_t height, const char* text);
+typedef AwRect (*AwGetEmptyRect)();
 
-void move_window(AwWindow* window, int16_t x, int16_t y);
+typedef AwRect (*AwGetUnionRect)(const AwRect* rect1, const AwRect* rect2);
 
-void size_window(AwWindow* window, int16_t width, int16_t height);
+typedef AwRect (*AwGetIntersectRect)(const AwRect* rect1, const AwRect* rect2);
 
-void activate_window(AwWindow* window, bool active);
+typedef AwWindow* (*AwGetDesktopWindow)();
 
-void enable_window(AwWindow* window, bool enabled);
+typedef AwWindow* (*AwGetActiveWindow)();
 
-void show_window(AwWindow* window, bool visible);
+typedef AwWindow* (*AwGetTopLevelWindow)(const AwWindow* window);
 
-void destroy_window(AwWindow* window);
+typedef AwWindow* (*AwCreateWindow)(AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
+                        int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text);
 
-void post_message(AwMsg* msg);
+typedef void (*AwMoveWindow)(AwWindow* window, int16_t x, int16_t y);
 
-int32_t handle_message(AwMsg* msg);
+typedef void (*AwSizeWindow)(AwWindow* window, int16_t width, int16_t height);
+
+typedef void (*AwActivateWindow)(AwWindow* window, bool active);
+
+typedef void (*AwEnableWindow)(AwWindow* window, bool enabled);
+
+typedef void (*AwShowWindow)(AwWindow* window, bool visible);
+
+typedef void (*AwCloseWindow)(AwWindow* window);
+
+typedef void (*AwDestroyWindow)(AwWindow* window);
+
+typedef void (*AwPostMessage)(AwMsg* msg);
+
+typedef int32_t (*AwProcessMessage)(AwMsg* msg);
+
+typedef void (*AwExitApp)(AwApplication* app);
+
+typedef void (*AwTerminate)();
+
+#pragma pack(push, 4)
+typedef struct {
+    AwGetVersion            get_version;
+    AwGetRectWidth          get_rect_width;
+    AwGetRectHeight         get_rect_height;
+    AwGetEmptyRect          get_empty_rect;
+    AwGetUnionRect          get_union_rect;
+    AwGetIntersectRect      get_intersect_rect;
+    AwGetDesktopWindow      get_desktop_window;
+    AwGetActiveWindow       get_active_window;
+    AwGetTopLevelWindow     get_top_level_window;
+    AwCreateWindow          create_window;
+    AwMoveWindow            move_window;
+    AwSizeWindow            size_window;
+    AwActivateWindow        activate_window;
+    AwEnableWindow          enable_window;
+    AwShowWindow            show_window;
+    AwCloseWindow           close_window;
+    AwDestroyWindow         destroy_window;
+    AwPostMessage           post_message;
+    AwProcessMessage        process_message;
+    AwExitApp               exit_app;
+    AwTerminate             terminate;
+} AwSystemFunctionTable;
+
+#pragma pack(pop)
 
 #ifdef __CPLUSPLUS
 } // extern "C"

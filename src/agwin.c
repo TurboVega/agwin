@@ -1,5 +1,4 @@
 #include <agon/vdp_vdu.h>
-#include <agon/vdp_key.h>
 #include <stdio.h>
 #include <mos_api.h>
 #include <stdbool.h>
@@ -10,18 +9,8 @@
 
 #include "agwin.h"
 
-void key_event_handler( KEY_EVENT key_event )
-{
-	if ( key_event.code == 0x7d ) {
-		vdp_cursor_enable( true );
-		exit( 1 );						// Exit program if esc pressed
-	}
-	vdp_cursor_tab( 0, 0 );
-//	printf( "Modifier %02x, key-code %02x, up/down %02x\n",
-//			key_event.mods, key_event.code, key_event.down );
-	for ( int i = 31; i >= 0; i-- ) printf( "%02x", vdp_key_bits[i] );
-	return;
-}
+void aw_initialize();
+void aw_message_loop();
 
 void wait_clock(clock_t ticks)
 {
@@ -30,15 +19,6 @@ void wait_clock(clock_t ticks)
 	do {
 		vdp_update_key_state();
 	} while (clock() - ticks_now < ticks);
-}
-
-void game_loop()
-{
-    srand(clock());
-
-    while (true) {
-        vdp_swap();
-    };
 }
 
 int main( void )
@@ -51,10 +31,9 @@ int main( void )
     vdp_clear_graphics();
 	vdp_logical_scr_dims(false);
 	vdp_cursor_enable(false);
-	vdp_set_key_event_handler( key_event_handler );
-	game_loop();
-	vdp_cursor_enable( true );
-	printf( "Press any key to continue...\n" );
-	getchar();
+	vdp_set_key_event_handler(key_event_handler);
+    aw_initialize();
+	aw_message_loop();
+	vdp_cursor_enable(true);
 	return 0;
 }

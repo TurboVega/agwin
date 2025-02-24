@@ -6,6 +6,16 @@
 extern "C" {
 #endif
 
+// Some standard window classes
+#define AW_CLASS_DESKTOP        1
+#define AW_CLASS_MENU           2
+#define AW_CLASS_MENU_ITEM      3
+#define AW_CLASS_LIST           4
+#define AW_CLASS_LIST_ITEM      5
+#define AW_CLASS_EDIT_TEXT      6
+#define AW_CLASS_STATIC_TEXT    7
+#define AW_CLASS_MESSAGE_BOX    8
+
 #pragma pack(push, 1)
 
 typedef enum uint8_t {
@@ -41,6 +51,7 @@ typedef enum uint8_t {
     WindowDestroyed,
     WindowShown,
     WindowHidden,
+    Terminate,
 } AwMsgType;
 
 typedef struct AwMsg;
@@ -55,18 +66,33 @@ typedef struct {
 } AwRect;
 
 typedef struct {
-    uint8_t         border : 1;     // whether the window has a border
-    uint8_t         title_bar : 1;  // whether the window has a title bar
-    uint8_t         icons : 1;      // whether the window has icons in the title bar
-    uint8_t         sizeable : 1;   // whether the window can be resized
-    uint8_t         active : 1;     // whether the window is active
-    uint8_t         enabled : 1;    // whether the window is enabled
-    uint8_t         selected : 1;   // whether the window is selected
-    uint8_t         visible : 1;    // whether the window is visible
+    uint16_t        top_level : 1;  // whether the window is a top-level window
+    uint16_t        popup : 1;      // whether the window is a popup (e.g., dialog) window
+    uint16_t        border : 1;     // whether the window has a border
+    uint16_t        title_bar : 1;  // whether the window has a title bar
+    uint16_t        icons : 1;      // whether the window has icons in the title bar
+    uint16_t        sizeable : 1;   // whether the window can be resized
+    uint16_t        active : 1;     // whether the window is active
+    uint16_t        enabled : 1;    // whether the window is enabled
+    uint16_t        selected : 1;   // whether the window is selected
+    uint16_t        visible : 1;    // whether the window is visible
+    uint16_t        reserved1 : 1;  // reserved
+    uint16_t        reserved2 : 1;  // reserved
+    uint16_t        reserved3 : 1;  // reserved
+    uint16_t        reserved4 : 1;  // reserved
+    uint16_t        reserved5 : 1;  // reserved
+    uint16_t        reserved6 : 1;  // reserved
 } AwWindowFlags;
 
 typedef struct {
+    const char*     name;           // name of the app
     AwMsgHandler    msg_handler;    // points to the message handler function
+    uint32_t*       load_address;   // location that the app was loaded
+    uint32_t        memory_size;    // amount of memory allocated to app
+} AwApplication;
+
+typedef struct {
+    AwApplication*  app;            // points to the app that owns the window
     AwWindow*       parent;         // points to the parent window
     AwWindow*       first_child;    // points to the first child window
     AwWindow*       next_sibling;   // points to the next sibling window
@@ -79,14 +105,22 @@ typedef struct {
 } AwWindow;
 
 typedef struct {
-    uint8_t     border : 1;     // paint the border
-    uint8_t     title_bar : 1;  // paint the title bar
-    uint8_t     title : 1;      // paint the title
-    uint8_t     icons: 1;       // paint the icons in the title bar
-    uint8_t     background : 1; // paint the client background
-    uint8_t     foreground : 1; // paint the client foreground
-    uint8_t     enabled : 1;    // whether the window is enabled
-    uint8_t     selected : 1;   // whether the window is selected
+    uint16_t        border : 1;     // paint the border
+    uint16_t        title_bar : 1;  // paint the title bar
+    uint16_t        title : 1;      // paint the title
+    uint16_t        icons: 1;       // paint the icons in the title bar
+    uint16_t        background : 1; // paint the client background
+    uint16_t        foreground : 1; // paint the client foreground
+    uint16_t        enabled : 1;    // whether the window is enabled
+    uint16_t        selected : 1;   // whether the window is selected
+    uint16_t        reserved1 : 1;  // reserved
+    uint16_t        reserved2 : 1;  // reserved
+    uint16_t        reserved3 : 1;  // reserved
+    uint16_t        reserved4 : 1;  // reserved
+    uint16_t        reserved5 : 1;  // reserved
+    uint16_t        reserved6 : 1;  // reserved
+    uint16_t        reserved7 : 1;  // reserved
+    uint16_t        reserved8 : 1;  // reserved
 } AwPaintFlags;
 
 typedef struct {
@@ -325,6 +359,11 @@ typedef struct {
     AwMsgType       msg_type;
 } AwMsgWindowHidden;
 
+typedef struct {
+    AwWindow*       window;
+    AwMsgType       msg_type;
+} AwMsgTerminate;
+
 typedef union {
     AwMsgPaintBackground    paint_background;
     AwMsgPaintBorder        paint_border;
@@ -356,6 +395,7 @@ typedef union {
     AwMsgWindowDestroyed    window_destroyed;
     AwMsgWindowShown        window_shown;
     AwMsgWindowHidden       window_hidden;
+    AwMsgTerminate          terminate;
 } AwMsg;
 
 #pragma pack(pop)
