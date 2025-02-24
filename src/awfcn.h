@@ -16,6 +16,10 @@ typedef int (*AwGetRectWidth)(const AwRect* rect);
 
 typedef int (*AwGetRectHeight)(const AwRect* rect);
 
+typedef AwSize (*AwGetRectSize)(const AwRect* rect);
+
+typedef AwRect (*AwGetScreenRect)();
+
 typedef AwRect (*AwGetEmptyRect)();
 
 typedef AwRect (*AwGetUnionRect)(const AwRect* rect1, const AwRect* rect2);
@@ -30,6 +34,24 @@ typedef AwWindow* (*AwGetTopLevelWindow)(const AwWindow* window);
 
 typedef AwWindow* (*AwCreateWindow)(AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
                         int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text);
+
+typedef AwRect (*AwGetGlobalWindowRect)(AwWindow* window);
+
+typedef AwRect (*AwGetGlobalClientRect)(AwWindow* window);
+
+typedef AwRect (*AwGetLocalWindowRect)(AwWindow* window);
+
+typedef AwRect (*AwGetLocalClientRect)(AwWindow* window);
+
+typedef AwRect (*AwGetSizingWindowRect)(AwWindow* window);
+
+typedef AwRect (*AwGetSizingClientRect)(AwWindow* window);
+
+typedef AwSize (*AwGetWindowSize)(AwWindow* window);
+
+typedef AwSize (*AwGetClientSize)(AwWindow* window);
+
+typedef void (*AwSetText)(AwWindow* window, const char* text);
 
 typedef void (*AwMoveWindow)(AwWindow* window, int16_t x, int16_t y);
 
@@ -58,6 +80,8 @@ typedef struct {
     AwGetVersion            get_version;
     AwGetRectWidth          get_rect_width;
     AwGetRectHeight         get_rect_height;
+    AwGetRectSize           get_rect_size;
+    AwGetScreenRect         get_screen_rect;
     AwGetEmptyRect          get_empty_rect;
     AwGetUnionRect          get_union_rect;
     AwGetIntersectRect      get_intersect_rect;
@@ -65,6 +89,15 @@ typedef struct {
     AwGetActiveWindow       get_active_window;
     AwGetTopLevelWindow     get_top_level_window;
     AwCreateWindow          create_window;
+    AwGetGlobalWindowRect   get_global_window_rect;
+    AwGetGlobalClientRect   get_global_client_rect;
+    AwGetLocalWindowRect    get_local_window_rect;
+    AwGetLocalClientRect    get_local_client_rect;
+    AwGetSizingWindowRect   get_sizing_window_rect;
+    AwGetSizingClientRect   get_sizing_client_rect;
+    AwGetWindowSize         get_window_size;
+    AwGetClientSize         get_client_size;
+    AwSetText               set_text;
     AwMoveWindow            move_window;
     AwSizeWindow            size_window;
     AwActivateWindow        activate_window;

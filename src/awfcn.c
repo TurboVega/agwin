@@ -1,5 +1,6 @@
 #include "awfcn.h"
 #include <stdbool.h>
+#include <stdlib.h>
 #include <agon/vdp_key.h>
 
 #ifdef __CPLUSPLUS
@@ -41,12 +42,20 @@ uint8_t aw_get_version() {
     return AW_VERSION;
 }
 
-int aw_get_rect_width(const AwRect* rect) {
+int16_t aw_get_rect_width(const AwRect* rect) {
     return rect->right - rect->left;
 }
 
-int aw_get_rect_height(const AwRect* rect) {
+int16_t aw_get_rect_height(const AwRect* rect) {
     return rect->bottom - rect->top;
+}
+
+AwSize aw_get_rect_size(const AwRect* rect) {
+    return AwSize { rect->right - rect->left, rect->bottom - rect->top };
+}
+
+AwRect aw_get_screen_rect() {
+    return AwRect { 0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT };
 }
 
 AwRect aw_get_empty_rect() {
@@ -102,7 +111,77 @@ AwWindow* aw_get_top_level_window(const AwWindow* window) {
 
 AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
                         int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text) {
-    
+    if ((app == nullptr) || (width < 0) || (height < 0) || (class_id == 0) || (text == 0)) {
+        return; // bad parameter(s)
+    }
+
+    AwWindow* window = (AwWindow*) malloc(sizeof(AwWindow));
+    if (window == nullptr) {
+        return; // no memory
+    }
+ 
+    char* ptext = 
+
+    vdp_context_save();
+    AwRect viewport_rect =
+
+    vdp_context_restore();
+}
+
+AwRect get_global_window_rect(AwWindow* window) {
+    return window->window_rect;
+}
+
+AwRect get_global_client_rect(AwWindow* window) {
+    return window->client_rect;
+}
+
+AwRect get_local_window_rect(AwWindow* window) {
+    if (window->parent) {
+        return AwRect {
+            window->window_rect.left - parent->client_rect.left,
+            window->window_rect.top - parent->client_rect.top,
+            window->window_rect.right - parent->client_rect.left,
+            window->window_rect.bottom - parent->client_rect.top
+        };
+    } else {
+        return window->window_rect;
+    }
+}
+
+AwRect get_local_client_rect(AwWindow* window) {
+    if (window->parent) {
+        return AwRect {
+            window->client_rect.left - parent->client_rect.left,
+            window->client_rect.top - parent->client_rect.top,
+            window->client_rect.right - parent->client_rect.left,
+            window->client_rect.bottom - parent->client_rect.top
+        };
+    } else {
+        window->client_rect;
+    }
+}
+
+AwRect get_sizing_window_rect(AwWindow* window) {
+    AwSize size = get_window_size(window);
+    return AwRect { 0, 0, size.width, size.height };
+}
+
+AwRect get_sizing_client_rect(AwWindow* window) {
+    AwSize size = get_client_size(window);
+    return AwRect { 0, 0, size.width, size.height };
+}
+
+AwSize get_window_size(AwWindow* window) {
+    return get_rect_size(&window->window_rect);
+}
+
+AwSize get_client_size(AwWindow* window) {
+    return get_rect_size(&window->client_rect);
+}
+
+void aw_set_text(AwWindow* window, const char* text) {
+
 }
 
 void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
@@ -153,6 +232,8 @@ const AwSystemFunctionTable aw_system_function_table = {
     aw_get_version,
     aw_get_rect_width,
     aw_get_rect_height,
+    aw_get_rect_size,
+    aw_get_screen_rect,
     aw_get_empty_rect,
     aw_get_union_rect,
     aw_get_intersect_rect,

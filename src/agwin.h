@@ -71,6 +71,11 @@ typedef struct {
 } AwPoint;
 
 typedef struct {
+    int16_t     width;      // horizontal size
+    int16_t     height;     // vertical size
+} AwSize;
+
+typedef struct {
     uint16_t        top_level : 1;  // whether the window is a top-level window
     uint16_t        popup : 1;      // whether the window is a popup (e.g., dialog) window
     uint16_t        border : 1;     // whether the window has a border
@@ -104,9 +109,10 @@ typedef struct {
     char*           text;           // title of the window or text content
     uint16_t        class_id;       // non-unique class ID for the window
     uint16_t        context_id;     // VDP context ID for the window
-    AwRect          window_rect;    // rectangle enclosing the entire window
-    AwRect          client_rect;    // rectangle enclosing the client area
+    AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
+    AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
     AwWindowFlags   flags;          // flags describing the window
+    uint32_t        text_size;      // allocated space for text (not the text length)
 } AwWindow;
 
 typedef struct {
