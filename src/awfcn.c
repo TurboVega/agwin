@@ -15,11 +15,12 @@ extern "C" {
 AwWindow* desktop_window;
 AwWindow* active_window;
 
-AwMsg   message_queue[AW_MESSAGE_QUEUE_SIZE];
-uint8_t msg_count;
-uint8_t msg_read_index;
-uint8_t msg_write_index;
-bool    running;
+AwMsg       message_queue[AW_MESSAGE_QUEUE_SIZE];
+uint8_t     msg_count;
+uint8_t     msg_read_index;
+uint8_t     msg_write_index;
+bool        running;
+uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
 
 int32_t aw_process_message(AwMsg* msg);
 
@@ -52,6 +53,37 @@ int16_t aw_get_rect_height(const AwRect* rect) {
 
 AwSize aw_get_rect_size(const AwRect* rect) {
     return AwSize { rect->right - rect->left, rect->bottom - rect->top };
+}
+
+void aw_offset_rect(AwRect* rect, int16_t dx, int16_t dy) {
+    rect->left += dx;
+    rect->top += dy;
+    rect->right += dx;
+    rect->bottom += dy;
+}
+
+void aw_expand_rect_width(AwRect* rect, int16_t delta) {
+    rect->left -= delta;
+    rect->right += delta;
+}
+
+void aw_expand_rect_height(AwRect* rect, int16_t delta) {
+    rect->top -= delta;
+    rect->bottom += delta;
+}
+
+void aw_expand_rect(AwRect* rect, int16_t delta) {
+    rect->left -= delta;
+    rect->top -= delta;
+    rect->right += delta;
+    rect->bottom += delta;
+}
+
+void aw_expand_rect_width(AwRect* rect, int16_t dleft, int16_t dtop, int16_t dright, int16_t dbottom) {
+    rect->left -= dleft;
+    rect->top -= dtop;
+    rect->right += dright;
+    rect->bottom += dbottom;
 }
 
 AwRect aw_get_screen_rect() {
@@ -109,34 +141,94 @@ AwWindow* aw_get_top_level_window(const AwWindow* window) {
     }
 }
 
+uint16_t get_new_context_id() {
+    // TBD - make this smarter!
+    return next_context_id++;
+}
+
 AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
                         int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text) {
     if ((app == nullptr) || (width < 0) || (height < 0) || (class_id == 0) || (text == 0)) {
         return; // bad parameter(s)
     }
 
+    // Allocate memory for the window structure
     AwWindow* window = (AwWindow*) malloc(sizeof(AwWindow));
     if (window == nullptr) {
         return; // no memory
     }
- 
-    char* ptext = 
+    memset(window, 0, sizeof(window));
 
+    // Allocate memory for the window text
+    int32_t len = strlen(text);
+    char* ptext = (char*) malloc(len + 1);
+    if (ptext == nullptr) {
+        free(window);
+        return nullptr; // no memory
+    }
+    strcpy(ptext, text);
+    window->text = text;
+    window->text_size = len + 1;
+
+    // Save the current VDP context
     vdp_context_save();
-    AwRect viewport_rect =
 
+    // Create a new VDP context for this window
+    uint16_t context_id = get_new_context_id();
+    vdp_context_reset(0xFF); // all flags set
+
+    window->parent = parent;
+    window->flags = flags;
+    window->app = app;
+    window->class_id = class_id;
+    window->context_id = context_id;
+
+    AwRect parent_rect;
+    if (parent) {
+        parent_rect = get_global_client_rect(parent);
+    } else {
+        parent_rect = aw_get_screen_rect();
+    }
+
+    int16_t total_width = width;
+    int16_t total_height = height;
+    int16_t top_deco_height = 0;
+    int16_t deco_thickness = 0;
+    if (flags.border) {
+        total_width += AW_BORDER_THICKNESS * 2;
+        total_height += AW_BORDER_THICKNESS * 2;
+        top_deco_height = AW_BORDER_THICKNESS;
+        deco_thickness = AW_BORDER_THICKNESS;
+    }
+    if (flags.title_bar) {
+        total_height += AW_TITLE_BAR_HEIGHT;
+        top_deco_height += AW_TITLE_BAR_HEIGHT;
+    }
+
+    window->window_rect.left = parent_rect.left + x;
+    window->window_rect.top = parent_rect.top + y;
+    window->window_rect.right = window->window_rect.left + total_width;
+    window->window_rect.bottom = window->window_rect.top + total_height;
+
+    window->client_rect.left = window->window_rect.left + deco_thickness;
+    window->client_rect.top = window->window_rect.top + top_deco_height;
+    window->client_rect.right = window->window_rect.right - deco_thickness;
+    window->client_rect.bottom = window->window_rect.bottom - deco_thickness;
+
+    
+    // Restore the VDP context
     vdp_context_restore();
 }
 
-AwRect get_global_window_rect(AwWindow* window) {
+AwRect aw_get_global_window_rect(AwWindow* window) {
     return window->window_rect;
 }
 
-AwRect get_global_client_rect(AwWindow* window) {
+AwRect aw_get_global_client_rect(AwWindow* window) {
     return window->client_rect;
 }
 
-AwRect get_local_window_rect(AwWindow* window) {
+AwRect aw_get_local_window_rect(AwWindow* window) {
     if (window->parent) {
         return AwRect {
             window->window_rect.left - parent->client_rect.left,
@@ -149,7 +241,7 @@ AwRect get_local_window_rect(AwWindow* window) {
     }
 }
 
-AwRect get_local_client_rect(AwWindow* window) {
+AwRect aw_get_local_client_rect(AwWindow* window) {
     if (window->parent) {
         return AwRect {
             window->client_rect.left - parent->client_rect.left,
@@ -162,12 +254,12 @@ AwRect get_local_client_rect(AwWindow* window) {
     }
 }
 
-AwRect get_sizing_window_rect(AwWindow* window) {
+AwRect aw_get_sizing_window_rect(AwWindow* window) {
     AwSize size = get_window_size(window);
     return AwRect { 0, 0, size.width, size.height };
 }
 
-AwRect get_sizing_client_rect(AwWindow* window) {
+AwRect aw_get_sizing_client_rect(AwWindow* window) {
     AwSize size = get_client_size(window);
     return AwRect { 0, 0, size.width, size.height };
 }
@@ -233,6 +325,11 @@ const AwSystemFunctionTable aw_system_function_table = {
     aw_get_rect_width,
     aw_get_rect_height,
     aw_get_rect_size,
+    aw_offset_rect,
+    aw_expand_rect_width,
+    aw_expand_rect_height,
+    aw_expand_rect,
+    aw_expand_rect_unevenly,
     aw_get_screen_rect,
     aw_get_empty_rect,
     aw_get_union_rect,
@@ -241,6 +338,15 @@ const AwSystemFunctionTable aw_system_function_table = {
     aw_get_active_window,
     aw_get_top_level_window,
     aw_create_window,
+    aw_get_global_window_rect,
+    aw_get_global_client_rect,
+    aw_get_local_window_rect,
+    aw_get_local_client_rect,
+    aw_get_sizing_window_rect,
+    aw_get_sizing_client_rect,
+    aw_get_window_size,
+    aw_get_client_size,
+    aw_set_text,
     aw_move_window,
     aw_size_window,
     aw_activate_window,

@@ -18,6 +18,16 @@ typedef int (*AwGetRectHeight)(const AwRect* rect);
 
 typedef AwSize (*AwGetRectSize)(const AwRect* rect);
 
+typedef void (*AwOffsetRect)(AwRect* rect, int16_t dx, int16_t dy);
+
+typedef void (*AwExpandRectWidth)(AwRect* rect, int16_t delta);
+
+typedef void (*AwExpandRectHeight)(AwRect* rect, int16_t delta);
+
+typedef void (*AwExpandRect)(AwRect* rect, int16_t delta);
+
+typedef void (*AwExpandRectUnevenly)(AwRect* rect, int16_t dleft, int16_t dtop, int16_t dright, int16_t dbottom);
+
 typedef AwRect (*AwGetScreenRect)();
 
 typedef AwRect (*AwGetEmptyRect)();
@@ -81,6 +91,11 @@ typedef struct {
     AwGetRectWidth          get_rect_width;
     AwGetRectHeight         get_rect_height;
     AwGetRectSize           get_rect_size;
+    AwOffsetRect            offset_rect;
+    AwExpandRectWidth       expand_rect_width;
+    AwExpandRectHeight      expand_rect_height;
+    AwExpandRect            expand_rect;
+    AwExpandRectUnevenly    expand_rect_unevenly;
     AwGetScreenRect         get_screen_rect;
     AwGetEmptyRect          get_empty_rect;
     AwGetUnionRect          get_union_rect;

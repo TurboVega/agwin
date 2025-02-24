@@ -16,6 +16,13 @@ extern "C" {
 #define AW_CLASS_STATIC_TEXT    7
 #define AW_CLASS_MESSAGE_BOX    8
 
+#define AW_CONTEXT_ID_LOW       0x8000  // lowest VDP context ID used by agwin
+#define AW_CONTEXT_ID_HIGH      0x8FFF  // highest VDP context ID used by agwin
+
+#define AW_BORDER_THICKNESS     4       // pixels
+#define AW_TITLE_BAR_HEIGHT     12      // pixels
+#define AW_TTITLE_TEXT_HEIGHT   8       // pixels
+
 #pragma pack(push, 1)
 
 typedef enum uint8_t {
