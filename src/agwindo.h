@@ -18,8 +18,11 @@ typedef enum uint8_t {
     Aw_Do_ShowWindow,
     Aw_Do_EnableWindow,
     Aw_Do_ActivateWindow,
-    Aw_Do_Terminate,
+    Aw_Do_InvalidateWindow,
+    Aw_Do_InvalidateWindowRect,
     Aw_Do_PaintWindow,
+    Aw_Do_Terminate,
+    Aw_Do_Exit,
 } AwDoMsgType;
 
 typedef struct tag_AwDoMsgCommon {
@@ -27,7 +30,7 @@ typedef struct tag_AwDoMsgCommon {
     AwDoMsgType     msg_type;
 } AwDoMsgCommon;
 
-typedef struct tag_AwDoMsgPaint {
+typedef struct tag_AwDoMsgPaintWindow {
     AwWindow*       window;
     AwDoMsgType     msg_type;
     AwRect          win_rect;
@@ -38,6 +41,50 @@ typedef struct tag_AwDoMsgPaint {
         uint16_t     all_flags;
     };
 } AwDoMsgPaintWindow;
+
+typedef struct tag_AwDoMsgResizeWindow {
+    AwWindow*       window;
+    AwDoMsgType     msg_type;
+    int16_t         width;
+    int16_t         height;
+} AwDoMsgResizeWindow;
+
+typedef struct tag_AwDoMsgMoveWindow {
+    AwWindow*       window;
+    AwDoMsgType     msg_type;
+    int16_t         x;
+    int16_t         y;
+} AwDoMsgMoveWindow;
+
+typedef struct tag_AwDoMsgShowWindow {
+    AwWindow*       window;
+    AwDoMsgType     msg_type;
+    bool            visible;
+} AwDoMsgShowWindow;
+
+typedef struct tag_AwDoMsgEnableWindow {
+    AwWindow*       window;
+    AwDoMsgType     msg_type;
+    bool            enabled;
+} AwDoMsgEnableWindow;
+
+typedef struct tag_AwDoMsgActivateWindow {
+    AwWindow*       window;
+    AwDoMsgType     msg_type;
+    bool            active;
+} AwDoMsgActivateWindow;
+
+typedef struct tag_AwDoMsgInvalidateWindowRect {
+    AwWindow*       window;
+    AwDoMsgType     msg_type;
+    AwRect          rect;
+} AwDoMsgInvalidateWindowRect;
+
+typedef struct tag_AwDoMsgExit {
+    AwWindow*       window;
+    AwDoMsgType     msg_type;
+    AwApplication*  app;
+} AwDoMsgExit;
 
 void aw_resize_window(AwWindow* window, int16_t width, int16_t height);
 

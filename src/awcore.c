@@ -1,4 +1,4 @@
-#include "awfcn.h"
+#include "awcore.h"
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,9 +23,9 @@ uint8_t     msg_write_index;
 bool        running;
 uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
 
-int32_t aw_handle_message(AwMsg* msg);
+int32_t core_handle_message(AwMsg* msg);
 
-const AwApplication agwin_app = { "agwin", aw_handle_message, 0, 0 };
+const AwApplication agwin_app = { "agwin", core_handle_message, 0, 0 };
 
 void key_event_handler(KEY_EVENT key_event)
 {
@@ -39,57 +39,57 @@ void key_event_handler(KEY_EVENT key_event)
 	return;
 }
 
-uint8_t aw_get_version() {
+uint8_t core_get_version() {
     return AW_VERSION;
 }
 
-int16_t aw_get_rect_width(const AwRect* rect) {
+int16_t core_get_rect_width(const AwRect* rect) {
     return rect->right - rect->left;
 }
 
-int16_t aw_get_rect_height(const AwRect* rect) {
+int16_t core_get_rect_height(const AwRect* rect) {
     return rect->bottom - rect->top;
 }
 
-AwSize aw_get_rect_size(const AwRect* rect) {
+AwSize core_get_rect_size(const AwRect* rect) {
     AwSize size;
     size.width = rect->right - rect->left;
     size.height = rect->bottom - rect->top;
     return size;
 }
 
-void aw_offset_rect(AwRect* rect, int16_t dx, int16_t dy) {
+void core_offset_rect(AwRect* rect, int16_t dx, int16_t dy) {
     rect->left += dx;
     rect->top += dy;
     rect->right += dx;
     rect->bottom += dy;
 }
 
-void aw_expand_rect_width(AwRect* rect, int16_t delta) {
+void core_expand_rect_width(AwRect* rect, int16_t delta) {
     rect->left -= delta;
     rect->right += delta;
 }
 
-void aw_expand_rect_height(AwRect* rect, int16_t delta) {
+void core_expand_rect_height(AwRect* rect, int16_t delta) {
     rect->top -= delta;
     rect->bottom += delta;
 }
 
-void aw_expand_rect(AwRect* rect, int16_t delta) {
+void core_expand_rect(AwRect* rect, int16_t delta) {
     rect->left -= delta;
     rect->top -= delta;
     rect->right += delta;
     rect->bottom += delta;
 }
 
-void aw_expand_rect_unevenly(AwRect* rect, int16_t dleft, int16_t dtop, int16_t dright, int16_t dbottom) {
+void core_expand_rect_unevenly(AwRect* rect, int16_t dleft, int16_t dtop, int16_t dright, int16_t dbottom) {
     rect->left -= dleft;
     rect->top -= dtop;
     rect->right += dright;
     rect->bottom += dbottom;
 }
 
-AwRect aw_get_screen_rect() {
+AwRect core_get_screen_rect() {
     AwRect rect;
     rect.left = 0;
     rect.top = 0;
@@ -98,7 +98,7 @@ AwRect aw_get_screen_rect() {
     return rect;
 }
 
-AwRect aw_get_empty_rect() {
+AwRect core_get_empty_rect() {
     AwRect rect;
     rect.left = 0;
     rect.top = 0;
@@ -107,7 +107,7 @@ AwRect aw_get_empty_rect() {
     return rect;
 }
 
-AwRect aw_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
+AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
     AwRect rect;
     rect.left = min(rect1->left, rect2->left);
     rect.top = min(rect1->top, rect2->top);
@@ -116,12 +116,12 @@ AwRect aw_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
     return rect;
 }
 
-AwRect aw_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
+AwRect core_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
     if (rect1->left >= rect2->right ||
         rect2->left >= rect1->right ||
         rect1->top >= rect2->bottom ||
         rect2->top >= rect1->bottom) {
-        return aw_get_empty_rect();
+        return core_get_empty_rect();
     }
 
     AwRect rect;
@@ -132,15 +132,15 @@ AwRect aw_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
     return rect;
 }
 
-AwWindow* aw_get_desktop_window() {
+AwWindow* core_get_desktop_window() {
     return desktop_window;
 }
 
-AwWindow* aw_get_active_window() {
+AwWindow* core_get_active_window() {
     return active_window;
 }
 
-AwWindow* aw_get_top_level_window(AwWindow* window) {
+AwWindow* core_get_top_level_window(AwWindow* window) {
     while (true)
     {
         if (window->flags.top_level) {
@@ -159,7 +159,7 @@ uint16_t get_new_context_id() {
     return next_context_id++;
 }
 
-void aw_set_text(AwWindow* window, const char* text) {
+void core_set_text(AwWindow* window, const char* text) {
     uint32_t size = strlen(text) + 1;
     if (size <= window->text_size) {
         // Text fits in allocated space
@@ -180,19 +180,19 @@ void aw_set_text(AwWindow* window, const char* text) {
     }
 }
 
-AwRect aw_get_global_window_rect(AwWindow* window) {
+AwRect core_get_global_window_rect(AwWindow* window) {
     return window->window_rect;
 }
 
-AwRect aw_get_global_client_rect(AwWindow* window) {
+AwRect core_get_global_client_rect(AwWindow* window) {
     return window->client_rect;
 }
 
-void aw_invalidate_window(AwWindow* window) {
+void core_invalidate_window(AwWindow* window) {
     window->paint_rect = window->window_rect;
 }
 
-void aw_post_message(AwMsg* msg) {
+void core_post_message(AwMsg* msg) {
     if (msg_count < AW_MESSAGE_QUEUE_SIZE) {
         AwMsg* pmsg = &message_queue[msg_write_index++];
         if (msg_write_index >= AW_MESSAGE_QUEUE_SIZE) {
@@ -203,15 +203,15 @@ void aw_post_message(AwMsg* msg) {
     }
 }
 
-void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
+void core_move_window(AwWindow* window, int16_t x, int16_t y) {
     AwRect parent_rect;
     if (window->parent) {
-        parent_rect = aw_get_global_client_rect(window->parent);
+        parent_rect = core_get_global_client_rect(window->parent);
     } else {
-        parent_rect = aw_get_screen_rect();
+        parent_rect = core_get_screen_rect();
     }
 
-    AwSize window_size = aw_get_rect_size(&window->window_rect);
+    AwSize window_size = core_get_rect_size(&window->window_rect);
     AwSize client_size = window_size;
     int16_t top_deco_height = 0;
     int16_t deco_thickness = 0;
@@ -235,15 +235,15 @@ void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
     window->client_rect.right = window->window_rect.left + client_size.width;
     window->client_rect.bottom = window->window_rect.top + client_size.height;
 
-    aw_invalidate_window(window);
+    core_invalidate_window(window);
 
     AwMsg msg;
     msg.window_moved.window = window;
     msg.window_moved.msg_type = AwMt_WindowMoved;
-    aw_post_message(&msg);
+    core_post_message(&msg);
 }
 
-AwRect aw_get_local_window_rect(AwWindow* window) {
+AwRect core_get_local_window_rect(AwWindow* window) {
     if (window->parent) {
         AwRect rect;
         rect.left = window->window_rect.left - window->parent->client_rect.left;
@@ -256,19 +256,19 @@ AwRect aw_get_local_window_rect(AwWindow* window) {
     }
 }
 
-void aw_size_window(AwWindow* window, int16_t width, int16_t height) {
-    AwRect rect = aw_get_local_window_rect(window);
+void core_size_window(AwWindow* window, int16_t width, int16_t height) {
+    AwRect rect = core_get_local_window_rect(window);
     window->window_rect.right = window->window_rect.left + width;
     window->window_rect.bottom = window->window_rect.top + height;
-    aw_move_window(window, rect.left, rect.top);
+    core_move_window(window, rect.left, rect.top);
 
     AwMsg msg;
     msg.window_resized.window = window;
     msg.window_resized.msg_type = AwMt_WindowResized;
-    aw_post_message(&msg);
+    core_post_message(&msg);
 }
 
-AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
+AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
                         int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text) {
     if ((app == NULL) || (width < 0) || (height < 0) || (class_id == 0) || (text == 0)) {
         return 0; // bad parameter(s)
@@ -288,7 +288,7 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     uint16_t context_id = get_new_context_id();
     vdp_context_reset(0xFF); // all flags set
 
-    aw_set_text(window, text);
+    core_set_text(window, text);
     window->parent = parent;
     window->flags = flags;
     window->app = app;
@@ -300,12 +300,12 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     AwMsg msg;
     msg.window_created.window = window;
     msg.window_created.msg_type = AwMt_WindowCreated;
-    aw_post_message(&msg);
+    core_post_message(&msg);
 
     msg.window_resized.msg_type = AwMt_WindowResized;
-    aw_post_message(&msg);
+    core_post_message(&msg);
 
-    aw_move_window(window, x, y);
+    core_move_window(window, x, y);
 
     if (window->flags.visible) {
         msg.paint_window.msg_type = AwMt_PaintWindow;
@@ -332,13 +332,13 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     return window;
 }
 
-void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
-    AwRect extra_rect = aw_get_intersect_rect(&window->window_rect, rect);
-    AwRect paint_rect = aw_get_intersect_rect(&window->paint_rect, &extra_rect);
+void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
+    AwRect extra_rect = core_get_intersect_rect(&window->window_rect, rect);
+    AwRect paint_rect = core_get_intersect_rect(&window->paint_rect, &extra_rect);
     window->paint_rect = paint_rect;
 }
 
-AwRect aw_get_local_client_rect(AwWindow* window) {
+AwRect core_get_local_client_rect(AwWindow* window) {
     if (window->parent) {
         AwRect rect;
         rect.left = window->client_rect.left - window->parent->client_rect.left;
@@ -351,16 +351,16 @@ AwRect aw_get_local_client_rect(AwWindow* window) {
     }
 }
 
-AwSize aw_get_window_size(AwWindow* window) {
-    return aw_get_rect_size(&window->window_rect);
+AwSize core_get_window_size(AwWindow* window) {
+    return core_get_rect_size(&window->window_rect);
 }
 
-AwSize aw_get_client_size(AwWindow* window) {
-    return aw_get_rect_size(&window->client_rect);
+AwSize core_get_client_size(AwWindow* window) {
+    return core_get_rect_size(&window->client_rect);
 }
 
-AwRect aw_get_sizing_window_rect(AwWindow* window) {
-    AwSize size = aw_get_window_size(window);
+AwRect core_get_sizing_window_rect(AwWindow* window) {
+    AwSize size = core_get_window_size(window);
     AwRect rect;
     rect.left = 0;
     rect.top = 0;
@@ -369,8 +369,8 @@ AwRect aw_get_sizing_window_rect(AwWindow* window) {
     return rect;
 }
 
-AwRect aw_get_sizing_client_rect(AwWindow* window) {
-    AwSize size = aw_get_client_size(window);
+AwRect core_get_sizing_client_rect(AwWindow* window) {
+    AwSize size = core_get_client_size(window);
     AwRect rect;
     rect.left = 0;
     rect.top = 0;
@@ -379,65 +379,65 @@ AwRect aw_get_sizing_client_rect(AwWindow* window) {
     return rect;
 }
 
-void aw_activate_window(AwWindow* window, bool active) {
+void core_activate_window(AwWindow* window, bool active) {
     if (active) {
         if (window->flags.enabled && (window != active_window)) {
             if (active_window) {
-                aw_activate_window(active_window, false);
+                core_activate_window(active_window, false);
             }
             window->flags.active = 1;
             active_window = window;
-            aw_invalidate_window(window);
+            core_invalidate_window(window);
         }
     } else {
         if (window == active_window) {
             window->flags.active = 0;
             active_window = NULL;
-            aw_invalidate_window(window);
+            core_invalidate_window(window);
         }
     }
 }
 
-void aw_enable_window(AwWindow* window, bool enabled) {
+void core_enable_window(AwWindow* window, bool enabled) {
     if (enabled) {
         if (!window->flags.enabled) {
             window->flags.enabled = 1;
-            aw_invalidate_window(window);
+            core_invalidate_window(window);
         }
     } else {
         if (window->flags.enabled) {
             window->flags.enabled = 0;
             if (window == active_window) {
-                aw_activate_window(active_window, false);
+                core_activate_window(active_window, false);
             }
-            aw_invalidate_window(window);
+            core_invalidate_window(window);
         }
     }
 }
 
-void aw_show_window(AwWindow* window, bool visible) {
+void core_show_window(AwWindow* window, bool visible) {
     if (visible) {
         if (!window->flags.visible) {
             window->flags.visible = 1;
-            aw_invalidate_window(window);
+            core_invalidate_window(window);
         }
     } else {
         if (window->flags.visible) {
             window->flags.visible = 0;
-            aw_invalidate_window(window);
+            core_invalidate_window(window);
         }
     }
 }
 
-void aw_close_window(AwWindow* window) {
+void core_close_window(AwWindow* window) {
 
 }
 
-void aw_destroy_window(AwWindow* window) {
+void core_destroy_window(AwWindow* window) {
 
 }
 
-void aw_process_message(AwMsg* msg) {
+void core_process_message(AwMsg* msg) {
     AwApplication* app = msg->common.app;
     int32_t result = (*app->msg_handler)(msg);
     if (result) {
@@ -447,15 +447,15 @@ void aw_process_message(AwMsg* msg) {
     }
 }
 
-void aw_exit_app(AwApplication* app) {
+void core_exit_app(AwApplication* app) {
 
 }
 
-void aw_terminate() {
+void core_terminate() {
 
 }
 
-int32_t aw_handle_message(AwMsg* msg) {
+int32_t core_handle_message(AwMsg* msg) {
     switch (msg->common.msg_type)
     {
     case AwMt_Common: {
@@ -571,48 +571,7 @@ int32_t aw_handle_message(AwMsg* msg) {
     }
 }
 
-
-const AwSystemFunctionTable aw_system_function_table = {
-    aw_get_version,
-    aw_get_rect_width,
-    aw_get_rect_height,
-    aw_get_rect_size,
-    aw_offset_rect,
-    aw_expand_rect_width,
-    aw_expand_rect_height,
-    aw_expand_rect,
-    aw_expand_rect_unevenly,
-    aw_get_screen_rect,
-    aw_get_empty_rect,
-    aw_get_union_rect,
-    aw_get_intersect_rect,
-    aw_get_desktop_window,
-    aw_get_active_window,
-    aw_get_top_level_window,
-    aw_create_window,
-    aw_get_global_window_rect,
-    aw_get_global_client_rect,
-    aw_get_local_window_rect,
-    aw_get_local_client_rect,
-    aw_get_sizing_window_rect,
-    aw_get_sizing_client_rect,
-    aw_get_window_size,
-    aw_get_client_size,
-    aw_set_text,
-    aw_move_window,
-    aw_size_window,
-    aw_activate_window,
-    aw_enable_window,
-    aw_show_window,
-    aw_close_window,
-    aw_destroy_window,
-    aw_post_message,
-    aw_process_message,
-    aw_exit_app,
-    aw_terminate,
-};
-
-void aw_initialize() {
+void core_initialize() {
     AwWindowFlags flags;
     flags.border = 0;
     flags.title_bar = 0;
@@ -623,12 +582,12 @@ void aw_initialize() {
     flags.selected = 0;
     flags.visible = 1;
 
-    desktop_window = aw_create_window(&agwin_app, NULL, AW_CLASS_DESKTOP, flags,
+    desktop_window = core_create_window(&agwin_app, NULL, AW_CLASS_DESKTOP, flags,
                         0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Desktop");
     running = true;
 }
 
-void aw_message_loop() {
+void core_message_loop() {
 	vdp_set_key_event_handler(key_event_handler);
     while (running) {
         if (msg_count) {
@@ -637,7 +596,7 @@ void aw_message_loop() {
                 msg_read_index = 0;
             }
             msg_count--;
-            aw_process_message(msg);
+            core_process_message(msg);
         }
     }
     vdp_key_reset_interrupt();

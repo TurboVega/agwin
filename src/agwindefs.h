@@ -31,6 +31,10 @@ extern "C" {
 #define AW_CLASS_MESSAGE_BOX    ((uint16_t) 8)
 #define AW_CLASS_ICON           ((uint16_t) 9)
 
+#ifndef NULL
+#define NULL 0
+#endif
+
 #define min(a, b)       ((a) < (b) ? (a) : (b))
 #define max(a, b)       ((a) > (b) ? (a) : (b))
 
