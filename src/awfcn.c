@@ -188,10 +188,25 @@ AwRect aw_get_global_client_rect(AwWindow* window) {
     return window->client_rect;
 }
 
+void aw_invalidate_window(AwWindow* window) {
+    window->paint_rect = window->window_rect;
+}
+
+void aw_post_message(AwMsg* msg) {
+    if (msg_count < AW_MESSAGE_QUEUE_SIZE) {
+        AwMsg* pmsg = &message_queue[msg_write_index++];
+        if (msg_write_index >= AW_MESSAGE_QUEUE_SIZE) {
+            msg_write_index = 0;
+        }
+        *pmsg = *msg;
+        msg_count++;
+    }
+}
+
 void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
     AwRect parent_rect;
     if (window->parent) {
-        parent_rect = get_global_client_rect(window->parent);
+        parent_rect = aw_get_global_client_rect(window->parent);
     } else {
         parent_rect = aw_get_screen_rect();
     }
@@ -228,11 +243,24 @@ void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
     aw_post_message(&msg);
 }
 
+AwRect aw_get_local_window_rect(AwWindow* window) {
+    if (window->parent) {
+        AwRect rect;
+        rect.left = window->window_rect.left - window->parent->client_rect.left;
+        rect.top = window->window_rect.top - window->parent->client_rect.top;
+        rect.right = window->window_rect.right - window->parent->client_rect.left;
+        rect.bottom = window->window_rect.bottom - window->parent->client_rect.top;
+        return rect;
+    } else {
+        return window->window_rect;
+    }
+}
+
 void aw_size_window(AwWindow* window, int16_t width, int16_t height) {
     AwRect rect = aw_get_local_window_rect(window);
     window->window_rect.right = window->window_rect.left + width;
     window->window_rect.bottom = window->window_rect.top + height;
-    aw_move_window(rect.left, rect.top);
+    aw_move_window(window, rect.left, rect.top);
 
     AwMsg msg;
     msg.window_resized.window = window;
@@ -251,7 +279,7 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     if (window == NULL) {
         return 0; // no memory
     }
-    memset(window, 0, sizeof(window));
+    memset(window, 0, sizeof(AwWindow));
 
     // Save the current VDP context
     vdp_context_save();
@@ -301,11 +329,7 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
         }
     }
 
-    return 1;
-}
-
-void aw_invalidate_window(AwWindow* window) {
-    window->paint_rect = window->window_rect;
+    return window;
 }
 
 void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
@@ -314,26 +338,13 @@ void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
     window->paint_rect = paint_rect;
 }
 
-AwRect aw_get_local_window_rect(AwWindow* window) {
-    if (window->parent) {
-        AwRect rect;
-        rect.left = window->window_rect.left - parent->client_rect.left;
-        rect.top = window->window_rect.top - parent->client_rect.top;
-        rect.right = window->window_rect.right - parent->client_rect.left;
-        rect.bottom = window->window_rect.bottom - parent->client_rect.top;
-        return rect;
-    } else {
-        return window->window_rect;
-    }
-}
-
 AwRect aw_get_local_client_rect(AwWindow* window) {
     if (window->parent) {
         AwRect rect;
-        rect.left = window->client_rect.left - parent->client_rect.left;
-        rect.top = window->client_rect.top - parent->client_rect.top;
-        rect.right = window->client_rect.right - parent->client_rect.left;
-        rect.bottom = window->client_rect.bottom - parent->client_rect.top;
+        rect.left = window->client_rect.left - window->parent->client_rect.left;
+        rect.top = window->client_rect.top - window->parent->client_rect.top;
+        rect.right = window->client_rect.right - window->parent->client_rect.left;
+        rect.bottom = window->client_rect.bottom - window->parent->client_rect.top;
         return rect;
     } else {
         window->client_rect;
@@ -414,17 +425,6 @@ void aw_close_window(AwWindow* window) {
 
 void aw_destroy_window(AwWindow* window) {
 
-}
-
-void aw_post_message(AwMsg* msg) {
-    if (msg_count < AW_MESSAGE_QUEUE_SIZE) {
-        AwMsg* pmsg = &message_queue[msg_write_index++];
-        if (msg_write_index >= AW_MESSAGE_QUEUE_SIZE) {
-            msg_write_index = 0;
-        }
-        *pmsg = *msg;
-        msg_count++;
-    }
 }
 
 void aw_process_message(AwMsg* msg) {
