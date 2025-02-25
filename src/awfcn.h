@@ -7,13 +7,6 @@
 extern "C" {
 #endif
 
-#define AW_MAJOR        0
-#define AW_MINOR        1
-#define AW_VERSION      ((AW_MAJOR << 4) | AW_MINOR)
-
-#define min(a, b)       ((a) < (b) ? (a) : (b))
-#define max(a, b)       ((a) > (b) ? (a) : (b))
-
 typedef uint8_t (*AwGetVersion)();
 
 typedef int (*AwGetRectWidth)(const AwRect* rect);

@@ -2,11 +2,12 @@
 
 // Message declarations for operation messages
 
+#include <stdbool.h>
+#include "agwindefs.h"
+
 #ifdef __CPLUSPLUS
 extern "C" {
 #endif
-
-#include "agwindefs.h"
 
 typedef enum uint8_t {
     Aw_Do_Common = 1,
@@ -37,6 +38,28 @@ typedef struct tag_AwDoMsgPaint {
         uint16_t     all_flags;
     };
 } AwDoMsgPaintWindow;
+
+void aw_resize_window(AwWindow* window, int16_t width, int16_t height);
+
+void aw_move_window(AwWindow* window, int16_t x, int16_t y);
+
+void aw_close_window(AwWindow* window);
+
+void aw_destroy_window(AwWindow* window);
+
+void aw_show_window(AwWindow* window, bool visible);
+
+void aw_enable_window(AwWindow* window, bool enabled);
+
+void aw_activate_window(AwWindow* window, bool active);
+
+void aw_invalidate_window(AwWindow* window);
+
+void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect);
+
+void aw_exit(AwApplication* app);
+
+void aw_terminate();
 
 #ifdef __CPLUSPLUS
 } // extern "C"

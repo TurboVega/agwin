@@ -8,6 +8,32 @@ extern "C" {
 
 #pragma pack(push, 1)
 
+#define AW_MAJOR        0
+#define AW_MINOR        1
+#define AW_VERSION      ((AW_MAJOR << 4) | AW_MINOR)
+
+#define AW_CONTEXT_ID_LOW       0x8000  // lowest VDP context ID used by agwin
+#define AW_CONTEXT_ID_HIGH      0x8FFF  // highest VDP context ID used by agwin
+
+#define AW_BORDER_THICKNESS     4       // pixels
+#define AW_TITLE_BAR_HEIGHT     12      // pixels
+#define AW_TTITLE_TEXT_HEIGHT   8       // pixels
+#define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
+
+// Some standard window classes
+#define AW_CLASS_DESKTOP        ((uint16_t) 1)
+#define AW_CLASS_MENU           ((uint16_t) 2)
+#define AW_CLASS_MENU_ITEM      ((uint16_t) 3)
+#define AW_CLASS_LIST           ((uint16_t) 4)
+#define AW_CLASS_LIST_ITEM      ((uint16_t) 5)
+#define AW_CLASS_EDIT_TEXT      ((uint16_t) 6)
+#define AW_CLASS_STATIC_TEXT    ((uint16_t) 7)
+#define AW_CLASS_MESSAGE_BOX    ((uint16_t) 8)
+#define AW_CLASS_ICON           ((uint16_t) 9)
+
+#define min(a, b)       ((a) < (b) ? (a) : (b))
+#define max(a, b)       ((a) > (b) ? (a) : (b))
+
 typedef union tag_AwMsg AwMsg;
 typedef struct tag_AwWindow AwWindow;
 

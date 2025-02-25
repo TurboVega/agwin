@@ -2,11 +2,11 @@
 
 // Message declarations for notification messages
 
+#include "agwindefs.h"
+
 #ifdef __CPLUSPLUS
 extern "C" {
 #endif
-
-#include "agwindefs.h"
 
 typedef enum uint8_t {
     Aw_On_Common = 101,
