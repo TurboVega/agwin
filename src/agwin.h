@@ -22,6 +22,7 @@ extern "C" {
 #define AW_BORDER_THICKNESS     4       // pixels
 #define AW_TITLE_BAR_HEIGHT     12      // pixels
 #define AW_TTITLE_TEXT_HEIGHT   8       // pixels
+#define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
 
 #pragma pack(push, 1)
 
@@ -55,28 +56,29 @@ typedef enum uint8_t {
     AwMt_Terminate,
 } AwMsgType;
 
-typedef struct AwMsg;
+typedef union tag_AwMsg AwMsg;
+typedef struct tag_AwWindow AwWindow;
 
 typedef int32_t (*AwMsgHandler)(AwMsg* msg);
 
-typedef struct {
+typedef struct tag_AwRect {
     int16_t     left;       // inclusive left edge of the rectangle (this is inside the rectangle)
     int16_t     top;        // inclusive top edge of the rectangle (this is inside the rectangle)
     int16_t     right;      // exclusive right edge of the rectangle (this is outside the rectangle)
     int16_t     bottom;     // exclusive bottom edge of the rectangle (this is outside the rectangle)
 } AwRect;
 
-typedef struct {
+typedef struct tag_AwPoint {
     int16_t     x;          // X coordinate
     int16_t     y;          // Y coordinate
 } AwPoint;
 
-typedef struct {
+typedef struct tag_AwSize {
     int16_t     width;      // horizontal size
     int16_t     height;     // vertical size
 } AwSize;
 
-typedef struct {
+typedef struct tag_AwWindowFlags {
     uint16_t        top_level : 1;  // whether the window is a top-level window
     uint16_t        popup : 1;      // whether the window is a popup (e.g., dialog) window
     uint16_t        border : 1;     // whether the window has a border
@@ -95,14 +97,14 @@ typedef struct {
     uint16_t        reserved6 : 1;  // reserved
 } AwWindowFlags;
 
-typedef struct {
+typedef struct tag_AwApplication {
     const char*     name;           // name of the app
     AwMsgHandler    msg_handler;    // points to the message handler function
     uint32_t*       load_address;   // location that the app was loaded
     uint32_t        memory_size;    // amount of memory allocated to app
 } AwApplication;
 
-typedef struct {
+typedef struct tag_AwWindow {
     AwApplication*  app;            // points to the app that owns the window
     AwWindow*       parent;         // points to the parent window
     AwWindow*       first_child;    // points to the first child window
@@ -117,7 +119,7 @@ typedef struct {
     uint32_t        text_size;      // allocated space for text (not the text length)
 } AwWindow;
 
-typedef struct {
+typedef struct tag_AwPaintFlags {
     uint16_t        border : 1;     // paint the border
     uint16_t        title_bar : 1;  // paint the title bar
     uint16_t        title : 1;      // paint the title
@@ -136,7 +138,7 @@ typedef struct {
     uint16_t        reserved8 : 1;  // reserved
 } AwPaintFlags;
 
-typedef struct {
+typedef struct tag_AwMsgPaint {
     AwWindow*       window;
     AwMsgType       msg_type;
     AwRect          win_rect;
@@ -148,7 +150,7 @@ typedef struct {
     };
 } AwMsgPaint;
 
-typedef struct {
+typedef struct tag_AwInputState {
     AwWindow*       window;
     uint8_t         key_down : 1;       // whether any key is currently pressed
     uint8_t         key_repeat : 1;     // whether any key is currently being repeated
@@ -160,7 +162,7 @@ typedef struct {
     uint8_t         alt : 1;            // whether the ALT key is currently pressed
 } AwInputState;
 
-typedef struct {
+typedef struct tag_AwInputAction {
     uint8_t         down : 1;           // whether the key/button is now down
     uint8_t         up : 1;             // whether the key/button is now up
     uint8_t         repeat : 1;         // whether the key is being repeated
@@ -171,7 +173,7 @@ typedef struct {
     uint8_t         reserved2 : 1;      // reserved
 } AwInputAction;
 
-typedef struct {
+typedef struct tag_AwMsgInputAction {
     AwWindow*       window;
     AwMsgType       msg_type;
     AwInputState    state;
@@ -183,7 +185,7 @@ typedef struct {
     AwPoint         mouse_client_pt;    // Mouse location relative to client area beneath it
 } AwMsgInputAction;
 
-typedef struct {
+typedef struct tag_AwMsgSimple {
     AwWindow*       window;
     AwMsgType       msg_type;
 } AwMsgSimple;
@@ -216,7 +218,7 @@ typedef AwMsgSimple         AwMsgWindowShown;
 typedef AwMsgSimple         AwMsgWindowHidden;
 typedef AwMsgSimple         AwMsgTerminate;
 
-typedef union {
+typedef union tag_AwMsg {
     AwMsgCommon             common;
     AwMsgPaintWindow        paint_window;
     AwMsgKeyAction          key_action;

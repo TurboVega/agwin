@@ -1,6 +1,7 @@
 #pragma once
 
 #include "agwin.h"
+#include <stdbool.h>
 
 #ifdef __CPLUSPLUS
 extern "C" {
@@ -9,6 +10,9 @@ extern "C" {
 #define AW_MAJOR        0
 #define AW_MINOR        1
 #define AW_VERSION      ((AW_MAJOR << 4) | AW_MINOR)
+
+#define min(a, b)       ((a) < (b) ? (a) : (b))
+#define max(a, b)       ((a) > (b) ? (a) : (b))
 
 typedef uint8_t (*AwGetVersion)();
 
@@ -90,7 +94,7 @@ typedef void (*AwExitApp)(AwApplication* app);
 typedef void (*AwTerminate)();
 
 #pragma pack(push, 4)
-typedef struct {
+typedef struct tag_AwSystemFunctionTable {
     AwGetVersion            get_version;
     AwGetRectWidth          get_rect_width;
     AwGetRectHeight         get_rect_height;

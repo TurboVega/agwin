@@ -7,7 +7,6 @@
 extern "C" {
 #endif
 
-#define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
 #define AW_SCREEN_WIDTH         640
 #define AW_SCREEN_HEIGHT        480
 #define AW_MESSAGE_QUEUE_SIZE   64
@@ -29,13 +28,12 @@ const AwApplication agwin_app = { "agwin", aw_handle_message, 0, 0 };
 void key_event_handler(KEY_EVENT key_event)
 {
 	if (key_event.code == 0x7d) {
-		vdp_cursor_enable(true);
 		exit( 1 );						// Exit program if esc pressed
 	}
-	vdp_cursor_tab( 0, 0 );
+//	vdp_cursor_tab( 0, 0 );
 //	printf( "Modifier %02x, key-code %02x, up/down %02x\n",
 //			key_event.mods, key_event.code, key_event.down );
-	for ( int i = 31; i >= 0; i-- ) printf( "%02x", vdp_key_bits[i] );
+//	for ( int i = 31; i >= 0; i-- ) printf( "%02x", vdp_key_bits[i] );
 	return;
 }
 
@@ -52,7 +50,10 @@ int16_t aw_get_rect_height(const AwRect* rect) {
 }
 
 AwSize aw_get_rect_size(const AwRect* rect) {
-    return AwSize { rect->right - rect->left, rect->bottom - rect->top };
+    AwSize size;
+    size.width = rect->right - rect->left;
+    size.height = rect->bottom - rect->top;
+    return size;
 }
 
 void aw_offset_rect(AwRect* rect, int16_t dx, int16_t dy) {
@@ -87,20 +88,30 @@ void aw_expand_rect_unevenly(AwRect* rect, int16_t dleft, int16_t dtop, int16_t 
 }
 
 AwRect aw_get_screen_rect() {
-    return AwRect { 0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT };
+    AwRect rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = AW_SCREEN_WIDTH;
+    rect.bottom = AW_SCREEN_HEIGHT;
+    return rect;
 }
 
 AwRect aw_get_empty_rect() {
-    return AwRect { 0, 0, 0, 0};
+    AwRect rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = 0;
+    rect.bottom = 0;
+    return rect;
 }
 
 AwRect aw_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
-    return AwRect {
-        min(rect1->left, rect2->left),
-        min(rect1->top, rect2->top),
-        max(rect1->right, rect2->right),
-        max(rect1->bottom, rect2->bottom)
-    };
+    AwRect rect;
+    rect.left = min(rect1->left, rect2->left);
+    rect.top = min(rect1->top, rect2->top);
+    rect.right = max(rect1->right, rect2->right);
+    rect.bottom = max(rect1->bottom, rect2->bottom);
+    return rect;
 }
 
 AwRect aw_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
@@ -111,12 +122,12 @@ AwRect aw_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
         return aw_get_empty_rect();
     }
 
-    return AwRect {
-        (rect1->left > rect2->left) ? rect1->left : rect2->left,
-        (rect1->top > rect2->top) ? rect1->top : rect2->top,
-        (rect1->right < rect2->right) ? rect1->right : rect2->right,
-        (rect1->bottom < rect2->bottom) ? rect1->bottom : rect2->bottom
-    };
+    AwRect rect;
+    rect.left = (rect1->left > rect2->left) ? rect1->left : rect2->left;
+    rect.top = (rect1->top > rect2->top) ? rect1->top : rect2->top;
+    rect.right = (rect1->right < rect2->right) ? rect1->right : rect2->right;
+    rect.bottom = (rect1->bottom < rect2->bottom) ? rect1->bottom : rect2->bottom;
+    return rect;
 }
 
 AwWindow* aw_get_desktop_window() {
@@ -127,7 +138,7 @@ AwWindow* aw_get_active_window() {
     return active_window;
 }
 
-AwWindow* aw_get_top_level_window(const AwWindow* window) {
+AwWindow* aw_get_top_level_window(AwWindow* window) {
     while (true)
     {
         if (window->flags.top_level) {
@@ -136,7 +147,7 @@ AwWindow* aw_get_top_level_window(const AwWindow* window) {
         if (window->parent) {
             window = window->parent;
         } else {
-            return nullptr;
+            return NULL;
         }
     }
 }
@@ -148,13 +159,13 @@ uint16_t get_new_context_id() {
 
 AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
                         int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text) {
-    if ((app == nullptr) || (width < 0) || (height < 0) || (class_id == 0) || (text == 0)) {
-        return; // bad parameter(s)
+    if ((app == NULL) || (width < 0) || (height < 0) || (class_id == 0) || (text == 0)) {
+        return 0; // bad parameter(s)
     }
 
     // Allocate memory for the window structure
     AwWindow* window = (AwWindow*) malloc(sizeof(AwWindow));
-    if (window == nullptr) {
+    if (window == NULL) {
         return; // no memory
     }
     memset(window, 0, sizeof(window));
@@ -207,8 +218,7 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
         }
     }
 
-    // Restore the VDP context
-    vdp_context_restore();
+    return 1;
 }
 
 void aw_invalidate_window(AwWindow* window) {
@@ -359,7 +369,7 @@ void aw_activate_window(AwWindow* window, bool active) {
     } else {
         if (window == active_window) {
             window->flags.active = 0;
-            active_window = nullptr;
+            active_window = NULL;
             aw_invalidate_window(window);
         }
     }
@@ -601,7 +611,7 @@ void aw_initialize() {
     flags.selected = 0;
     flags.visible = 1;
 
-    desktop_window = aw_create_window(&agwin_app, nullptr, AW_CLASS_DESKTOP, flags,
+    desktop_window = aw_create_window(&agwin_app, NULL, AW_CLASS_DESKTOP, flags,
                         0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Desktop");
     running = true;
 }

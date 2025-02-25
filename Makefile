@@ -2,7 +2,7 @@
 # Makefile Options
 # ----------------------------
 
-NAME = pectin
+NAME = agwin
 DESCRIPTION = "Agon Windows"
 COMPRESSED = NO
 LDHAS_ARG_PROCESSING = 0
