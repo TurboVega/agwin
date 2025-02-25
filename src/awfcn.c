@@ -334,7 +334,7 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
 
 void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
     AwRect extra_rect = aw_get_intersect_rect(&window->window_rect, rect);
-    AwRect paint_rect = aw_get_intersect_rect(&window->paint_rect, extra_rect);
+    AwRect paint_rect = aw_get_intersect_rect(&window->paint_rect, &extra_rect);
     window->paint_rect = paint_rect;
 }
 
@@ -347,26 +347,36 @@ AwRect aw_get_local_client_rect(AwWindow* window) {
         rect.bottom = window->client_rect.bottom - window->parent->client_rect.top;
         return rect;
     } else {
-        window->client_rect;
+        return window->client_rect;
     }
 }
 
+AwSize aw_get_window_size(AwWindow* window) {
+    return aw_get_rect_size(&window->window_rect);
+}
+
+AwSize aw_get_client_size(AwWindow* window) {
+    return aw_get_rect_size(&window->client_rect);
+}
+
 AwRect aw_get_sizing_window_rect(AwWindow* window) {
-    AwSize size = get_window_size(window);
-    return AwRect { 0, 0, size.width, size.height };
+    AwSize size = aw_get_window_size(window);
+    AwRect rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = size.width;
+    rect.bottom = size.height;
+    return rect;
 }
 
 AwRect aw_get_sizing_client_rect(AwWindow* window) {
-    AwSize size = get_client_size(window);
-    return AwRect { 0, 0, size.width, size.height };
-}
-
-AwSize get_window_size(AwWindow* window) {
-    return get_rect_size(&window->window_rect);
-}
-
-AwSize get_client_size(AwWindow* window) {
-    return get_rect_size(&window->client_rect);
+    AwSize size = aw_get_client_size(window);
+    AwRect rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = size.width;
+    rect.bottom = size.height;
+    return rect;
 }
 
 void aw_activate_window(AwWindow* window, bool active) {
