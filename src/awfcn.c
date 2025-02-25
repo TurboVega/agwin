@@ -79,7 +79,7 @@ void aw_expand_rect(AwRect* rect, int16_t delta) {
     rect->bottom += delta;
 }
 
-void aw_expand_rect_width(AwRect* rect, int16_t dleft, int16_t dtop, int16_t dright, int16_t dbottom) {
+void aw_expand_rect_unevenly(AwRect* rect, int16_t dleft, int16_t dtop, int16_t dright, int16_t dbottom) {
     rect->left -= dleft;
     rect->top -= dtop;
     rect->right += dright;
@@ -159,17 +159,6 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     }
     memset(window, 0, sizeof(window));
 
-    // Allocate memory for the window text
-    int32_t len = strlen(text);
-    char* ptext = (char*) malloc(len + 1);
-    if (ptext == nullptr) {
-        free(window);
-        return nullptr; // no memory
-    }
-    strcpy(ptext, text);
-    window->text = text;
-    window->text_size = len + 1;
-
     // Save the current VDP context
     vdp_context_save();
 
@@ -177,55 +166,15 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     uint16_t context_id = get_new_context_id();
     vdp_context_reset(0xFF); // all flags set
 
+    aw_set_text(window, text);
     window->parent = parent;
     window->flags = flags;
     window->app = app;
     window->class_id = class_id;
     window->context_id = context_id;
+    window->window_rect.right = width;
+    window->window_rect.bottom = height;
 
-    // Determine the window's rectangles
-    AwRect parent_rect;
-    if (parent) {
-        parent_rect = get_global_client_rect(parent);
-    } else {
-        parent_rect = aw_get_screen_rect();
-    }
-
-    int16_t total_width = width;
-    int16_t total_height = height;
-    int16_t top_deco_height = 0;
-    int16_t deco_thickness = 0;
-    if (flags.border) {
-        total_width += AW_BORDER_THICKNESS * 2;
-        total_height += AW_BORDER_THICKNESS * 2;
-        top_deco_height = AW_BORDER_THICKNESS;
-        deco_thickness = AW_BORDER_THICKNESS;
-    }
-    if (flags.title_bar) {
-        total_height += AW_TITLE_BAR_HEIGHT;
-        top_deco_height += AW_TITLE_BAR_HEIGHT;
-    }
-
-    window->window_rect.left = parent_rect.left + x;
-    window->window_rect.top = parent_rect.top + y;
-    window->window_rect.right = window->window_rect.left + total_width;
-    window->window_rect.bottom = window->window_rect.top + total_height;
-
-    window->client_rect.left = window->window_rect.left + deco_thickness;
-    window->client_rect.top = window->window_rect.top + top_deco_height;
-    window->client_rect.right = window->window_rect.right - deco_thickness;
-    window->client_rect.bottom = window->window_rect.bottom - deco_thickness;
-
-    // Move the viewport to the window
-    vdp_set_graphics_viewport(window->window_rect.left, window->window_rect.bottom,
-                            window->window_rect.right, window->window_rect.top);
-    vdp_graphics_origin(window->window_rect.left, window->window_rect.top);
-
-    // Invalidate the entire window, so it might get painted
-    aw_invalidate_window(window);
-
-    // Post some messages to the window
-    // (Because of the union, we can reuse the msg variable.)
     AwMsg msg;
     msg.window_created.window = window;
     msg.window_created.msg_type = AwMt_WindowCreated;
@@ -234,8 +183,7 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     msg.window_resized.msg_type = AwMt_WindowResized;
     aw_post_message(&msg);
 
-    msg.window_moved.msg_type = AwMt_WindowMoved;
-    aw_post_message(&msg);
+    aw_move_window(window, x, y);
 
     if (window->flags.visible) {
         msg.paint_window.msg_type = AwMt_PaintWindow;
@@ -326,29 +274,126 @@ AwSize get_client_size(AwWindow* window) {
 }
 
 void aw_set_text(AwWindow* window, const char* text) {
-    AwMsg msg;
-    msg.set_text.msg_type = AwMt_SetText;
-    aw_post_message(&msg);
+    int32_t size = strlen(text) + 1;
+    if (size <= window->text_size) {
+        // Text fits in allocated space
+        strcpy(window->text, text);
+    } else {
+        free(window->text);
+
+        // Allocate memory for the window text
+        char* ptext = (char*) malloc(size);
+        if (ptext) {
+            window->text = ptext;
+            window->text_size = size;
+            strcpy(ptext, text);
+        } else {
+            window->text = "";
+            window->text_size = 0;
+        }
+    }
 }
 
 void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
+    AwRect parent_rect;
+    if (parent) {
+        parent_rect = get_global_client_rect(parent);
+    } else {
+        parent_rect = aw_get_screen_rect();
+    }
 
+    AwSize window_size = aw_get_rect_size(&window->window_rect);
+    AwSize client_size = window_size;
+    int16_t top_deco_height = 0;
+    int16_t deco_thickness = 0;
+    if (flags.border) {
+        top_deco_height = AW_BORDER_THICKNESS;
+        deco_thickness = AW_BORDER_THICKNESS;
+    }
+    if (flags.title_bar) {
+        top_deco_height += AW_TITLE_BAR_HEIGHT;
+    }
+    client_size.width -= deco_thickness * 2;
+    client_size.height -= top_deco_height + deco_thickness;
+
+    window->window_rect.left = parent_rect.left + x;
+    window->window_rect.top = parent_rect.top + y;
+    window->window_rect.right = window->window_rect.left + window_size.width;
+    window->window_rect.bottom = window->window_rect.top + window_size.height;
+
+    window->client_rect.left = window->window_rect.left + deco_thickness;
+    window->client_rect.top = window->window_rect.top + top_deco_height;
+    window->client_rect.right = window->window_rect.left + client_size.width;
+    window->client_rect.bottom = window->window_rect.top + client_size.height;
+
+    aw_invalidate_window(window);
+
+    AwMsg msg;
+    msg.window_moved.window = window;
+    msg.window_moved.msg_type = AwMt_WindowMoved;
+    aw_post_message(&msg);
 }
 
 void aw_size_window(AwWindow* window, int16_t width, int16_t height) {
+    AwRect rect = aw_get_local_window_rect(window);
+    window->window_rect.right = window->window_rect.left + width;
+    window->window_rect.bottom = window->window_rect.top + height;
+    aw_move_window(rect.left, rect.top);
 
+    AwMsg msg;
+    msg.window_resized.window = window;
+    msg.window_resized.msg_type = AwMt_WindowResized;
+    aw_post_message(&msg);
 }
 
 void aw_activate_window(AwWindow* window, bool active) {
-
+    if (active) {
+        if (window->flags.enabled && (window != active_window)) {
+            if (active_window) {
+                aw_activate_window(active_window, false);
+            }
+            window->flags.active = 1;
+            active_window = window;
+            aw_invalidate_window(window);
+        }
+    } else {
+        if (window == active_window) {
+            window->flags.active = 0;
+            active_window = nullptr;
+            aw_invalidate_window(window);
+        }
+    }
 }
 
 void aw_enable_window(AwWindow* window, bool enabled) {
-
+    if (enabled) {
+        if (!window->flags.enabled) {
+            window->flags.enabled = 1;
+            aw_invalidate_window(window);
+        }
+    } else {
+        if (window->flags.enabled) {
+            window->flags.enabled = 0;
+            if (window == active_window) {
+                aw_activate_window(active_window, false);
+            }
+            aw_invalidate_window(window);
+        }
+    }
 }
 
 void aw_show_window(AwWindow* window, bool visible) {
-
+    if (visible) {
+        if (!window->flags.visible) {
+            window->flags.visible = 1;
+            aw_invalidate_window(window);
+        }
+    } else {
+        if (window->flags.visible) {
+            window->flags.visible = 0;
+            aw_invalidate_window(window);
+        }
+    }
 }
 
 void aw_close_window(AwWindow* window) {
