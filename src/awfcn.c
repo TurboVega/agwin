@@ -1,7 +1,9 @@
 #include "awfcn.h"
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <agon/vdp_key.h>
+#include <agon/vdp_vdu.h>
 
 #ifdef __CPLUSPLUS
 extern "C" {
@@ -157,6 +159,87 @@ uint16_t get_new_context_id() {
     return next_context_id++;
 }
 
+void aw_set_text(AwWindow* window, const char* text) {
+    uint32_t size = strlen(text) + 1;
+    if (size <= window->text_size) {
+        // Text fits in allocated space
+        strcpy(window->text, text);
+    } else {
+        free(window->text);
+
+        // Allocate memory for the window text
+        char* ptext = (char*) malloc(size);
+        if (ptext) {
+            window->text = ptext;
+            window->text_size = size;
+            strcpy(ptext, text);
+        } else {
+            window->text = "";
+            window->text_size = 0;
+        }
+    }
+}
+
+AwRect aw_get_global_window_rect(AwWindow* window) {
+    return window->window_rect;
+}
+
+AwRect aw_get_global_client_rect(AwWindow* window) {
+    return window->client_rect;
+}
+
+void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
+    AwRect parent_rect;
+    if (window->parent) {
+        parent_rect = get_global_client_rect(window->parent);
+    } else {
+        parent_rect = aw_get_screen_rect();
+    }
+
+    AwSize window_size = aw_get_rect_size(&window->window_rect);
+    AwSize client_size = window_size;
+    int16_t top_deco_height = 0;
+    int16_t deco_thickness = 0;
+    if (window->flags.border) {
+        top_deco_height = AW_BORDER_THICKNESS;
+        deco_thickness = AW_BORDER_THICKNESS;
+    }
+    if (window->flags.title_bar) {
+        top_deco_height += AW_TITLE_BAR_HEIGHT;
+    }
+    client_size.width -= deco_thickness * 2;
+    client_size.height -= top_deco_height + deco_thickness;
+
+    window->window_rect.left = parent_rect.left + x;
+    window->window_rect.top = parent_rect.top + y;
+    window->window_rect.right = window->window_rect.left + window_size.width;
+    window->window_rect.bottom = window->window_rect.top + window_size.height;
+
+    window->client_rect.left = window->window_rect.left + deco_thickness;
+    window->client_rect.top = window->window_rect.top + top_deco_height;
+    window->client_rect.right = window->window_rect.left + client_size.width;
+    window->client_rect.bottom = window->window_rect.top + client_size.height;
+
+    aw_invalidate_window(window);
+
+    AwMsg msg;
+    msg.window_moved.window = window;
+    msg.window_moved.msg_type = AwMt_WindowMoved;
+    aw_post_message(&msg);
+}
+
+void aw_size_window(AwWindow* window, int16_t width, int16_t height) {
+    AwRect rect = aw_get_local_window_rect(window);
+    window->window_rect.right = window->window_rect.left + width;
+    window->window_rect.bottom = window->window_rect.top + height;
+    aw_move_window(rect.left, rect.top);
+
+    AwMsg msg;
+    msg.window_resized.window = window;
+    msg.window_resized.msg_type = AwMt_WindowResized;
+    aw_post_message(&msg);
+}
+
 AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
                         int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text) {
     if ((app == NULL) || (width < 0) || (height < 0) || (class_id == 0) || (text == 0)) {
@@ -166,7 +249,7 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     // Allocate memory for the window structure
     AwWindow* window = (AwWindow*) malloc(sizeof(AwWindow));
     if (window == NULL) {
-        return; // no memory
+        return 0; // no memory
     }
     memset(window, 0, sizeof(window));
 
@@ -231,22 +314,14 @@ void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
     window->paint_rect = paint_rect;
 }
 
-AwRect aw_get_global_window_rect(AwWindow* window) {
-    return window->window_rect;
-}
-
-AwRect aw_get_global_client_rect(AwWindow* window) {
-    return window->client_rect;
-}
-
 AwRect aw_get_local_window_rect(AwWindow* window) {
     if (window->parent) {
-        return AwRect {
-            window->window_rect.left - parent->client_rect.left,
-            window->window_rect.top - parent->client_rect.top,
-            window->window_rect.right - parent->client_rect.left,
-            window->window_rect.bottom - parent->client_rect.top
-        };
+        AwRect rect;
+        rect.left = window->window_rect.left - parent->client_rect.left;
+        rect.top = window->window_rect.top - parent->client_rect.top;
+        rect.right = window->window_rect.right - parent->client_rect.left;
+        rect.bottom = window->window_rect.bottom - parent->client_rect.top;
+        return rect;
     } else {
         return window->window_rect;
     }
@@ -254,12 +329,12 @@ AwRect aw_get_local_window_rect(AwWindow* window) {
 
 AwRect aw_get_local_client_rect(AwWindow* window) {
     if (window->parent) {
-        return AwRect {
-            window->client_rect.left - parent->client_rect.left,
-            window->client_rect.top - parent->client_rect.top,
-            window->client_rect.right - parent->client_rect.left,
-            window->client_rect.bottom - parent->client_rect.top
-        };
+        AwRect rect;
+        rect.left = window->client_rect.left - parent->client_rect.left;
+        rect.top = window->client_rect.top - parent->client_rect.top;
+        rect.right = window->client_rect.right - parent->client_rect.left;
+        rect.bottom = window->client_rect.bottom - parent->client_rect.top;
+        return rect;
     } else {
         window->client_rect;
     }
@@ -281,79 +356,6 @@ AwSize get_window_size(AwWindow* window) {
 
 AwSize get_client_size(AwWindow* window) {
     return get_rect_size(&window->client_rect);
-}
-
-void aw_set_text(AwWindow* window, const char* text) {
-    int32_t size = strlen(text) + 1;
-    if (size <= window->text_size) {
-        // Text fits in allocated space
-        strcpy(window->text, text);
-    } else {
-        free(window->text);
-
-        // Allocate memory for the window text
-        char* ptext = (char*) malloc(size);
-        if (ptext) {
-            window->text = ptext;
-            window->text_size = size;
-            strcpy(ptext, text);
-        } else {
-            window->text = "";
-            window->text_size = 0;
-        }
-    }
-}
-
-void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
-    AwRect parent_rect;
-    if (parent) {
-        parent_rect = get_global_client_rect(parent);
-    } else {
-        parent_rect = aw_get_screen_rect();
-    }
-
-    AwSize window_size = aw_get_rect_size(&window->window_rect);
-    AwSize client_size = window_size;
-    int16_t top_deco_height = 0;
-    int16_t deco_thickness = 0;
-    if (flags.border) {
-        top_deco_height = AW_BORDER_THICKNESS;
-        deco_thickness = AW_BORDER_THICKNESS;
-    }
-    if (flags.title_bar) {
-        top_deco_height += AW_TITLE_BAR_HEIGHT;
-    }
-    client_size.width -= deco_thickness * 2;
-    client_size.height -= top_deco_height + deco_thickness;
-
-    window->window_rect.left = parent_rect.left + x;
-    window->window_rect.top = parent_rect.top + y;
-    window->window_rect.right = window->window_rect.left + window_size.width;
-    window->window_rect.bottom = window->window_rect.top + window_size.height;
-
-    window->client_rect.left = window->window_rect.left + deco_thickness;
-    window->client_rect.top = window->window_rect.top + top_deco_height;
-    window->client_rect.right = window->window_rect.left + client_size.width;
-    window->client_rect.bottom = window->window_rect.top + client_size.height;
-
-    aw_invalidate_window(window);
-
-    AwMsg msg;
-    msg.window_moved.window = window;
-    msg.window_moved.msg_type = AwMt_WindowMoved;
-    aw_post_message(&msg);
-}
-
-void aw_size_window(AwWindow* window, int16_t width, int16_t height) {
-    AwRect rect = aw_get_local_window_rect(window);
-    window->window_rect.right = window->window_rect.left + width;
-    window->window_rect.bottom = window->window_rect.top + height;
-    aw_move_window(rect.left, rect.top);
-
-    AwMsg msg;
-    msg.window_resized.window = window;
-    msg.window_resized.msg_type = AwMt_WindowResized;
-    aw_post_message(&msg);
 }
 
 void aw_activate_window(AwWindow* window, bool active) {
