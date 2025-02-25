@@ -26,39 +26,33 @@ extern "C" {
 #pragma pack(push, 1)
 
 typedef enum uint8_t {
-    PaintWindow,
-    PaintBorder,
-    PaintTitleBar,
-    PaintTitle,
-    PaintIcons,
-    PaintClient,
-    PaintForeground,
-    PaintBackground,
-    KeyAction,
-    KeyDown,
-    KeyRepeat,
-    KeyChar,
-    KeyUp,
-    MouseAction,
-    LeftButtonDown,
-    LeftButtonUp,
-    LeftButtonClick,
-    LeftButtonDoubleClick,
-    MiddleButtonDown,
-    MiddleButtonUp,
-    MiddleButtonClick,
-    MiddleButtonDoubleClick,
-    RightButtonDown,
-    RightButtonUp,
-    RightButtonClick,
-    RightButtonDoubleClick,
-    WindowResized,
-    WindowMoved,
-    WindowCreated,
-    WindowDestroyed,
-    WindowShown,
-    WindowHidden,
-    Terminate,
+    AwMt_Common,
+    AwMt_PaintWindow,
+    AwMt_KeyAction,
+    AwMt_KeyDown,
+    AwMt_KeyRepeat,
+    AwMt_KeyChar,
+    AwMt_KeyUp,
+    AwMt_MouseAction,
+    AwMt_LeftButtonDown,
+    AwMt_LeftButtonUp,
+    AwMt_LeftButtonClick,
+    AwMt_LeftButtonDoubleClick,
+    AwMt_MiddleButtonDown,
+    AwMt_MiddleButtonUp,
+    AwMt_MiddleButtonClick,
+    AwMt_MiddleButtonDoubleClick,
+    AwMt_RightButtonDown,
+    AwMt_RightButtonUp,
+    AwMt_RightButtonClick,
+    AwMt_RightButtonDoubleClick,
+    AwMt_WindowResized,
+    AwMt_WindowMoved,
+    AwMt_WindowCreated,
+    AwMt_WindowDestroyed,
+    AwMt_WindowShown,
+    AwMt_WindowHidden,
+    AwMt_Terminate,
 } AwMsgType;
 
 typedef struct AwMsg;
@@ -148,7 +142,10 @@ typedef struct {
     AwRect          win_rect;
     AwRect          client_rect;
     AwRect          paint_rect;
-    AwPaintFlags    flags;
+    union {
+        AwPaintFlags flags;
+        uint16_t     all_flags;
+    };
 } AwMsgPaint;
 
 typedef struct {
@@ -191,49 +188,37 @@ typedef struct {
     AwMsgType       msg_type;
 } AwMsgSimple;
 
-typedef AwMsgPaint AwMsgPaintWindow;
-typedef AwMsgPaint AwMsgPaintBorder;
-typedef AwMsgPaint AwMsgPaintTitleBar;
-typedef AwMsgPaint AwMsgPaintTitle;
-typedef AwMsgPaint AwMsgPaintIcons;
-typedef AwMsgPaint AwMsgPaintClient;
-typedef AwMsgPaint AwMsgPaintBackground;
-typedef AwMsgPaint AwMsgPaintForeground;
-
-typedef AwMsgInputAction AwMsgKeyAction;
-typedef AwMsgInputAction AwMsgKeyDown;
-typedef AwMsgInputAction AwMsgKeyRepeat;
-typedef AwMsgInputAction AwMsgKeyChar;
-typedef AwMsgInputAction AwMsgKeyUp;
-typedef AwMsgInputAction AwMsgMouseAction;
-typedef AwMsgInputAction AwMsgLeftButtonDown;
-typedef AwMsgInputAction AwMsgLeftButtonUp;
-typedef AwMsgInputAction AwMsgLeftButtonClick;
-typedef AwMsgInputAction AwMsgLeftButtonDoubleClick;
-typedef AwMsgInputAction AwMsgMiddleButtonDown;
-typedef AwMsgInputAction AwMsgMiddleButtonUp;
-typedef AwMsgInputAction AwMsgMiddleButtonClick;
-typedef AwMsgInputAction AwMsgMiddleButtonDoubleClick;
-typedef AwMsgInputAction AwMsgRightButtonDown;
-typedef AwMsgInputAction AwMsgRightButtonUp;
-typedef AwMsgInputAction AwMsgRightButtonClick;
-typedef AwMsgInputAction AwMsgRightButtonDoubleClick;
-
-typedef AwMsgSimple AwMsgWindowResized;
-typedef AwMsgSimple AwMsgWindowMoved;
-typedef AwMsgSimple AwMsgWindowCreated;
-typedef AwMsgSimple AwMsgWindowDestroyed;
-typedef AwMsgSimple AwMsgWindowShown;
-typedef AwMsgSimple AwMsgWindowHidden;
-typedef AwMsgSimple AwMsgTerminate;
+typedef AwMsgSimple         AwMsgCommon; 
+typedef AwMsgPaint          AwMsgPaintWindow;
+typedef AwMsgInputAction    AwMsgKeyAction;
+typedef AwMsgInputAction    AwMsgKeyDown;
+typedef AwMsgInputAction    AwMsgKeyRepeat;
+typedef AwMsgInputAction    AwMsgKeyChar;
+typedef AwMsgInputAction    AwMsgKeyUp;
+typedef AwMsgInputAction    AwMsgMouseAction;
+typedef AwMsgInputAction    AwMsgLeftButtonDown;
+typedef AwMsgInputAction    AwMsgLeftButtonUp;
+typedef AwMsgInputAction    AwMsgLeftButtonClick;
+typedef AwMsgInputAction    AwMsgLeftButtonDoubleClick;
+typedef AwMsgInputAction    AwMsgMiddleButtonDown;
+typedef AwMsgInputAction    AwMsgMiddleButtonUp;
+typedef AwMsgInputAction    AwMsgMiddleButtonClick;
+typedef AwMsgInputAction    AwMsgMiddleButtonDoubleClick;
+typedef AwMsgInputAction    AwMsgRightButtonDown;
+typedef AwMsgInputAction    AwMsgRightButtonUp;
+typedef AwMsgInputAction    AwMsgRightButtonClick;
+typedef AwMsgInputAction    AwMsgRightButtonDoubleClick;
+typedef AwMsgSimple         AwMsgWindowResized;
+typedef AwMsgSimple         AwMsgWindowMoved;
+typedef AwMsgSimple         AwMsgWindowCreated;
+typedef AwMsgSimple         AwMsgWindowDestroyed;
+typedef AwMsgSimple         AwMsgWindowShown;
+typedef AwMsgSimple         AwMsgWindowHidden;
+typedef AwMsgSimple         AwMsgTerminate;
 
 typedef union {
-    AwMsgPaintBackground    paint_background;
-    AwMsgPaintBorder        paint_border;
-    AwMsgPaintTitleBar      paint_title_bar;
-    AwMsgPaintTitle         paint_title;
-    AwMsgPaintIcons         paint_icons;
-    AwMsgPaintForeground    paint_foreground;
+    AwMsgCommon             common;
+    AwMsgPaintWindow        paint_window;
     AwMsgKeyAction          key_action;
     AwMsgKeyDown            key_down;
     AwMsgKeyRepeat          key_repeat;

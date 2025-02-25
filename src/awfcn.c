@@ -22,9 +22,9 @@ uint8_t     msg_write_index;
 bool        running;
 uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
 
-int32_t aw_process_message(AwMsg* msg);
+int32_t aw_handle_message(AwMsg* msg);
 
-const AwApplication agwin_app = { "agwin", aw_process_message, 0, 0 };
+const AwApplication agwin_app = { "agwin", aw_handle_message, 0, 0 };
 
 void key_event_handler(KEY_EVENT key_event)
 {
@@ -183,6 +183,7 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     window->class_id = class_id;
     window->context_id = context_id;
 
+    // Determine the window's rectangles
     AwRect parent_rect;
     if (parent) {
         parent_rect = get_global_client_rect(parent);
@@ -215,7 +216,48 @@ AwWindow* aw_create_window(AwApplication* app, AwWindow* parent, uint16_t class_
     window->client_rect.right = window->window_rect.right - deco_thickness;
     window->client_rect.bottom = window->window_rect.bottom - deco_thickness;
 
-    vdp_set_graphics_viewport();
+    // Move the viewport to the window
+    vdp_set_graphics_viewport(window->window_rect.left, window->window_rect.bottom,
+                            window->window_rect.right, window->window_rect.top);
+    vdp_graphics_origin(window->window_rect.left, window->window_rect.top);
+
+    // Invalidate the entire window, so it might get painted
+    aw_invalidate_window(window);
+
+    // Post some messages to the window
+    // (Because of the union, we can reuse the msg variable.)
+    AwMsg msg;
+    msg.window_created.window = window;
+    msg.window_created.msg_type = AwMt_WindowCreated;
+    aw_post_message(&msg);
+
+    msg.window_resized.msg_type = AwMt_WindowResized;
+    aw_post_message(&msg);
+
+    msg.window_moved.msg_type = AwMt_WindowMoved;
+    aw_post_message(&msg);
+
+    if (window->flags.visible) {
+        msg.paint_window.msg_type = AwMt_PaintWindow;
+        msg.paint_window.all_flags = 0;
+        msg.paint_window.flags.background = 1;
+        if (flags.border) {
+            msg.paint_window.flags.border = 1;
+        }
+        if (flags.enabled) {
+            msg.paint_window.flags.enabled = 1;
+        }
+        if (flags.icons) {
+            msg.paint_window.flags.icons = 1;
+        }
+        if (flags.selected) {
+            msg.paint_window.flags.selected = 1;
+        }
+        if (flags.title_bar) {
+            msg.paint_window.flags.title_bar = 1;
+            msg.paint_window.flags.title = 1;
+        }
+    }
 
     // Restore the VDP context
     vdp_context_restore();
@@ -284,7 +326,9 @@ AwSize get_client_size(AwWindow* window) {
 }
 
 void aw_set_text(AwWindow* window, const char* text) {
-
+    AwMsg msg;
+    msg.set_text.msg_type = AwMt_SetText;
+    aw_post_message(&msg);
 }
 
 void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
@@ -316,11 +360,24 @@ void aw_destroy_window(AwWindow* window) {
 }
 
 void aw_post_message(AwMsg* msg) {
-
+    if (msg_count < AW_MESSAGE_QUEUE_SIZE) {
+        AwMsg* pmsg = &message_queue[msg_write_index++];
+        if (msg_write_index >= AW_MESSAGE_QUEUE_SIZE) {
+            msg_write_index = 0;
+        }
+        *pmsg = *msg;
+        msg_count++;
+    }
 }
 
-int32_t aw_process_message(AwMsg* msg) {
-
+void aw_process_message(AwMsg* msg) {
+    AwApplication* app = msg->common.app;
+    int32_t result = (*app->msg_handler)(msg);
+    if (result) {
+        if (msg->terminate.msg_type == Terminate) {
+            running = false;
+        }
+    }
 }
 
 void aw_exit_app(AwApplication* app) {
@@ -330,6 +387,123 @@ void aw_exit_app(AwApplication* app) {
 void aw_terminate() {
 
 }
+
+int32_t aw_handle_message(AwMsg* msg) {
+    switch (msg->common.msg_type)
+    {
+    case AwMt_Common: {
+        break;
+    }
+
+    case AwMt_PaintWindow: {
+        break;
+    }
+
+    case AwMt_KeyAction: {
+        break;
+    }
+
+    case AwMt_KeyDown: {
+        break;
+    }
+
+    case AwMt_KeyRepeat: {
+        break;
+    }
+
+    case AwMt_KeyChar: {
+        break;
+    }
+
+    case AwMt_KeyUp: {
+        break;
+    }
+
+    case AwMt_MouseAction: {
+        break;
+    }
+
+    case AwMt_LeftButtonDown: {
+        break;
+    }
+
+    case AwMt_LeftButtonUp: {
+        break;
+    }
+
+    case AwMt_LeftButtonClick: {
+        break;
+    }
+
+    case AwMt_LeftButtonDoubleClick: {
+        break;
+    }
+
+    case AwMt_MiddleButtonDown: {
+        break;
+    }
+
+    case AwMt_MiddleButtonUp: {
+        break;
+    }
+
+    case AwMt_MiddleButtonClick: {
+        break;
+    }
+
+    case AwMt_MiddleButtonDoubleClick: {
+        break;
+    }
+
+    case AwMt_RightButtonDown: {
+        break;
+    }
+
+    case AwMt_RightButtonUp: {
+        break;
+    }
+
+    case AwMt_RightButtonClick: {
+        break;
+    }
+
+    case AwMt_RightButtonDoubleClick: {
+        break;
+    }
+
+    case AwMt_WindowResized: {
+        break;
+    }
+
+    case AwMt_WindowMoved: {
+        break;
+    }
+
+    case AwMt_WindowCreated: {
+        break;
+    }
+
+    case AwMt_WindowDestroyed: {
+        break;
+    }
+
+    case AwMt_WindowShown: {
+        break;
+    }
+
+    case AwMt_WindowHidden: {
+        break;
+    }
+
+    case AwMt_Terminate: {
+        break;
+    }
+    
+    default:
+        break;
+    }
+}
+
 
 const AwSystemFunctionTable aw_system_function_table = {
     aw_get_version,
@@ -388,6 +562,7 @@ void aw_initialize() {
 }
 
 void aw_message_loop() {
+	vdp_set_key_event_handler(key_event_handler);
     while (running) {
         if (msg_count) {
             AwMsg* msg = &message_queue[msg_read_index++];
@@ -395,8 +570,10 @@ void aw_message_loop() {
                 msg_read_index = 0;
             }
             msg_count--;
+            aw_process_message(msg);
         }
     }
+    vdp_key_reset_interrupt();
 }
 
 #ifdef __CPLUSPLUS

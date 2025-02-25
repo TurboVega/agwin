@@ -31,11 +31,11 @@ int main( void )
     vdp_clear_graphics();
 	vdp_logical_scr_dims(false);
 	vdp_cursor_enable(false);
-	vdp_set_key_event_handler(key_event_handler);
     vdp_context_save();
     aw_initialize();
 	aw_message_loop();
     vdp_context_restore();
+    vdp_key_reset_interrupt();
 	vdp_cursor_enable(true);
 	return 0;
 }
