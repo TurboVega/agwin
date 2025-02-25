@@ -13,8 +13,8 @@ void aw_move_window(AwWindow* window, int16_t x, int16_t y) {
     AwMsg msg;
     msg.move_window.window = window;
     msg.move_window.msg_type = Aw_Do_MoveWindow;
-    msg.move_window.x = x;
-    msg.move_window.y = y;
+    msg.move_window.pt.x = x;
+    msg.move_window.pt.y = y;
     aw_post_message(&msg);
 }
 
@@ -79,11 +79,9 @@ void aw_exit(AwApplication* app) {
     aw_post_message(&msg);
 }
 
-void aw_terminate();
- {
+void aw_terminate() {
     AwMsg msg;
     msg.terminate.window = NULL;
     msg.terminate.msg_type = Aw_Do_Terminate;
     aw_post_message(&msg);
  }
-

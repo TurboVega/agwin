@@ -54,6 +54,10 @@ typedef struct tag_AwOnMsgInputAction {
     AwPoint         mouse_client_pt;    // Mouse location relative to client area beneath it
 } AwOnMsgInputAction;
 
+void aw_emit_keyboard_action();
+
+void aw_emit_mouse_action();
+
 #ifdef __CPLUSPLUS
 } // extern "C"
 #endif

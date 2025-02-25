@@ -52,8 +52,7 @@ typedef struct tag_AwDoMsgResizeWindow {
 typedef struct tag_AwDoMsgMoveWindow {
     AwWindow*       window;
     AwDoMsgType     msg_type;
-    int16_t         x;
-    int16_t         y;
+    AwPoint         pt;
 } AwDoMsgMoveWindow;
 
 typedef struct tag_AwDoMsgShowWindow {
