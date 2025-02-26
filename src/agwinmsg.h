@@ -20,6 +20,8 @@ typedef union tag_AwMsg {
     AwDoMsgActivateWindow       do_activate_window;
     AwDoMsgCommon               do_invalidate_window;
     AwDoMsgInvalidateWindowRect do_invalidate_window_rect;
+    AwDoMsgCommon               do_invalidate_client;
+    AwDoMsgInvalidateClientRect do_invalidate_client_rect;
     AwDoMsgPaintWindow          do_paint_window;
     AwDoMsgCommon               do_terminate;
     AwDoMsgExit                 do_exit;

@@ -20,6 +20,8 @@ typedef enum : uint8_t {
     Aw_Do_ActivateWindow,
     Aw_Do_InvalidateWindow,
     Aw_Do_InvalidateWindowRect,
+    Aw_Do_InvalidateClient,
+    Aw_Do_InvalidateClientRect,
     Aw_Do_PaintWindow,
     Aw_Do_Terminate,
     Aw_Do_Exit,
@@ -79,6 +81,12 @@ typedef struct tag_AwDoMsgInvalidateWindowRect {
     AwRect          rect;
 } AwDoMsgInvalidateWindowRect;
 
+typedef struct tag_AwDoMsgInvalidateClientRect {
+    AwWindow*       window;
+    AwDoMsgType     msg_type;
+    AwRect          rect;
+} AwDoMsgInvalidateClientRect;
+
 typedef struct tag_AwDoMsgExit {
     AwWindow*       window;
     AwDoMsgType     msg_type;
@@ -102,6 +110,10 @@ void aw_activate_window(AwWindow* window, bool active);
 void aw_invalidate_window(AwWindow* window);
 
 void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect);
+
+void aw_invalidate_client(AwWindow* window);
+
+void aw_invalidate_client_rect(AwWindow* window, const AwRect* rect);
 
 void aw_exit(AwApplication* app);
 

@@ -15,7 +15,7 @@ extern "C" {
 #define AW_CONTEXT_ID_LOW       0x8000  // lowest VDP context ID used by agwin
 #define AW_CONTEXT_ID_HIGH      0x8FFF  // highest VDP context ID used by agwin
 
-#define AW_BORDER_THICKNESS     4       // pixels
+#define AW_BORDER_THICKNESS     2       // pixels
 #define AW_TITLE_BAR_HEIGHT     12      // pixels
 #define AW_TTITLE_TEXT_HEIGHT   8       // pixels
 #define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
@@ -35,9 +35,14 @@ extern "C" {
 #define NULL 0
 #endif
 
-#define AW_MSG_UNHANDLED    0
-#define AW_MSG_HANDLED      1
-#define AW_MSG_SUPPRESSED   (-1)
+#define AW_MSG_UNHANDLED        0
+#define AW_MSG_HANDLED          1
+
+#define AW_DFLT_BKGD_COLOR      0
+#define AW_DFLT_TEXT_COLOR      1
+#define AW_DFLT_BORDER_COLOR    2
+#define AW_DFLT_TITLE_BAR_COLOR 3
+#define AW_DFLT_TITLE_COLOR     4
 
 #define min(a, b)       ((a) < (b) ? (a) : (b))
 #define max(a, b)       ((a) > (b) ? (a) : (b))
@@ -138,12 +143,15 @@ typedef struct tag_AwWindow {
     AwWindow*       next_sibling;   // points to the next sibling window
     char*           text;           // title of the window or text content
     uint16_t        class_id;       // non-unique class ID for the window
-    uint16_t        context_id;     // VDP context ID for the window
+    uint16_t        window_ctx;     // VDP context ID for the entire window
+    uint16_t        client_ctx;     // VDP context ID for the client area
     AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
     AwRect          paint_rect;     // rectangle eclosing the dirty (invalid) area of the window
     AwWindowFlags   flags;          // flags describing the window
     uint32_t        text_size;      // allocated space for text (not the text length)
+    uint8_t         bkgd_color;     // color of background, espcially when drawn by core
+    uint8_t         text_color;     // color of text, espcially when drawn by core
 } AwWindow;
 
 #pragma pack(pop)

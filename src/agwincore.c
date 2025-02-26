@@ -24,6 +24,7 @@ extern "C" {
 
 AwWindow* desktop_window;
 AwWindow* active_window;
+AwRect    dirty_area;
 
 AwMsg       message_queue[AW_MESSAGE_QUEUE_SIZE];
 uint8_t     msg_count;
@@ -197,8 +198,21 @@ AwRect core_get_global_client_rect(AwWindow* window) {
     return window->client_rect;
 }
 
+void add_more_dirt(AwRect* rect) {
+    AwRect filth = core_get_union_rect(&dirty_area, rect);
+    dirty_area = filth;
+}
+
 void core_invalidate_window(AwWindow* window) {
-    window->paint_rect = window->window_rect;
+    AwRect paint_rect = core_get_union_rect(&window->paint_rect, &window->window_rect);
+    window->paint_rect = paint_rect;
+    add_more_dirt(&paint_rect);
+}
+
+void core_invalidate_client(AwWindow* window) {
+    AwRect paint_rect = core_get_union_rect(&window->paint_rect, &window->client_rect);
+    window->paint_rect = paint_rect;
+    add_more_dirt(&paint_rect);
 }
 
 void core_post_message(AwMsg* msg) {
@@ -290,10 +304,17 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     }
     memset(window, 0, sizeof(AwWindow));
 
-    // Create a new VDP context for this window
+    // Create new VDP context(s) for this window
     vdp_context_save();
-    uint16_t context_id = get_new_context_id();
+    uint16_t window_ctx = get_new_context_id();
+    vdp_context_select(window_ctx);
     vdp_context_reset(0xFF); // all flags set
+    uint16_t client_ctx = window_ctx;
+    if (flags.border || flags.title_bar) {
+        client_ctx = get_new_context_id();
+        vdp_context_select(client_ctx);
+    }    
+    vdp_context_select(0);
     vdp_context_restore();
 
     core_set_text(window, text);
@@ -301,9 +322,12 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     window->flags = flags;
     window->app = app;
     window->class_id = class_id;
-    window->context_id = context_id;
+    window->window_ctx = window_ctx;
+    window->client_ctx = client_ctx;
     window->window_rect.right = width;
     window->window_rect.bottom = height;
+    window->bkgd_color = AW_DFLT_BKGD_COLOR;
+    window->text_color = AW_DFLT_TEXT_COLOR;
 
     AwMsg msg;
     msg.on_window_created.window = window;
@@ -322,6 +346,14 @@ void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
     AwRect extra_rect = core_get_intersect_rect(&window->window_rect, rect);
     AwRect paint_rect = core_get_intersect_rect(&window->paint_rect, &extra_rect);
     window->paint_rect = paint_rect;
+    add_more_dirt(&paint_rect);
+}
+
+void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
+    AwRect extra_rect = core_get_intersect_rect(&window->client_rect, rect);
+    AwRect paint_rect = core_get_intersect_rect(&window->paint_rect, &extra_rect);
+    window->paint_rect = paint_rect;
+    add_more_dirt(&paint_rect);
 }
 
 AwRect core_get_local_client_rect(AwWindow* window) {
@@ -509,11 +541,8 @@ void core_paint_window(AwMsg* msg) {
     AwPaintFlags* paint_flags = &paint_msg->flags;
 
     vdp_context_save();
-    vdp_context_select(window->context_id);
 
-    if (paint_flags->background) {
-        draw_background(window);
-    }
+    vdp_context_select(window->window_ctx);
     if (paint_flags->border) {
         draw_border(window);
     }
@@ -525,6 +554,11 @@ void core_paint_window(AwMsg* msg) {
     }
     if (paint_flags->icons) {
         draw_icons(window);
+    }
+
+    vdp_context_select(window->client_ctx);
+    if (paint_flags->background) {
+        draw_background(window);
     }
 
     vdp_context_select(0);
@@ -588,6 +622,17 @@ int32_t core_handle_message(AwMsg* msg) {
         case Aw_Do_InvalidateWindowRect: {
             core_invalidate_window_rect(msg->do_invalidate_window_rect.window,
                 &msg->do_invalidate_window_rect.rect);
+            break;
+        }
+
+        case Aw_Do_InvalidateClient: {
+            core_invalidate_client(msg->do_invalidate_client.window);
+            break;
+        }
+
+        case Aw_Do_InvalidateClientRect: {
+            core_invalidate_client_rect(msg->do_invalidate_client_rect.window,
+                &msg->do_invalidate_client_rect.rect);
             break;
         }
 
@@ -743,6 +788,10 @@ void core_initialize() {
     running = true;
 }
 
+bool emit_paint_messages(AwWindow* window) {
+
+}
+
 void core_message_loop() {
 	vdp_set_key_event_handler(key_event_handler);
     while (running) {
@@ -753,6 +802,13 @@ void core_message_loop() {
             }
             msg_count--;
             core_process_message(msg);
+        } else {
+            AwSize size = core_get_rect_size(&dirty_area);
+            if (size.width || size.height) {
+                // Something needs to be painted
+                emit_paint_messages(desktop_window);
+                dirty_area = core_get_empty_rect();
+            }
         }
     }
     vdp_key_reset_interrupt();

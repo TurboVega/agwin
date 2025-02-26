@@ -72,6 +72,21 @@ void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
     core_post_message(&msg);
 }
 
+void aw_invalidate_client(AwWindow* window) {
+    AwMsg msg;
+    msg.do_invalidate_client.window = window;
+    msg.do_invalidate_client.msg_type = Aw_Do_InvalidateClient;
+    core_post_message(&msg);
+}
+
+void aw_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
+    AwMsg msg;
+    msg.do_invalidate_client_rect.window = window;
+    msg.do_invalidate_client_rect.msg_type = Aw_Do_InvalidateClientRect;
+    msg.do_invalidate_client_rect.rect = *rect;
+    core_post_message(&msg);
+}
+
 void aw_exit(AwApplication* app) {
     AwMsg msg;
     msg.do_exit.window = NULL;
