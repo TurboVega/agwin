@@ -1,5 +1,13 @@
-#include "awcore.h"
-#include <stdbool.h>
+#include "agwincore.h"
+#include "agwindefs.h"
+#include "agwindesk.h"
+#include "agwinedit.h"
+#include "agwinicon.h"
+#include "agwinlist.h"
+#include "agwinlist.h"
+#include "agwinmbox.h"
+#include "agwinmenu.h"
+#include "agwinstat.h"
 #include <stdlib.h>
 #include <string.h>
 #include <agon/vdp_key.h>
@@ -256,7 +264,7 @@ AwRect core_get_local_window_rect(AwWindow* window) {
     }
 }
 
-void core_size_window(AwWindow* window, int16_t width, int16_t height) {
+void core_resize_window(AwWindow* window, int16_t width, int16_t height) {
     AwRect rect = core_get_local_window_rect(window);
     window->window_rect.right = window->window_rect.left + width;
     window->window_rect.bottom = window->window_rect.top + height;
@@ -440,9 +448,18 @@ void core_destroy_window(AwWindow* window) {
 void core_process_message(AwMsg* msg) {
     AwApplication* app = msg->common.app;
     int32_t result = (*app->msg_handler)(msg);
-    if (result) {
-        if (msg->terminate.msg_type == Terminate) {
-            running = false;
+    if (result == AW_MSG_UNHANDLED) {
+        switch (msg->do_common.window->class_id) {
+            case AW_CLASS_DESKTOP:      return desktop_win_msg_handler(msg);
+            case AW_CLASS_MENU:         return menu_win_msg_handler(msg);
+            case AW_CLASS_MENU_ITEM:    return menu_win_msg_handler(msg);
+            case AW_CLASS_LIST:         return list_win_msg_handler(msg);
+            case AW_CLASS_LIST_ITEM:    return list_win_msg_handler(msg);
+            case AW_CLASS_EDIT_TEXT :   return edit_text_win_msg_handler(msg);
+            case AW_CLASS_STATIC_TEXT:  return static_text_win_msg_handler(msg);
+            case AW_CLASS_MESSAGE_BOX : return message_box_win_msg_handler(msg);
+            case AW_CLASS_ICON:         return icon_win_msg_handler(msg);
+            default: return core_handle_message(msg);
         }
     }
 }
@@ -458,117 +475,185 @@ void core_terminate() {
 int32_t core_handle_message(AwMsg* msg) {
     switch (msg->common.msg_type)
     {
-    case AwMt_Common: {
-        break;
+        case Aw_Do_Common: {
+            break;
+        }
+
+        case Aw_Do_ResizeWindow: {
+            core_resize_window(msg->resize_window.window,
+                 msg->resize_window.width, msg->resize_window.height);
+            break;
+        }
+
+        case Aw_Do_MoveWindow: {
+            core_move_window(msg->move_window.window,
+                msg->move_window.pt.x, msg->move_window.pt.y);
+            break;
+        }
+
+        case Aw_Do_CloseWindow: {
+            core_close_window(msg->close_window.window);
+            break;
+        }
+
+        case Aw_Do_DestroyWindow: {
+            core_destroy_window(msg->destroy_window.window);
+            break;
+        }
+
+        case Aw_Do_ShowWindow: {
+            core_show_window(msg->show_window.window,
+                msg->show_window.visible);
+            break;
+        }
+
+        case Aw_Do_EnableWindow: {
+            core_enable_window(msg->enable_window.window,
+                msg->enable_window.enabled);
+            break;
+        }
+
+        case Aw_Do_ActivateWindow: {
+            core_activate_window(msg->activate_window.window,
+                msg->activate_window.active);
+            break;
+        }
+
+        case Aw_Do_InvalidateWindow: {
+            core_invalidate_window(msg->invalidate_window.window);
+            break;
+        }
+
+        case Aw_Do_InvalidateWindowRect: {
+            core_invalidate_window_rect(msg->invalidate_window_rect.window,
+                &msg->invalidate_window_rect.rect);
+            break;
+        }
+
+        case Aw_Do_PaintWindow: {
+            core_paint_window(msg);
+            break;
+        }
+
+        case Aw_Do_Terminate: {
+            running = false;
+            break;
+        }
+
+        case Aw_Do_Exit: {
+            core_exit_app(msg->exit.app);
+            break;
+        }
+
+        case Aw_On_Common: {
+            break;
+        }
+
+        case Aw_On_KeyAction: {
+            break;
+        }
+
+        case Aw_On_KeyDown: {
+            break;
+        }
+
+        case Aw_On_KeyRepeat: {
+            break;
+        }
+
+        case Aw_On_KeyChar: {
+            break;
+        }
+
+        case Aw_On_KeyUp: {
+            break;
+        }
+
+        case Aw_On_MouseAction: {
+            break;
+        }
+
+        case Aw_On_LeftButtonDown: {
+            break;
+        }
+
+        case Aw_On_LeftButtonUp: {
+            break;
+        }
+
+        case Aw_On_LeftButtonClick: {
+            break;
+        }
+
+        case Aw_On_LeftButtonDoubleClick: {
+            break;
+        }
+
+        case Aw_On_MiddleButtonDown: {
+            break;
+        }
+
+        case Aw_On_MiddleButtonUp: {
+            break;
+        }
+
+        case Aw_On_MiddleButtonClick: {
+            break;
+        }
+
+        case Aw_On_MiddleButtonDoubleClick: {
+            break;
+        }
+
+        case Aw_On_RightButtonDown: {
+            break;
+        }
+
+        case Aw_On_RightButtonUp: {
+            break;
+        }
+
+        case Aw_On_RightButtonClick: {
+            break;
+        }
+
+        case Aw_On_RightButtonDoubleClick: {
+            break;
+        }
+
+        case Aw_On_WindowResized: {
+            break;
+        }
+
+        case Aw_On_WindowMoved: {
+            break;
+        }
+
+        case Aw_On_WindowCreated: {
+            break;
+        }
+
+        case Aw_On_WindowDestroyed: {
+            break;
+        }
+
+        case Aw_On_WindowShown: {
+            break;
+        }
+
+        case Aw_On_WindowHidden: {
+            break;
+        }
+
+        case Aw_On_Terminate: {
+            break;
+        }
+
+        default:
+            break;
     }
 
-    case AwMt_PaintWindow: {
-        break;
-    }
-
-    case AwMt_KeyAction: {
-        break;
-    }
-
-    case AwMt_KeyDown: {
-        break;
-    }
-
-    case AwMt_KeyRepeat: {
-        break;
-    }
-
-    case AwMt_KeyChar: {
-        break;
-    }
-
-    case AwMt_KeyUp: {
-        break;
-    }
-
-    case AwMt_MouseAction: {
-        break;
-    }
-
-    case AwMt_LeftButtonDown: {
-        break;
-    }
-
-    case AwMt_LeftButtonUp: {
-        break;
-    }
-
-    case AwMt_LeftButtonClick: {
-        break;
-    }
-
-    case AwMt_LeftButtonDoubleClick: {
-        break;
-    }
-
-    case AwMt_MiddleButtonDown: {
-        break;
-    }
-
-    case AwMt_MiddleButtonUp: {
-        break;
-    }
-
-    case AwMt_MiddleButtonClick: {
-        break;
-    }
-
-    case AwMt_MiddleButtonDoubleClick: {
-        break;
-    }
-
-    case AwMt_RightButtonDown: {
-        break;
-    }
-
-    case AwMt_RightButtonUp: {
-        break;
-    }
-
-    case AwMt_RightButtonClick: {
-        break;
-    }
-
-    case AwMt_RightButtonDoubleClick: {
-        break;
-    }
-
-    case AwMt_WindowResized: {
-        break;
-    }
-
-    case AwMt_WindowMoved: {
-        break;
-    }
-
-    case AwMt_WindowCreated: {
-        break;
-    }
-
-    case AwMt_WindowDestroyed: {
-        break;
-    }
-
-    case AwMt_WindowShown: {
-        break;
-    }
-
-    case AwMt_WindowHidden: {
-        break;
-    }
-
-    case AwMt_Terminate: {
-        break;
-    }
-    
-    default:
-        break;
-    }
+    return MSG_HANDLED;
 }
 
 void core_initialize() {

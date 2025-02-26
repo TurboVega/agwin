@@ -9,8 +9,8 @@
 
 #include "agwin.h"
 
-void aw_initialize();
-void aw_message_loop();
+void core_initialize();
+void core_message_loop();
 
 /*
 void wait_clock(clock_t ticks)
@@ -34,8 +34,8 @@ int main( void )
 	vdp_logical_scr_dims(false);
 	vdp_cursor_enable(false);
     vdp_context_save();
-    aw_initialize();
-	aw_message_loop();
+    core_initialize();
+	core_message_loop();
     vdp_context_restore();
 	vdp_cursor_enable(true);
 	return 0;

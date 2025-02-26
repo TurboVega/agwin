@@ -35,6 +35,9 @@ extern "C" {
 #define NULL 0
 #endif
 
+#define AW_MSG_UNHANDLED    0
+#define AW_MSG_HANDLED      1
+
 #define min(a, b)       ((a) < (b) ? (a) : (b))
 #define max(a, b)       ((a) > (b) ? (a) : (b))
 
