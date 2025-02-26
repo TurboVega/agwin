@@ -39,7 +39,7 @@ AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2);
 
 AwRect core_get_intersect_rect(const AwRect* rect1, const AwRect* rect2);
 
-AwWindow* core_get_desktop_window();
+AwWindow* core_get_root_window();
 
 AwWindow* core_get_active_window();
 

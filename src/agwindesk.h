@@ -1,6 +1,6 @@
 #pragma once
 
-// Default message handler for AW_CLASS_DESKTOP windows
+// Default message handler for AW_CLASS_ROOT windows
 
 #include "agwinmsg.h"
 
@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-int32_t desktop_win_msg_handler(AwMsg* msg);
+int32_t root_win_msg_handler(AwMsg* msg);
 
 #ifdef __CPLUSPLUS
 } // extern "C"

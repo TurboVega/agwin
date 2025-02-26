@@ -1,4 +1,4 @@
-// Default message handler for AW_CLASS_DESKTOP windows
+// Default message handler for AW_CLASS_ROOT windows
 
 #include "agwindesk.h"
 #include "agwincore.h"
@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int32_t desktop_win_msg_handler(AwMsg* msg) {
+int32_t root_win_msg_handler(AwMsg* msg) {
     return core_handle_message(msg);
 }
 

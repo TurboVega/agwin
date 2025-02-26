@@ -25,10 +25,10 @@ int main( void )
 	vdp_vdu_init();
 	if (vdp_key_init() == -1) return 1;
 
+	vdp_logical_scr_dims(false);
 	vdp_mode(AW_SCREEN_MODE);
 	vdp_clear_screen();
     vdp_clear_graphics();
-	vdp_logical_scr_dims(false);
 	vdp_cursor_enable(false);
     vdp_context_save();
     core_initialize();

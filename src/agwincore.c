@@ -22,7 +22,9 @@ extern "C" {
 #define AW_SCREEN_HEIGHT        480
 #define AW_MESSAGE_QUEUE_SIZE   64
 
-AwWindow* desktop_window;
+#define PLOT_MODE_FILLED_RECT   0x65
+
+AwWindow* root_window;
 AwWindow* active_window;
 AwRect    dirty_area;
 
@@ -142,8 +144,8 @@ AwRect core_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
     return rect;
 }
 
-AwWindow* core_get_desktop_window() {
-    return desktop_window;
+AwWindow* core_get_root_window() {
+    return root_window;
 }
 
 AwWindow* core_get_active_window() {
@@ -483,7 +485,7 @@ int32_t core_process_message(AwMsg* msg) {
     int32_t result = (*app->msg_handler)(msg);
     if (result == AW_MSG_UNHANDLED) {
         switch (msg->do_common.window->class_id) {
-            case AW_CLASS_DESKTOP:      return desktop_win_msg_handler(msg);
+            case AW_CLASS_ROOT:         return root_win_msg_handler(msg);
             case AW_CLASS_MENU:         return menu_win_msg_handler(msg);
             case AW_CLASS_MENU_ITEM:    return menu_win_msg_handler(msg);
             case AW_CLASS_LIST:         return list_win_msg_handler(msg);
@@ -542,32 +544,43 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window, bool client) {
 
 void draw_background(AwWindow* window) {
     //printf("draw_background %p\r\n", window);
-    //vdp_set_graphics_colour(0, window->bg_color | 0x80);
-    //vdp_clear_graphics();
+    vdp_set_graphics_colour(0, window->bg_color | 0x80);
+    vdp_clear_graphics();
 }
 
 void draw_foreground(AwWindow* window) {
     //printf("draw_foreground %p\r\n", window);
-    vdp_set_graphics_colour(0, window->fg_color);
+    vdp_set_text_colour(window->bg_color | 0x80);
+    vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
     printf("FG: %s", window->text);
 }
 
 void draw_border(AwWindow* window) {
     //printf("draw_border %p\r\n", window);
     vdp_set_graphics_colour(0, AW_DFLT_BORDER_COLOR);
+    AwSize size = core_get_window_size(window);
+
+    vdp_move_to(0, 0);
+    //vdp_filled_rect(size.width-1, AW_BORDER_THICKNESS);
+
+    //vdp_move_to(size.width-AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
+    vdp_filled_rect(size.width-1, size.height-1);
 }
 
 void draw_title_bar(AwWindow* window) {
     //printf("draw_title_bar %p\r\n", window);
     vdp_set_graphics_colour(0, AW_DFLT_TITLE_BAR_COLOR);
-    vdp_move_to(AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
     AwSize size = core_get_client_size(window);
-    vdp_plot(0x60, AW_BORDER_THICKNESS + size.width, AW_BORDER_THICKNESS + size.height);
+
+    vdp_move_to(AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
+    vdp_filled_rect(AW_BORDER_THICKNESS + size.width,
+            AW_BORDER_THICKNESS + size.height);
 }
 
 void draw_title(AwWindow* window) {
     //printf("draw_title %p\r\n", window);
-    vdp_set_graphics_colour(0, AW_DFLT_TITLE_COLOR);
+    vdp_set_text_colour(window->bg_color | 0x80);
+    vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
     printf("T: %s", window->text);
 }
 
@@ -862,21 +875,24 @@ void core_initialize() {
     flags.selected = 0;
     flags.visible = 1;
 
-    desktop_window = core_create_window(&agwin_app, NULL, AW_CLASS_DESKTOP, flags,
-                        0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Desktop");
+    root_window = core_create_window(&agwin_app, NULL, AW_CLASS_ROOT, flags,
+                        0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Root");
 
     flags.border = 1;
     flags.title_bar = 1;
     flags.icons = 1;
 
-    AwWindow* win1 = core_create_window(&agwin_app, desktop_window, AW_CLASS_USER+1, flags,
-                        100, 75, 66, 89, "My App #1");
+    AwWindow* win1 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+1, flags,
+                        100, 75, 166, 89, "My App #1");
+    win1->bg_color = 9;
 
-    AwWindow* win2 = core_create_window(&agwin_app, desktop_window, AW_CLASS_USER+2, flags,
-                        150, 115, 125, 222, "My App #2");
+    AwWindow* win2 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+2, flags,
+                        217, 15, 175, 222, "My App #2");
+    win2->bg_color = 10;
 
-    AwWindow* win3 = core_create_window(&agwin_app, desktop_window, AW_CLASS_USER+3, flags,
-                        420, 350, 85, 37, "My App #3");
+    AwWindow* win3 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+3, flags,
+                        420, 350, 185, 37, "My App #3");
+    win3->bg_color = 11;
 
     running = true;
 }
@@ -924,7 +940,7 @@ void core_message_loop() {
                         dirty_area.left, dirty_area.top,
                         dirty_area.right, dirty_area.bottom,
                         size.width, size.height);*/
-                emit_paint_messages(desktop_window);
+                emit_paint_messages(root_window);
                 dirty_area = core_get_empty_rect();
             }
         }

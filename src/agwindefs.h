@@ -21,7 +21,7 @@ extern "C" {
 #define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
 
 // Some standard window classes
-#define AW_CLASS_DESKTOP        ((uint16_t) 1)
+#define AW_CLASS_ROOT           ((uint16_t) 1)
 #define AW_CLASS_MENU           ((uint16_t) 2)
 #define AW_CLASS_MENU_ITEM      ((uint16_t) 3)
 #define AW_CLASS_LIST           ((uint16_t) 4)
