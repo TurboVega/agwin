@@ -513,6 +513,8 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window, bool client) {
 
 void draw_background(AwWindow* window) {
     printf("draw_background %p\r\n", window);
+    vdp_set_graphics_colour(0, window->bkgd_color | 0x80);
+    vdp_clear_graphics();
 }
 
 void draw_border(AwWindow* window) {
@@ -828,6 +830,10 @@ void core_message_loop() {
             AwSize size = core_get_rect_size(&dirty_area);
             if (size.width || size.height) {
                 // Something needs to be painted
+                printf("dirty (%hu,%hu)-(%hu,%hu) %hux%hu",
+                        dirty_area.left, dirty_area.top,
+                        dirty_area.right, dirty_area.bottom,
+                        size.width, size.height);
                 emit_paint_messages(desktop_window);
                 dirty_area = core_get_empty_rect();
             }
