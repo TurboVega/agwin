@@ -477,23 +477,23 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window) {
 }
 
 void draw_background(AwWindow* window) {
-
+    printf("draw_background %p\r\n", window);
 }
 
 void draw_border(AwWindow* window) {
-
+    printf("draw_border %p\r\n", window);
 }
 
 void draw_title_bar(AwWindow* window) {
-
+    printf("draw_title_bar %p\r\n", window);
 }
 
 void draw_title(AwWindow* window) {
-
+    printf("draw_title %p\r\n", window);
 }
 
 void draw_icons(AwWindow* window) {
-
+    printf("draw_icons %p\r\n", window);
 }
 
 void core_paint_window(AwMsg* msg) {
