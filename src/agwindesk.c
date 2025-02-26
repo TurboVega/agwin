@@ -1,5 +1,3 @@
-#pragma once
-
 // Default message handler for AW_CLASS_DESKTOP windows
 
 #include "agwindesk.h"

@@ -11,6 +11,8 @@ void core_initialize();
 
 void core_message_loop();
 
+int32_t core_handle_message(AwMsg* msg);
+
 uint8_t core_get_version();
 
 int16_t core_get_rect_width(const AwRect* rect);

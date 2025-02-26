@@ -1,5 +1,3 @@
-#pragma once
-
 // Default message handler for AW_CLASS_STATIC_TEXT windows
 
 #include "agwinstat.h"

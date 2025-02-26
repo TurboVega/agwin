@@ -10,6 +10,7 @@
 #include "agwinstat.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <agon/vdp_key.h>
 #include <agon/vdp_vdu.h>
 
@@ -33,7 +34,7 @@ uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
 
 int32_t core_handle_message(AwMsg* msg);
 
-const AwApplication agwin_app = { "agwin", core_handle_message, 0, 0 };
+AwApplication agwin_app = { "agwin", core_handle_message, 0, 0 };
 
 void key_event_handler(KEY_EVENT key_event)
 {
@@ -438,11 +439,11 @@ void core_show_window(AwWindow* window, bool visible) {
 }
 
 void core_close_window(AwWindow* window) {
-
+    printf("close %p\r\n", window);
 }
 
 void core_destroy_window(AwWindow* window) {
-
+    printf("destroy %p\r\n", window);
 }
 
 int32_t core_process_message(AwMsg* msg) {
@@ -462,19 +463,24 @@ int32_t core_process_message(AwMsg* msg) {
             default: return core_handle_message(msg);
         }
     }
+    return result;
 }
 
 void core_exit_app(AwApplication* app) {
-
+    printf("exit %p\r\n", app);
 }
 
 void core_terminate() {
+    printf("terminate\r\n");
+}
 
+void core_paint_window(AwMsg* msg) {
+    printf("paint %p\r\n", msg->do_paint_window.window);
 }
 
 int32_t core_handle_message(AwMsg* msg) {
-    switch (msg->do_common.msg_type)
-    {
+    printf("handle %p %hu\r\n", msg->do_common.window, (uint16_t) msg->do_common.msg_type);
+    switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
             break;
         }
@@ -520,13 +526,13 @@ int32_t core_handle_message(AwMsg* msg) {
         }
 
         case Aw_Do_InvalidateWindow: {
-            core_invalidate_window(msg->invalidate_window.window);
+            core_invalidate_window(msg->do_invalidate_window.window);
             break;
         }
 
         case Aw_Do_InvalidateWindowRect: {
-            core_invalidate_window_rect(msg->invalidate_window_rect.window,
-                &msg->invalidate_window_rect.rect);
+            core_invalidate_window_rect(msg->do_invalidate_window_rect.window,
+                &msg->do_invalidate_window_rect.rect);
             break;
         }
 
@@ -541,123 +547,129 @@ int32_t core_handle_message(AwMsg* msg) {
         }
 
         case Aw_Do_Exit: {
-            core_exit_app(msg->exit.app);
+            core_exit_app(msg->do_exit.app);
             break;
         }
 
-        case Aw_On_Common: {
-            break;
-        }
+        default: {
+            switch (msg->on_common.msg_type) {
 
-        case Aw_On_KeyAction: {
-            break;
-        }
+                case Aw_On_Common: {
+                    break;
+                }
 
-        case Aw_On_KeyDown: {
-            break;
-        }
+                case Aw_On_KeyAction: {
+                    break;
+                }
 
-        case Aw_On_KeyRepeat: {
-            break;
-        }
+                case Aw_On_KeyDown: {
+                    break;
+                }
 
-        case Aw_On_KeyChar: {
-            break;
-        }
+                case Aw_On_KeyRepeat: {
+                    break;
+                }
 
-        case Aw_On_KeyUp: {
-            break;
-        }
+                case Aw_On_KeyChar: {
+                    break;
+                }
 
-        case Aw_On_MouseAction: {
-            break;
-        }
+                case Aw_On_KeyUp: {
+                    break;
+                }
 
-        case Aw_On_LeftButtonDown: {
-            break;
-        }
+                case Aw_On_MouseAction: {
+                    break;
+                }
 
-        case Aw_On_LeftButtonUp: {
-            break;
-        }
+                case Aw_On_LeftButtonDown: {
+                    break;
+                }
 
-        case Aw_On_LeftButtonClick: {
-            break;
-        }
+                case Aw_On_LeftButtonUp: {
+                    break;
+                }
 
-        case Aw_On_LeftButtonDoubleClick: {
-            break;
-        }
+                case Aw_On_LeftButtonClick: {
+                    break;
+                }
 
-        case Aw_On_MiddleButtonDown: {
-            break;
-        }
+                case Aw_On_LeftButtonDoubleClick: {
+                    break;
+                }
 
-        case Aw_On_MiddleButtonUp: {
-            break;
-        }
+                case Aw_On_MiddleButtonDown: {
+                    break;
+                }
 
-        case Aw_On_MiddleButtonClick: {
-            break;
-        }
+                case Aw_On_MiddleButtonUp: {
+                    break;
+                }
 
-        case Aw_On_MiddleButtonDoubleClick: {
-            break;
-        }
+                case Aw_On_MiddleButtonClick: {
+                    break;
+                }
 
-        case Aw_On_RightButtonDown: {
-            break;
-        }
+                case Aw_On_MiddleButtonDoubleClick: {
+                    break;
+                }
 
-        case Aw_On_RightButtonUp: {
-            break;
-        }
+                case Aw_On_RightButtonDown: {
+                    break;
+                }
 
-        case Aw_On_RightButtonClick: {
-            break;
-        }
+                case Aw_On_RightButtonUp: {
+                    break;
+                }
 
-        case Aw_On_RightButtonDoubleClick: {
-            break;
-        }
+                case Aw_On_RightButtonClick: {
+                    break;
+                }
 
-        case Aw_On_WindowResized: {
-            break;
-        }
+                case Aw_On_RightButtonDoubleClick: {
+                    break;
+                }
 
-        case Aw_On_WindowMoved: {
-            break;
-        }
+                case Aw_On_WindowResized: {
+                    break;
+                }
 
-        case Aw_On_WindowCreated: {
-            break;
-        }
+                case Aw_On_WindowMoved: {
+                    break;
+                }
 
-        case Aw_On_WindowDestroyed: {
-            break;
-        }
+                case Aw_On_WindowCreated: {
+                    break;
+                }
 
-        case Aw_On_WindowShown: {
-            break;
-        }
+                case Aw_On_WindowDestroyed: {
+                    break;
+                }
 
-        case Aw_On_WindowEnabled: {
-            break;
-        }
+                case Aw_On_WindowShown: {
+                    break;
+                }
 
-        case Aw_On_WindowActivated: {
+                case Aw_On_WindowEnabled: {
+                    break;
+                }
 
-        }
-    
-        case Aw_On_Terminate: {
-            break;
-        }
+                case Aw_On_WindowActivated: {
 
-        default:
-            break;
+                }
+            
+                case Aw_On_Terminate: {
+                    break;
+                }
+
+                default: {
+                    break;
+                }
+            }
+        }
     }
 
-    return MSG_HANDLED;
+    return AW_MSG_HANDLED;
 }
 
 void core_initialize() {
@@ -685,7 +697,7 @@ void core_message_loop() {
                 msg_read_index = 0;
             }
             msg_count--;
-            int32_t result = core_process_message(msg);
+            core_process_message(msg);
         }
     }
     vdp_key_reset_interrupt();

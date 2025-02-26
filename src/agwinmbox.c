@@ -1,5 +1,3 @@
-#pragma once
-
 // Default message handler for AW_CLASS_MESSAGE_BOX windows
 
 #include "agwinmbox.h"

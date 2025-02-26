@@ -1,5 +1,3 @@
-#pragma once
-
 // Default message handler for AW_CLASS_EDIT_TEXT windows
 
 #include "agwinedit.h"
