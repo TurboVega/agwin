@@ -199,20 +199,20 @@ AwRect core_get_global_client_rect(AwWindow* window) {
 }
 
 void add_more_dirt(AwRect* rect) {
-    AwSize size = core_get_rect_size(rect);
+    /*AwSize size = core_get_rect_size(rect);
     printf("add dirt (%hu,%hu)-(%hu,%hu) %hux%hu\r\n",
             rect->left, rect->top,
             rect->right, rect->bottom,
-            size.width, size.height);
+            size.width, size.height);*/
     AwRect screen = core_get_screen_rect();
-    AwRect filth1 = core_get_union_rect(&dirty_area, &screen);
+    AwRect filth1 = core_get_intersect_rect(rect, &screen);
     AwRect filth2 = core_get_union_rect(&dirty_area, &filth1);
     dirty_area = filth2;
-    size = core_get_rect_size(&dirty_area);
+    /*size = core_get_rect_size(&dirty_area);
     printf("dirty (%hu,%hu)-(%hu,%hu) %hux%hu\r\n",
             dirty_area.left, dirty_area.top,
             dirty_area.right, dirty_area.bottom,
-            size.width, size.height);
+            size.width, size.height);*/
 }
 
 void core_invalidate_window(AwWindow* window) {
@@ -224,7 +224,7 @@ void core_invalidate_client(AwWindow* window) {
 }
 
 void core_post_message(AwMsg* msg) {
-    printf("post %p %hu\r\n", msg->do_common.window, msg->do_common.msg_type);
+    //printf("post %p %hu\r\n", msg->do_common.window, msg->do_common.msg_type);
     if (msg_count < AW_MESSAGE_QUEUE_SIZE) {
         AwMsg* pmsg = &message_queue[msg_write_index++];
         if (msg_write_index >= AW_MESSAGE_QUEUE_SIZE) {
@@ -301,6 +301,7 @@ void core_resize_window(AwWindow* window, int16_t width, int16_t height) {
 }
 
 void core_link_child(AwWindow* parent, AwWindow* child) {
+    //printf("link parent %p, child %p ... ", parent, child);
     if (parent->first_child) {
         parent->last_child->next_sibling = child;
         child->prev_sibling = parent->last_child;
@@ -310,6 +311,7 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
     }
     parent->last_child = child;
     child->next_sibling = NULL;
+    //printf("end link\r\n");
 }
 
 AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
@@ -347,8 +349,8 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     window->client_ctx = client_ctx;
     window->window_rect.right = width;
     window->window_rect.bottom = height;
-    window->bkgd_color = AW_DFLT_BKGD_COLOR;
-    window->text_color = AW_DFLT_TEXT_COLOR;
+    window->bg_color = AW_DFLT_BG_COLOR;
+    window->fg_color = AW_DFLT_FG_COLOR;
 
     AwMsg msg;
     msg.on_window_created.window = window;
@@ -519,6 +521,7 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window, bool client) {
     if (client) {
         paint_flags->client = 1;
         paint_flags->background = 1;
+        paint_flags->foreground = 1;
         if (window->flags.selected) {
             paint_flags->selected = 1;
         }
@@ -538,20 +541,24 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window, bool client) {
 }
 
 void draw_background(AwWindow* window) {
-    printf("draw_background %p\r\n", window);
-    if (window->class_id != AW_CLASS_DESKTOP) {
-        vdp_set_graphics_colour(0, window->bkgd_color | 0x80);
-        vdp_clear_graphics();
-    }
+    //printf("draw_background %p\r\n", window);
+    //vdp_set_graphics_colour(0, window->bg_color | 0x80);
+    //vdp_clear_graphics();
+}
+
+void draw_foreground(AwWindow* window) {
+    //printf("draw_foreground %p\r\n", window);
+    vdp_set_graphics_colour(0, window->fg_color);
+    printf("FG: %s", window->text);
 }
 
 void draw_border(AwWindow* window) {
-    printf("draw_border %p\r\n", window);
+    //printf("draw_border %p\r\n", window);
     vdp_set_graphics_colour(0, AW_DFLT_BORDER_COLOR);
 }
 
 void draw_title_bar(AwWindow* window) {
-    printf("draw_title_bar %p\r\n", window);
+    //printf("draw_title_bar %p\r\n", window);
     vdp_set_graphics_colour(0, AW_DFLT_TITLE_BAR_COLOR);
     vdp_move_to(AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
     AwSize size = core_get_client_size(window);
@@ -559,18 +566,30 @@ void draw_title_bar(AwWindow* window) {
 }
 
 void draw_title(AwWindow* window) {
-    printf("draw_title %p\r\n", window);
+    //printf("draw_title %p\r\n", window);
     vdp_set_graphics_colour(0, AW_DFLT_TITLE_COLOR);
-    printf("%s", window->text);
+    printf("T: %s", window->text);
 }
 
 void draw_icons(AwWindow* window) {
-    printf("draw_icons %p\r\n", window);
+    //printf("draw_icons %p\r\n", window);
 }
 
+typedef struct { uint8_t A; uint8_t B; uint8_t CMD; } VDU_A_B_CMD;
+
+static VDU_A_B_CMD vdu_set_text_viewport_via_plot = { 23, 0, 0x9C };
+static VDU_A_B_CMD vdu_set_graphics_viewport_via_plot = { 23, 0, 0x9D };
+static VDU_A_B_CMD vdu_set_graphics_origin_via_plot = { 23, 0, 0x9E };
+static VDU_A_B_CMD vdu_move_graphics_origin_and_viewport = { 23, 0, 0x9F };
+
+void local_vdp_set_text_viewport_via_plot( void ) { VDP_PUTS( vdu_set_text_viewport_via_plot ); }
+void local_vdp_set_graphics_viewport_via_plot( void ) { VDP_PUTS( vdu_set_graphics_viewport_via_plot ); }
+void local_vdp_set_graphics_origin_via_plot( void ) { VDP_PUTS( vdu_set_graphics_origin_via_plot ); }
+void local_vdp_move_graphics_origin_and_viewport( void ) { VDP_PUTS( vdu_move_graphics_origin_and_viewport ); }
+
 void core_paint_window(AwMsg* msg) {
-    printf("paint %p, flags %04hX\r\n",
-            msg->do_paint_window.window, msg->do_paint_window.all_flags);
+    //printf("paint %p, flags %04hX\r\n",
+    //        msg->do_paint_window.window, msg->do_paint_window.all_flags);
 
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
     AwWindow* window = paint_msg->window;
@@ -585,9 +604,12 @@ void core_paint_window(AwMsg* msg) {
 
     if (paint_flags->window) {
         vdp_context_select(window->window_ctx);
-        vdp_set_graphics_viewport(window->window_rect.left, window->window_rect.bottom,
-                                window->window_rect.right, window->window_rect.top);
-        vdp_graphics_origin(window->window_rect.left, window->window_rect.top);
+        vdp_move_to(window->window_rect.left, window->window_rect.top);
+        local_vdp_set_graphics_origin_via_plot();
+        vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
+        local_vdp_set_graphics_viewport_via_plot();
+        local_vdp_set_text_viewport_via_plot();
+        vdp_cursor_tab(0, 0);
 
         if (paint_flags->border) {
             draw_border(window);
@@ -605,12 +627,18 @@ void core_paint_window(AwMsg* msg) {
 
     if (paint_flags->client) {
         vdp_context_select(window->client_ctx);
-        vdp_set_graphics_viewport(window->client_rect.left, window->client_rect.bottom,
-                                window->client_rect.right, window->client_rect.top);
-        vdp_graphics_origin(window->client_rect.left, window->client_rect.top);
+        vdp_move_to(window->client_rect.left, window->client_rect.top);
+        local_vdp_set_graphics_origin_via_plot();
+        vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
+        local_vdp_set_graphics_viewport_via_plot();
+        local_vdp_set_text_viewport_via_plot();
+        vdp_cursor_tab(0, 0);
 
         if (paint_flags->background) {
             draw_background(window);
+        }
+        if (paint_flags->foreground) {
+            draw_foreground(window);
         }
     }
 
@@ -619,7 +647,7 @@ void core_paint_window(AwMsg* msg) {
 }
 
 int32_t core_handle_message(AwMsg* msg) {
-    printf("handle %p %hu\r\n", msg->do_common.window, (uint16_t) msg->do_common.msg_type);
+    //printf("handle %p %hu\r\n", msg->do_common.window, (uint16_t) msg->do_common.msg_type);
     switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
             break;
@@ -892,10 +920,10 @@ void core_message_loop() {
             AwSize size = core_get_rect_size(&dirty_area);
             if (size.width || size.height) {
                 // Something needs to be painted
-                printf("dirty (%hu,%hu)-(%hu,%hu) %hux%hu\r\n",
+                /*printf("dirty (%hu,%hu)-(%hu,%hu) %hux%hu\r\n",
                         dirty_area.left, dirty_area.top,
                         dirty_area.right, dirty_area.bottom,
-                        size.width, size.height);
+                        size.width, size.height);*/
                 emit_paint_messages(desktop_window);
                 dirty_area = core_get_empty_rect();
             }

@@ -39,8 +39,8 @@ extern "C" {
 #define AW_MSG_UNHANDLED        0
 #define AW_MSG_HANDLED          1
 
-#define AW_DFLT_BKGD_COLOR      0
-#define AW_DFLT_TEXT_COLOR      1
+#define AW_DFLT_BG_COLOR        0
+#define AW_DFLT_FG_COLOR        1
 #define AW_DFLT_BORDER_COLOR    2
 #define AW_DFLT_TITLE_BAR_COLOR 3
 #define AW_DFLT_TITLE_COLOR     4
@@ -152,8 +152,8 @@ typedef struct tag_AwWindow {
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
     AwWindowFlags   flags;          // flags describing the window
     uint32_t        text_size;      // allocated space for text (not the text length)
-    uint8_t         bkgd_color;     // color of background, espcially when drawn by core
-    uint8_t         text_color;     // color of text, espcially when drawn by core
+    uint8_t         bg_color;       // color of background, espcially when drawn by core
+    uint8_t         fg_color;       // color of text, espcially when drawn by core
 } AwWindow;
 
 #pragma pack(pop)
