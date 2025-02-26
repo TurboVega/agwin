@@ -788,8 +788,19 @@ void core_initialize() {
     running = true;
 }
 
-bool emit_paint_messages(AwWindow* window) {
-
+void emit_paint_messages(AwWindow* window) {
+    AwRect rect = core_get_intersect_rect(&dirty_area, &window->paint_rect);
+    AwSize size = core_get_rect_size(&rect);
+    if (size.width || size.height) {
+        AwMsg msg;
+        msg.do_paint_window...
+        core_post_message(&msg);
+        window = window->first_child;
+        while (window) {
+            emit_paint_messages(window);
+            window = window->next_sibling;
+        }
+    }
 }
 
 void core_message_loop() {
