@@ -23,6 +23,7 @@ extern "C" {
 #define AW_MESSAGE_QUEUE_SIZE   64
 
 #define PLOT_MODE_FILLED_RECT   0x65
+#define FONT_SIZE               8
 
 AwWindow* root_window;
 AwWindow* active_window;
@@ -552,7 +553,11 @@ void draw_foreground(AwWindow* window) {
     //printf("draw_foreground %p\r\n", window);
     vdp_set_text_colour(window->bg_color | 0x80);
     vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
-    printf("FG: %s", window->text);
+    printf("FG: %s\r\n", window->text);
+    AwSize size = core_get_window_size(window);
+    printf("Window size %hux%hu\r\n", size.width, size.height);
+    size = core_get_client_size(window);
+    printf("Client size %hux%hu\r\n", size.width, size.height);
 }
 
 void draw_border(AwWindow* window) {
@@ -631,8 +636,19 @@ void core_paint_window(AwMsg* msg) {
         local_vdp_set_graphics_origin_via_plot();
         vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
         local_vdp_set_graphics_viewport_via_plot();
-        local_vdp_set_text_viewport_via_plot();
-        vdp_cursor_tab(0, 0);
+
+        /*vdp_move_to(window->window_rect.left/FONT_SIZE,
+                    window->window_rect.top/FONT_SIZE);
+        vdp_move_to((window->window_rect.right/FONT_SIZE)-1,
+                    (window->window_rect.bottom/FONT_SIZE)-1);*/
+        //vdp_move_to(0, 0);
+        //vdp_move_to(7, 5);
+        //local_vdp_set_text_viewport_via_plot();
+        //vdp_cursor_tab(0, 0);
+
+        vdp_set_text_viewport(0, 0,
+                    (window->window_rect.right/FONT_SIZE)-1,
+                    (window->window_rect.bottom/FONT_SIZE)-1);
 
         if (paint_flags->border) {
             draw_border(window);
@@ -654,14 +670,25 @@ void core_paint_window(AwMsg* msg) {
         local_vdp_set_graphics_origin_via_plot();
         vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
         local_vdp_set_graphics_viewport_via_plot();
-        local_vdp_set_text_viewport_via_plot();
-        vdp_cursor_tab(0, 0);
+
+        /*vdp_move_to(window->client_rect.left/FONT_SIZE,
+                    window->client_rect.top/FONT_SIZE);
+        vdp_move_to((window->client_rect.right/FONT_SIZE)-1,
+                    (window->client_rect.bottom/FONT_SIZE)-1);*/
+        //vdp_move_to(0, 0);
+        //vdp_move_to(7, 5);
+        //local_vdp_set_text_viewport_via_plot();
+        //vdp_cursor_tab(0, 0);
+
+        vdp_set_text_viewport(0, 0,
+                    (window->client_rect.right/FONT_SIZE)-1,
+                    (window->client_rect.bottom/FONT_SIZE)-1);
 
         if (paint_flags->background) {
-            //draw_background(window);
+            draw_background(window);
         }
         if (paint_flags->foreground) {
-            //draw_foreground(window);
+            draw_foreground(window);
         }
     }
 
@@ -876,7 +903,7 @@ int32_t core_handle_message(AwMsg* msg) {
 
 void core_initialize() {
     AwWindowFlags flags;
-    flags.border = 0;
+    flags.border = 1;
     flags.title_bar = 0;
     flags.icons = 0;
     flags.sizeable = 0;
