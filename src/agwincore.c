@@ -290,12 +290,11 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     }
     memset(window, 0, sizeof(AwWindow));
 
-    // Save the current VDP context
-    vdp_context_save();
-
     // Create a new VDP context for this window
+    vdp_context_save();
     uint16_t context_id = get_new_context_id();
     vdp_context_reset(0xFF); // all flags set
+    vdp_context_restore();
 
     core_set_text(window, text);
     window->parent = parent;
@@ -315,28 +314,6 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     core_post_message(&msg);
 
     core_move_window(window, x, y);
-
-    if (window->flags.visible) {
-        msg.do_paint_window.msg_type = Aw_Do_PaintWindow;
-        msg.do_paint_window.all_flags = 0;
-        msg.do_paint_window.flags.background = 1;
-        if (flags.border) {
-            msg.do_paint_window.flags.border = 1;
-        }
-        if (flags.enabled) {
-            msg.do_paint_window.flags.enabled = 1;
-        }
-        if (flags.icons) {
-            msg.do_paint_window.flags.icons = 1;
-        }
-        if (flags.selected) {
-            msg.do_paint_window.flags.selected = 1;
-        }
-        if (flags.title_bar) {
-            msg.do_paint_window.flags.title_bar = 1;
-            msg.do_paint_window.flags.title = 1;
-        }
-    }
 
     return window;
 }
@@ -474,8 +451,86 @@ void core_terminate() {
     printf("terminate\r\n");
 }
 
+void core_set_paint_msg(AwMsg* msg, AwWindow* window) {
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+    AwPaintFlags* paint_flags = &paint_msg->flags;
+
+    paint_msg->msg_type = Aw_Do_PaintWindow;
+    paint_msg->all_flags = 0;
+    paint_flags->background = 1;
+    if (window->flags.border) {
+        paint_flags->border = 1;
+    }
+    if (window->flags.enabled) {
+        paint_flags->enabled = 1;
+    }
+    if (window->flags.icons) {
+        paint_flags->icons = 1;
+    }
+    if (window->flags.selected) {
+        paint_flags->selected = 1;
+    }
+    if (window->flags.title_bar) {
+        paint_flags->title_bar = 1;
+        paint_flags->title = 1;
+    }
+}
+
+void draw_background(AwWindow* window) {
+
+}
+
+void draw_border(AwWindow* window) {
+
+}
+
+void draw_title_bar(AwWindow* window) {
+
+}
+
+void draw_title(AwWindow* window) {
+
+}
+
+void draw_icons(AwWindow* window) {
+
+}
+
 void core_paint_window(AwMsg* msg) {
     printf("paint %p\r\n", msg->do_paint_window.window);
+
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+    AwWindow* window = paint_msg->window;
+
+    if (!window->flags.visible) {
+        return;
+    }
+
+    AwPaintFlags* paint_flags = &paint_msg->flags;
+
+    vdp_context_save();
+    vdp_context_select(window->context_id);
+
+    if (paint_flags->background) {
+        draw_background(window);
+    }
+    if (paint_flags->border) {
+        draw_border(window);
+    }
+    if (paint_flags->title_bar) {
+        draw_title_bar(window);
+    }
+    if (paint_flags->title) {
+        draw_title(window);
+    }
+    if (paint_flags->icons) {
+        draw_icons(window);
+    }
+
+    vdp_context_select(0);
+    vdp_context_restore();
+
+    window->paint_rect = core_get_empty_rect();
 }
 
 int32_t core_handle_message(AwMsg* msg) {

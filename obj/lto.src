@@ -612,14 +612,50 @@ _core_invalidate_window_rect:
 	section	.text,"ax",@progbits
 	public	_core_paint_window
 _core_paint_window:
-	call	__frameset0
+	ld	hl, -3
+	call	__frameset
 	ld	hl, (ix + 6)
-	ld	de, _.str.6
-	ld	hl, (hl)
-	push	hl
+	ld	bc, _.str.6
+	ld	de, (hl)
 	push	de
+	push	bc
 	call	_printf
-	ld	sp, ix
+	pop	hl
+	pop	hl
+	ld	hl, (ix + 6)
+	ld	iy, (hl)
+	ld	hl, (iy + 43)
+	ld.sis	bc, 512
+	call	__sand
+	add.sis	hl, bc
+	or	a, a
+	sbc.sis	hl, bc
+	jr	z, BB10_2
+	ld	(ix - 3), iy
+	call	_vdp_context_save
+	ld	iy, (ix - 3)
+	ld	hl, (iy + 17)
+	ld	de, 0
+	ld	e, l
+	ld	d, h
+	push	de
+	call	_vdp_context_select
+	pop	hl
+	or	a, a
+	sbc	hl, hl
+	push	hl
+	call	_vdp_context_select
+	pop	hl
+	call	_vdp_context_restore
+	ld	iy, (ix - 3)
+	or	a, a
+	sbc	hl, hl
+	ld	(iy + 35), hl
+	ld	(iy + 38), hl
+	ld	(iy + 41), l
+	ld	(iy + 42), h
+BB10_2:
+	pop	hl
 	pop	ix
 	ret
 	section	.text,"ax",@progbits
@@ -1390,6 +1426,7 @@ _core_create_window:
 	push	hl
 	call	_vdp_context_reset
 	pop	hl
+	call	_vdp_context_restore
 	ld	hl, (ix + 30)
 	push	hl
 	ld	hl, (ix - 33)
@@ -1710,6 +1747,132 @@ _core_terminate:
 	section	.text,"ax",@progbits
 
 	section	.text,"ax",@progbits
+	public	_core_set_paint_msg
+_core_set_paint_msg:
+	ld	hl, -3
+	call	__frameset
+	ld	iy, (ix + 6)
+	ld	de, (ix + 9)
+	ld.sis	hl, 16
+	ld	(iy + 3), 11
+	ld	(ix - 3), hl
+	ld	(iy + 28), l
+	ld	(iy + 29), h
+	push	de
+	pop	iy
+	bit	2, (iy + 43)
+	jr	z, BB44_2
+	ld.sis	hl, 17
+	ld	(ix - 3), hl
+BB44_2:
+	ld	hl, (ix + 6)
+	push	hl
+	pop	iy
+	ld	hl, (ix - 3)
+	ld	(iy + 28), l
+	ld	(iy + 29), h
+	ld	iy, (ix + 9)
+	ld	de, (iy + 43)
+	ld	a, e
+	bit	7, a
+	jr	z, BB44_4
+	ld.sis	de, 64
+	ld	hl, (ix - 3)
+	add.sis	hl, de
+	ld	(ix - 3), hl
+	ld	iy, (ix + 6)
+	ld	(iy + 28), l
+	ld	(iy + 29), h
+	ld	iy, (ix + 9)
+	ld	de, (iy + 43)
+BB44_4:
+	ld.sis	bc, 256
+	ld	a, e
+	bit	4, a
+	jr	z, BB44_6
+	ld.sis	de, 8
+	ld	hl, (ix - 3)
+	add.sis	hl, de
+	ld	(ix - 3), hl
+	ld	iy, (ix + 6)
+	ld	(iy + 28), l
+	ld	(iy + 29), h
+	ld	iy, (ix + 9)
+	ld	de, (iy + 43)
+BB44_6:
+	ld	l, e
+	ld	h, d
+	call	__sand
+	add.sis	hl, bc
+	or	a, a
+	sbc.sis	hl, bc
+	jr	z, BB44_8
+	ld.sis	de, 128
+	ld	hl, (ix - 3)
+	add.sis	hl, de
+	ld	(ix - 3), hl
+	ld	iy, (ix + 6)
+	ld	(iy + 28), l
+	ld	(iy + 29), h
+	ld	iy, (ix + 9)
+	ld	de, (iy + 43)
+BB44_8:
+	ld	a, e
+	bit	3, a
+	jr	z, BB44_10
+	ld.sis	bc, 6
+	ld	hl, (ix - 3)
+	call	__sor
+	ld	iy, (ix + 6)
+	ld	(iy + 28), l
+	ld	(iy + 29), h
+BB44_10:
+	pop	hl
+	pop	ix
+	ret
+	section	.text,"ax",@progbits
+
+	section	.text,"ax",@progbits
+	public	_draw_background
+_draw_background:
+	call	__frameset0
+	pop	ix
+	ret
+	section	.text,"ax",@progbits
+
+	section	.text,"ax",@progbits
+	public	_draw_border
+_draw_border:
+	call	__frameset0
+	pop	ix
+	ret
+	section	.text,"ax",@progbits
+
+	section	.text,"ax",@progbits
+	public	_draw_title_bar
+_draw_title_bar:
+	call	__frameset0
+	pop	ix
+	ret
+	section	.text,"ax",@progbits
+
+	section	.text,"ax",@progbits
+	public	_draw_title
+_draw_title:
+	call	__frameset0
+	pop	ix
+	ret
+	section	.text,"ax",@progbits
+
+	section	.text,"ax",@progbits
+	public	_draw_icons
+_draw_icons:
+	call	__frameset0
+	pop	ix
+	ret
+	section	.text,"ax",@progbits
+
+	section	.text,"ax",@progbits
 	public	_core_initialize
 _core_initialize:
 	ld	hl, -2
@@ -1767,7 +1930,7 @@ _core_message_loop:
 	ld	hl, _key_event_handler
 	push	hl
 	call	_vdp_set_key_event_handler
-BB45_1:
+BB51_1:
 	pop	hl
 	ld	bc, 30
 	ld	a, (_running)
@@ -1775,10 +1938,10 @@ BB45_1:
 	ld	a, (_msg_count)
 	ld	e, a
 	bit	0, l
-	jr	z, BB45_7
+	jr	z, BB51_7
 	ld	a, e
 	or	a, a
-	jr	z, BB45_6
+	jr	z, BB51_6
 	ld	a, (_msg_read_index)
 	or	a, a
 	sbc	hl, hl
@@ -1791,9 +1954,9 @@ BB45_1:
 	add	hl, bc
 	cp	a, 64
 	ld	c, 0
-	jr	nc, BB45_5
+	jr	nc, BB51_5
 	ld	c, a
-BB45_5:
+BB51_5:
 	ld	a, c
 	ld	(_msg_read_index), a
 	dec	e
@@ -1801,10 +1964,10 @@ BB45_5:
 	ld	(_msg_count), a
 	push	hl
 	call	_core_process_message
-	jr	BB45_1
-BB45_6:
-	jr	BB45_6
-BB45_7:
+	jr	BB51_1
+BB51_6:
+	jr	BB51_6
+BB51_7:
 	jp	_vdp_key_reset_interrupt
 	section	.text,"ax",@progbits
 
@@ -2257,6 +2420,7 @@ _str:
 	extern	_vdp_vdu_init
 	extern	_vdp_context_reset
 	extern	__frameset
+	extern	_vdp_context_select
 	extern	__indcallhl
 	extern	_puts
 	extern	_vdp_mode
