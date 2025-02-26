@@ -893,7 +893,7 @@ void core_initialize() {
     flags.icons = 1;
 
     AwWindow* win1 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+1, flags,
-                        100, 75, 166, 89, "My App #1");
+                        100, 179, 166, 189, "My App #1");
     win1->bg_color = 9;
 
     AwWindow* win2 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+2, flags,
