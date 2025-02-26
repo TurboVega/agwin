@@ -11,21 +11,28 @@ extern "C" {
 
 typedef union tag_AwMsg {
     AwDoMsgCommon               do_common;
-    AwDoMsgResizeWindow         resize_window;
-    AwDoMsgMoveWindow           move_window;
-    AwDoMsgCommon               close_window;
-    AwDoMsgCommon               destroy_window;
-    AwDoMsgShowWindow           show_window;
-    AwDoMsgEnableWindow         enable_window;
-    AwDoMsgActivateWindow       activate_window;
-    AwDoMsgCommon               invalidate_window;
-    AwDoMsgInvalidateWindowRect invalidate_window_rect;
-    AwDoMsgPaintWindow          paint_window;
-    AwDoMsgCommon               terminate;
-    AwDoMsgExit                 exit;
+    AwDoMsgResizeWindow         do_resize_window;
+    AwDoMsgMoveWindow           do_move_window;
+    AwDoMsgCommon               do_close_window;
+    AwDoMsgCommon               do_destroy_window;
+    AwDoMsgShowWindow           do_show_window;
+    AwDoMsgEnableWindow         do_enable_window;
+    AwDoMsgActivateWindow       do_activate_window;
+    AwDoMsgCommon               do_invalidate_window;
+    AwDoMsgInvalidateWindowRect do_invalidate_window_rect;
+    AwDoMsgPaintWindow          do_paint_window;
+    AwDoMsgCommon               do_terminate;
+    AwDoMsgExit                 do_exit;
 
     AwOnMsgCommon               on_common;
-    AwOnMsgInputAction          input_action;
+    AwOnMsgInputAction          on_input_action;
+    AwOnMsgCommon               on_window_resized;
+    AwOnMsgCommon               on_window_moved;
+    AwOnMsgCommon               on_window_created;
+    AwOnMsgCommon               on_window_destroyed;
+    AwOnMsgCommon               on_window_shown;
+    AwOnMsgCommon               on_terminate;
+
 } AwMsg;
 
 #pragma pack(pop)

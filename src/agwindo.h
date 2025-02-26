@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-typedef enum uint8_t {
+typedef enum : uint8_t {
     Aw_Do_Common = 1,
     Aw_Do_ResizeWindow,
     Aw_Do_MoveWindow,

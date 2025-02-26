@@ -7,10 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "agwin.h"
-
-void core_initialize();
-void core_message_loop();
+#include "agwincore.h"
 
 /*
 void wait_clock(clock_t ticks)

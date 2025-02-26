@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-int32_t edit_win_msg_handler(AwMsg* msg);
+int32_t edit_text_win_msg_handler(AwMsg* msg);
 
 #ifdef __CPLUSPLUS
 } // extern "C"

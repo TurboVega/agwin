@@ -246,8 +246,8 @@ void core_move_window(AwWindow* window, int16_t x, int16_t y) {
     core_invalidate_window(window);
 
     AwMsg msg;
-    msg.window_moved.window = window;
-    msg.window_moved.msg_type = AwMt_WindowMoved;
+    msg.on_window_moved.window = window;
+    msg.on_window_moved.msg_type = Aw_On_WindowMoved;
     core_post_message(&msg);
 }
 
@@ -271,8 +271,8 @@ void core_resize_window(AwWindow* window, int16_t width, int16_t height) {
     core_move_window(window, rect.left, rect.top);
 
     AwMsg msg;
-    msg.window_resized.window = window;
-    msg.window_resized.msg_type = AwMt_WindowResized;
+    msg.on_window_resized.window = window;
+    msg.on_window_resized.msg_type = Aw_On_WindowResized;
     core_post_message(&msg);
 }
 
@@ -306,34 +306,34 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     window->window_rect.bottom = height;
 
     AwMsg msg;
-    msg.window_created.window = window;
-    msg.window_created.msg_type = AwMt_WindowCreated;
+    msg.on_window_created.window = window;
+    msg.on_window_created.msg_type = Aw_On_WindowCreated;
     core_post_message(&msg);
 
-    msg.window_resized.msg_type = AwMt_WindowResized;
+    msg.on_window_resized.msg_type = Aw_On_WindowResized;
     core_post_message(&msg);
 
     core_move_window(window, x, y);
 
     if (window->flags.visible) {
-        msg.paint_window.msg_type = AwMt_PaintWindow;
-        msg.paint_window.all_flags = 0;
-        msg.paint_window.flags.background = 1;
+        msg.do_paint_window.msg_type = Aw_Do_PaintWindow;
+        msg.do_paint_window.all_flags = 0;
+        msg.do_paint_window.flags.background = 1;
         if (flags.border) {
-            msg.paint_window.flags.border = 1;
+            msg.do_paint_window.flags.border = 1;
         }
         if (flags.enabled) {
-            msg.paint_window.flags.enabled = 1;
+            msg.do_paint_window.flags.enabled = 1;
         }
         if (flags.icons) {
-            msg.paint_window.flags.icons = 1;
+            msg.do_paint_window.flags.icons = 1;
         }
         if (flags.selected) {
-            msg.paint_window.flags.selected = 1;
+            msg.do_paint_window.flags.selected = 1;
         }
         if (flags.title_bar) {
-            msg.paint_window.flags.title_bar = 1;
-            msg.paint_window.flags.title = 1;
+            msg.do_paint_window.flags.title_bar = 1;
+            msg.do_paint_window.flags.title = 1;
         }
     }
 
@@ -445,8 +445,8 @@ void core_destroy_window(AwWindow* window) {
 
 }
 
-void core_process_message(AwMsg* msg) {
-    AwApplication* app = msg->common.app;
+int32_t core_process_message(AwMsg* msg) {
+    AwApplication* app = msg->do_common.window->app;
     int32_t result = (*app->msg_handler)(msg);
     if (result == AW_MSG_UNHANDLED) {
         switch (msg->do_common.window->class_id) {
@@ -473,49 +473,49 @@ void core_terminate() {
 }
 
 int32_t core_handle_message(AwMsg* msg) {
-    switch (msg->common.msg_type)
+    switch (msg->do_common.msg_type)
     {
         case Aw_Do_Common: {
             break;
         }
 
         case Aw_Do_ResizeWindow: {
-            core_resize_window(msg->resize_window.window,
-                 msg->resize_window.width, msg->resize_window.height);
+            core_resize_window(msg->do_resize_window.window,
+                 msg->do_resize_window.width, msg->do_resize_window.height);
             break;
         }
 
         case Aw_Do_MoveWindow: {
-            core_move_window(msg->move_window.window,
-                msg->move_window.pt.x, msg->move_window.pt.y);
+            core_move_window(msg->do_move_window.window,
+                msg->do_move_window.pt.x, msg->do_move_window.pt.y);
             break;
         }
 
         case Aw_Do_CloseWindow: {
-            core_close_window(msg->close_window.window);
+            core_close_window(msg->do_close_window.window);
             break;
         }
 
         case Aw_Do_DestroyWindow: {
-            core_destroy_window(msg->destroy_window.window);
+            core_destroy_window(msg->do_destroy_window.window);
             break;
         }
 
         case Aw_Do_ShowWindow: {
-            core_show_window(msg->show_window.window,
-                msg->show_window.visible);
+            core_show_window(msg->do_show_window.window,
+                msg->do_show_window.visible);
             break;
         }
 
         case Aw_Do_EnableWindow: {
-            core_enable_window(msg->enable_window.window,
-                msg->enable_window.enabled);
+            core_enable_window(msg->do_enable_window.window,
+                msg->do_enable_window.enabled);
             break;
         }
 
         case Aw_Do_ActivateWindow: {
-            core_activate_window(msg->activate_window.window,
-                msg->activate_window.active);
+            core_activate_window(msg->do_activate_window.window,
+                msg->do_activate_window.active);
             break;
         }
 
@@ -641,10 +641,14 @@ int32_t core_handle_message(AwMsg* msg) {
             break;
         }
 
-        case Aw_On_WindowHidden: {
+        case Aw_On_WindowEnabled: {
             break;
         }
 
+        case Aw_On_WindowActivated: {
+
+        }
+    
         case Aw_On_Terminate: {
             break;
         }
@@ -681,7 +685,7 @@ void core_message_loop() {
                 msg_read_index = 0;
             }
             msg_count--;
-            core_process_message(msg);
+            int32_t result = core_process_message(msg);
         }
     }
     vdp_key_reset_interrupt();

@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-typedef enum uint8_t {
+typedef enum : uint8_t {
     Aw_On_Common = 101,
     Aw_On_KeyAction,
     Aw_On_KeyDown,
@@ -33,7 +33,8 @@ typedef enum uint8_t {
     Aw_On_WindowCreated,
     Aw_On_WindowDestroyed,
     Aw_On_WindowShown,
-    Aw_On_WindowHidden,
+    Aw_On_WindowEnabled,
+    Aw_On_WindowActivated,
     Aw_On_Terminate,
 } AwOnMsgType;
 
