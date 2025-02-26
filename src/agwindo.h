@@ -35,8 +35,6 @@ typedef struct tag_AwDoMsgCommon {
 typedef struct tag_AwDoMsgPaintWindow {
     AwWindow*       window;
     AwDoMsgType     msg_type;
-    AwRect          win_rect;
-    AwRect          client_rect;
     AwRect          paint_rect;
     union {
         AwPaintFlags flags;

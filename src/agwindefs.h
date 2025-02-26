@@ -147,7 +147,6 @@ typedef struct tag_AwWindow {
     uint16_t        client_ctx;     // VDP context ID for the client area
     AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
-    AwRect          paint_rect;     // rectangle eclosing the dirty (invalid) area of the window
     AwWindowFlags   flags;          // flags describing the window
     uint32_t        text_size;      // allocated space for text (not the text length)
     uint8_t         bkgd_color;     // color of background, espcially when drawn by core

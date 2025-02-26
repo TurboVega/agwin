@@ -204,18 +204,15 @@ void add_more_dirt(AwRect* rect) {
 }
 
 void core_invalidate_window(AwWindow* window) {
-    AwRect paint_rect = core_get_union_rect(&window->paint_rect, &window->window_rect);
-    window->paint_rect = paint_rect;
-    add_more_dirt(&paint_rect);
+    add_more_dirt(&window->window_rect);
 }
 
 void core_invalidate_client(AwWindow* window) {
-    AwRect paint_rect = core_get_union_rect(&window->paint_rect, &window->client_rect);
-    window->paint_rect = paint_rect;
-    add_more_dirt(&paint_rect);
+    add_more_dirt(&window->client_rect);
 }
 
 void core_post_message(AwMsg* msg) {
+    printf("post %p %hu\r\n", msg->do_common.window, msg->do_common.msg_type);
     if (msg_count < AW_MESSAGE_QUEUE_SIZE) {
         AwMsg* pmsg = &message_queue[msg_write_index++];
         if (msg_write_index >= AW_MESSAGE_QUEUE_SIZE) {
@@ -343,17 +340,17 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
 }
 
 void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
-    AwRect extra_rect = core_get_intersect_rect(&window->window_rect, rect);
-    AwRect paint_rect = core_get_intersect_rect(&window->paint_rect, &extra_rect);
-    window->paint_rect = paint_rect;
-    add_more_dirt(&paint_rect);
+    AwRect new_rect = *rect;
+    core_offset_rect(&new_rect, window->window_rect.left, window->window_rect.top);
+    AwRect extra_rect = core_get_intersect_rect(&window->window_rect, &new_rect);
+    add_more_dirt(&extra_rect);
 }
 
 void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
-    AwRect extra_rect = core_get_intersect_rect(&window->client_rect, rect);
-    AwRect paint_rect = core_get_intersect_rect(&window->paint_rect, &extra_rect);
-    window->paint_rect = paint_rect;
-    add_more_dirt(&paint_rect);
+    AwRect new_rect = *rect;
+    core_offset_rect(&new_rect, window->client_rect.left, window->client_rect.top);
+    AwRect extra_rect = core_get_intersect_rect(&window->window_rect, &new_rect);
+    add_more_dirt(&extra_rect);
 }
 
 AwRect core_get_local_client_rect(AwWindow* window) {
@@ -483,28 +480,34 @@ void core_terminate() {
     printf("terminate\r\n");
 }
 
-void core_set_paint_msg(AwMsg* msg, AwWindow* window) {
+void core_set_paint_msg(AwMsg* msg, AwWindow* window, bool client) {
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
     AwPaintFlags* paint_flags = &paint_msg->flags;
 
+    paint_msg->window = window;
     paint_msg->msg_type = Aw_Do_PaintWindow;
     paint_msg->all_flags = 0;
-    paint_flags->background = 1;
-    if (window->flags.border) {
-        paint_flags->border = 1;
-    }
+
     if (window->flags.enabled) {
         paint_flags->enabled = 1;
     }
-    if (window->flags.icons) {
-        paint_flags->icons = 1;
-    }
-    if (window->flags.selected) {
-        paint_flags->selected = 1;
-    }
-    if (window->flags.title_bar) {
-        paint_flags->title_bar = 1;
-        paint_flags->title = 1;
+
+    if (client) {
+        paint_flags->background = 1;
+        if (window->flags.selected) {
+            paint_flags->selected = 1;
+        }
+    } else {
+        if (window->flags.border) {
+            paint_flags->border = 1;
+        }
+        if (window->flags.title_bar) {
+            paint_flags->title_bar = 1;
+            paint_flags->title = 1;
+        }
+        if (window->flags.icons) {
+            paint_flags->icons = 1;
+        }
     }
 }
 
@@ -563,8 +566,6 @@ void core_paint_window(AwMsg* msg) {
 
     vdp_context_select(0);
     vdp_context_restore();
-
-    window->paint_rect = core_get_empty_rect();
 }
 
 int32_t core_handle_message(AwMsg* msg) {
@@ -789,17 +790,27 @@ void core_initialize() {
 }
 
 void emit_paint_messages(AwWindow* window) {
-    AwRect rect = core_get_intersect_rect(&dirty_area, &window->paint_rect);
-    AwSize size = core_get_rect_size(&rect);
+    AwMsg msg;
+    msg.do_paint_window.paint_rect =
+        core_get_intersect_rect(&dirty_area, &window->window_rect);
+    AwSize size = core_get_rect_size(&msg.do_paint_window.paint_rect);
     if (size.width || size.height) {
-        AwMsg msg;
-        msg.do_paint_window...
+        core_set_paint_msg(&msg, window, false);
         core_post_message(&msg);
-        window = window->first_child;
-        while (window) {
-            emit_paint_messages(window);
-            window = window->next_sibling;
-        }
+    }
+
+    msg.do_paint_window.paint_rect =
+        core_get_intersect_rect(&dirty_area, &window->client_rect);
+    size = core_get_rect_size(&msg.do_paint_window.paint_rect);
+    if (size.width || size.height) {
+        core_set_paint_msg(&msg, window, true);
+        core_post_message(&msg);
+    }
+
+    window = window->first_child;
+    while (window) {
+        emit_paint_messages(window);
+        window = window->next_sibling;
     }
 }
 
