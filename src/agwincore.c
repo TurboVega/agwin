@@ -331,15 +331,24 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     memset(window, 0, sizeof(AwWindow));
 
     // Create new VDP context(s) for this window
+    vdp_context_select(0);
     vdp_context_save();
+
     uint16_t window_ctx = get_new_context_id();
     vdp_context_select(window_ctx);
     vdp_context_reset(0xFF); // all flags set
+    vdp_logical_scr_dims(false);
+    vdp_context_save();
+
     uint16_t client_ctx = window_ctx;
     if (flags.border || flags.title_bar) {
         client_ctx = get_new_context_id();
         vdp_context_select(client_ctx);
-    }    
+        vdp_context_reset(0xFF); // all flags set
+        vdp_logical_scr_dims(false);
+        vdp_context_save();
+    }
+
     vdp_context_select(0);
     vdp_context_restore();
 
@@ -628,7 +637,7 @@ void core_paint_window(AwMsg* msg) {
 
     AwPaintFlags* paint_flags = &paint_msg->flags;
 
-    vdp_context_save();
+    vdp_context_select(0);
 
     if (paint_flags->window) {
         vdp_context_select(window->window_ctx);
@@ -690,10 +699,10 @@ void core_paint_window(AwMsg* msg) {
         if (paint_flags->foreground) {
             draw_foreground(window);
         }
+        vdp_context_restore();
     }
 
     vdp_context_select(0);
-    vdp_context_restore();
 }
 
 int32_t core_handle_message(AwMsg* msg) {
