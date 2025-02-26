@@ -560,11 +560,21 @@ void draw_border(AwWindow* window) {
     vdp_set_graphics_colour(0, AW_DFLT_BORDER_COLOR);
     AwSize size = core_get_window_size(window);
 
+    // horizontal top border
     vdp_move_to(0, 0);
-    //vdp_filled_rect(size.width-1, AW_BORDER_THICKNESS);
+    vdp_filled_rect(size.width-1, AW_BORDER_THICKNESS-1);
 
-    //vdp_move_to(size.width-AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
+    // horizontal bottom border
+    vdp_move_to(0, size.height-AW_BORDER_THICKNESS);
     vdp_filled_rect(size.width-1, size.height-1);
+
+    // vertical left border
+    vdp_move_to(0, AW_BORDER_THICKNESS);
+    vdp_filled_rect(AW_BORDER_THICKNESS-1, size.height-AW_BORDER_THICKNESS);
+
+    // vertical right border
+    vdp_move_to(size.width-AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
+    vdp_filled_rect(size.width-1, size.height-AW_BORDER_THICKNESS);
 }
 
 void draw_title_bar(AwWindow* window) {
@@ -628,13 +638,13 @@ void core_paint_window(AwMsg* msg) {
             draw_border(window);
         }
         if (paint_flags->title_bar) {
-            draw_title_bar(window);
+            //draw_title_bar(window);
         }
         if (paint_flags->title) {
-            draw_title(window);
+            //draw_title(window);
         }
         if (paint_flags->icons) {
-            draw_icons(window);
+            //draw_icons(window);
         }
     }
 
@@ -648,10 +658,10 @@ void core_paint_window(AwMsg* msg) {
         vdp_cursor_tab(0, 0);
 
         if (paint_flags->background) {
-            draw_background(window);
+            //draw_background(window);
         }
         if (paint_flags->foreground) {
-            draw_foreground(window);
+            //draw_foreground(window);
         }
     }
 
