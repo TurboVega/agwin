@@ -30,6 +30,7 @@ extern "C" {
 #define AW_CLASS_STATIC_TEXT    ((uint16_t) 7)
 #define AW_CLASS_MESSAGE_BOX    ((uint16_t) 8)
 #define AW_CLASS_ICON           ((uint16_t) 9)
+#define AW_CLASS_USER           ((uint16_t) 100) // and onward
 
 #ifndef NULL
 #define NULL 0
@@ -97,14 +98,14 @@ typedef struct tag_AwPaintFlags {
     uint16_t        foreground : 1; // paint the client foreground
     uint16_t        enabled : 1;    // whether the window is enabled
     uint16_t        selected : 1;   // whether the window is selected
+    uint16_t        window : 1;     // whether painting outer window decorations
+    uint16_t        client : 1;     // whether painting inner client area
     uint16_t        reserved1 : 1;  // reserved
     uint16_t        reserved2 : 1;  // reserved
     uint16_t        reserved3 : 1;  // reserved
     uint16_t        reserved4 : 1;  // reserved
     uint16_t        reserved5 : 1;  // reserved
     uint16_t        reserved6 : 1;  // reserved
-    uint16_t        reserved7 : 1;  // reserved
-    uint16_t        reserved8 : 1;  // reserved
 } AwPaintFlags;
 
 typedef struct tag_AwInputState {
@@ -140,6 +141,8 @@ typedef struct tag_AwWindow {
     AwApplication*  app;            // points to the app that owns the window
     AwWindow*       parent;         // points to the parent window
     AwWindow*       first_child;    // points to the first child window
+    AwWindow*       last_child;     // points to the last child window
+    AwWindow*       prev_sibling;   // points to the previous sibling window
     AwWindow*       next_sibling;   // points to the next sibling window
     char*           text;           // title of the window or text content
     uint16_t        class_id;       // non-unique class ID for the window
