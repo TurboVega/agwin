@@ -564,9 +564,13 @@ void draw_foreground(AwWindow* window) {
     vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
     printf("FG: %s\r\n", window->text);
     AwSize size = core_get_window_size(window);
-    printf("Window size %hux%hu\r\n", size.width, size.height);
+    printf("Window at (%hu,%hu), size %hux%hu\r\n",
+            window->window_rect.left, window->window_rect.top,
+            size.width, size.height);
     size = core_get_client_size(window);
-    printf("Client size %hux%hu\r\n", size.width, size.height);
+    printf("Client at (%hu,%hu), size %hux%hu\r\n",
+            window->client_rect.left, window->client_rect.top,
+            size.width, size.height);
 }
 
 void draw_border(AwWindow* window) {
@@ -655,7 +659,9 @@ void core_paint_window(AwMsg* msg) {
         //local_vdp_set_text_viewport_via_plot();
         //vdp_cursor_tab(0, 0);
 
-        vdp_set_text_viewport(0, 0,
+        vdp_set_text_viewport(
+                    (window->window_rect.left/FONT_SIZE)+1,
+                    (window->window_rect.top/FONT_SIZE)+1,
                     (window->window_rect.right/FONT_SIZE)-1,
                     (window->window_rect.bottom/FONT_SIZE)-1);
 
@@ -689,7 +695,9 @@ void core_paint_window(AwMsg* msg) {
         //local_vdp_set_text_viewport_via_plot();
         //vdp_cursor_tab(0, 0);
 
-        vdp_set_text_viewport(0, 0,
+        vdp_set_text_viewport(
+                    (window->client_rect.left/FONT_SIZE)+1,
+                    (window->client_rect.top/FONT_SIZE)+1,
                     (window->client_rect.right/FONT_SIZE)-1,
                     (window->client_rect.bottom/FONT_SIZE)-1);
 
