@@ -40,10 +40,10 @@ extern "C" {
 #define AW_MSG_HANDLED          1
 
 #define AW_DFLT_BG_COLOR        0
-#define AW_DFLT_FG_COLOR        1
+#define AW_DFLT_FG_COLOR        14
 #define AW_DFLT_BORDER_COLOR    2
 #define AW_DFLT_TITLE_BAR_COLOR 3
-#define AW_DFLT_TITLE_COLOR     4
+#define AW_DFLT_TITLE_COLOR     0
 
 #define min(a, b)       ((a) < (b) ? (a) : (b))
 #define max(a, b)       ((a) > (b) ? (a) : (b))

@@ -611,7 +611,7 @@ void draw_title(AwWindow* window) {
     //printf("draw_title %p\r\n", window);
     vdp_set_text_colour(AW_DFLT_TITLE_BAR_COLOR | 0x80);
     vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
-    vdp_move_to(0, 0);
+    vdp_move_to(AW_BORDER_THICKNESS + 2, AW_BORDER_THICKNESS + 2);
     vdp_write_at_graphics_cursor();
     printf("T: %s", window->text);
 }
@@ -678,7 +678,7 @@ void core_paint_window(AwMsg* msg) {
             draw_title_bar(window);
         }
         if (paint_flags->title) {
-            //draw_title(window);
+            draw_title(window);
         }
         if (paint_flags->icons) {
             //draw_icons(window);
@@ -945,16 +945,20 @@ void core_initialize() {
     flags.icons = 1;
 
     AwWindow* win1 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+1, flags,
-                        11, 11, 201, 201, "My App #1");
+                        11, 41, 201, 201, "My App #1");
     win1->bg_color = 9;
 
     AwWindow* win2 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+2, flags,
-                        122, 122, 222, 222, "My App #2");
+                        152, 122, 222, 222, "My App #2");
     win2->bg_color = 10;
 
     AwWindow* win3 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+3, flags,
                         233, 233, 233, 233, "My App #3");
     win3->bg_color = 11;
+
+    AwWindow* win4 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+4, flags,
+                        375, 75, 133, 233, "My App #4");
+    win4->bg_color = 12;
 
     running = true;
 }
