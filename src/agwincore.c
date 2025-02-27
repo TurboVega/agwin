@@ -171,11 +171,6 @@ AwWindow* core_get_top_level_window(AwWindow* window) {
     }
 }
 
-uint16_t get_new_context_id() {
-    // TBD - make this smarter!
-    return next_context_id++;
-}
-
 void core_set_text(AwWindow* window, const char* text) {
     uint32_t size = strlen(text) + 1;
     if (size <= window->text_size) {
@@ -347,22 +342,14 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     }
     memset(window, 0, sizeof(AwWindow));
 
-    // Create new VDP context(s) for this window
     vdp_context_select(0);
-
-    uint16_t window_ctx = get_new_context_id();
-    vdp_context_select(window_ctx);
-    vdp_context_reset(0xFF); // all flags set
     vdp_logical_scr_dims(false);
-
-    vdp_context_select(0);
 
     core_set_text(window, text);
     core_link_child(parent, window);
     window->flags = flags;
     window->app = app;
     window->class_id = class_id;
-    window->window_ctx = window_ctx;
     window->window_rect.right = width;
     window->window_rect.bottom = height;
     window->bg_color = AW_DFLT_BG_COLOR;
@@ -597,7 +584,7 @@ void draw_foreground(AwWindow* window) {
         printf("     size %hux%hu\r\n",
                 size.width, size.height);
     } else {
-        printf("Last Key Event\r\n", (last_key_state.down ? "DOWN" : "UP"));
+        printf("Last Key Event\r\n");
         printf("data:  %08lX\r\n", last_key_state.key_data);
         printf("code:  %02hX\r\n", last_key_state.key_code);
         printf("ascii: %02hX\r\n", last_key_state.ascii_code);
@@ -695,7 +682,7 @@ void core_paint_window(AwMsg* msg) {
     AwPaintFlags* paint_flags = &paint_msg->flags;
 
     if (paint_flags->window) {
-        vdp_context_select(window->window_ctx);
+        vdp_context_select(0);
         vdp_context_reset(0xFF); // all flags set
         vdp_logical_scr_dims(false);
         vdp_move_to(window->window_rect.left, window->window_rect.top);
@@ -735,7 +722,7 @@ void core_paint_window(AwMsg* msg) {
     }
 
     if (paint_flags->client) {
-        vdp_context_select(window->window_ctx);
+        vdp_context_select(0);
         vdp_context_reset(0xFF); // all flags set
         vdp_logical_scr_dims(false);
         vdp_move_to(window->client_rect.left, window->client_rect.top);
@@ -767,8 +754,6 @@ void core_paint_window(AwMsg* msg) {
             draw_foreground(window);
         }
     }
-
-    vdp_context_select(0);
 }
 
 int32_t core_handle_message(AwMsg* msg) {
