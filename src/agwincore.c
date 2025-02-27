@@ -35,6 +35,8 @@ uint8_t     msg_read_index;
 uint8_t     msg_write_index;
 bool        running;
 uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
+AwKeyState  last_key_state;
+bool        key_state_changed;
 
 int32_t core_handle_message(AwMsg* msg);
 
@@ -382,6 +384,15 @@ void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
     add_more_dirt(&extra_rect);
 }
 
+void core_invalidate_title_bar(AwWindow* window) {
+    AwRect rect;
+    rect.left = window->client_rect.left;
+    rect.top = window->window_rect.top + (window->flags.border ? AW_BORDER_THICKNESS : 0);
+    rect.right = window->client_rect.right;
+    rect.bottom = rect.top + AW_TITLE_BAR_HEIGHT;
+    add_more_dirt(&rect);
+}
+
 AwRect core_get_local_client_rect(AwWindow* window) {
     if (window->parent) {
         AwRect rect;
@@ -555,17 +566,26 @@ void draw_foreground(AwWindow* window) {
     vdp_set_graphics_colour(0, window->bg_color | 0x80);
     vdp_set_graphics_colour(0, window->fg_color);
     vdp_move_to(0, 0);
+    vdp_clear_graphics();
     vdp_write_at_graphics_cursor();
-    AwSize size = core_get_window_size(window);
-    printf("Window @ (%hu,%hu)\r\n",
-            window->window_rect.left, window->window_rect.top);
-    printf("     size %hux%hu\r\n",
-            size.width, size.height);
-    size = core_get_client_size(window);
-    printf("Client @ (%hu,%hu)\r\n",
-            window->client_rect.left, window->client_rect.top);
-    printf("     size %hux%hu\r\n",
-            size.width, size.height);
+    if (window != active_window) {
+        AwSize size = core_get_window_size(window);
+        printf("Window @ (%hu,%hu)\r\n",
+                window->window_rect.left, window->window_rect.top);
+        printf("     size %hux%hu\r\n",
+                size.width, size.height);
+        size = core_get_client_size(window);
+        printf("Client @ (%hu,%hu)\r\n",
+                window->client_rect.left, window->client_rect.top);
+        printf("     size %hux%hu\r\n",
+                size.width, size.height);
+    } else {
+        printf("Last key event (%s):\r\n", (last_key_state.down ? "DOWN" : "UP"));
+        printf("data:  %08lu\r\n", last_key_state.key_data);
+        printf("code:  %02hu\r\n", last_key_state.key_code);
+        printf("ascii: %02hu\r\n", last_key_state.key_code);
+        printf("mods:  %04hu\r\n", last_key_state.all_mods);
+    }
 }
 
 uint8_t get_border_color(AwWindow* window) {
@@ -825,6 +845,11 @@ int32_t core_handle_message(AwMsg* msg) {
                 }
 
                 case Aw_On_KeyEvent: {
+                    if (active_window && active_window->flags.title_bar) {
+                        last_key_state = msg->on_key_event.state;
+                        key_state_changed = true;
+                        core_invalidate_client(active_window);
+                    }
                     break;
                 }
 
