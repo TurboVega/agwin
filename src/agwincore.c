@@ -601,8 +601,8 @@ void draw_title_bar(AwWindow* window) {
     AwSize size = core_get_client_size(window);
 
     vdp_move_to(AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
-    vdp_filled_rect(AW_BORDER_THICKNESS + size.width,
-            AW_BORDER_THICKNESS + size.height);
+    vdp_filled_rect(AW_BORDER_THICKNESS + size.width - 1,
+            AW_BORDER_THICKNESS + size.height - 1);
 }
 
 void draw_title(AwWindow* window) {
@@ -671,7 +671,7 @@ void core_paint_window(AwMsg* msg) {
             draw_border(window);
         }
         if (paint_flags->title_bar) {
-            //draw_title_bar(window);
+            draw_title_bar(window);
         }
         if (paint_flags->title) {
             //draw_title(window);
