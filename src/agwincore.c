@@ -267,8 +267,8 @@ void core_move_window(AwWindow* window, int16_t x, int16_t y) {
 
     window->client_rect.left = window->window_rect.left + deco_thickness;
     window->client_rect.top = window->window_rect.top + top_deco_height;
-    window->client_rect.right = window->window_rect.left + client_size.width;
-    window->client_rect.bottom = window->window_rect.top + client_size.height;
+    window->client_rect.right = window->client_rect.left + client_size.width;
+    window->client_rect.bottom = window->client_rect.top + client_size.height;
 
     core_invalidate_window(window);
 
