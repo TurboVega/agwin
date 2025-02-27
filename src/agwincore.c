@@ -239,6 +239,8 @@ void core_post_message(AwMsg* msg) {
 }
 
 void core_move_window(AwWindow* window, int16_t x, int16_t y) {
+    core_invalidate_window(window); // invalidate where the window was
+
     AwRect parent_rect;
     if (window->parent) {
         parent_rect = core_get_global_client_rect(window->parent);
@@ -270,7 +272,7 @@ void core_move_window(AwWindow* window, int16_t x, int16_t y) {
     window->client_rect.right = window->client_rect.left + client_size.width;
     window->client_rect.bottom = window->client_rect.top + client_size.height;
 
-    core_invalidate_window(window);
+    core_invalidate_window(window); // invalidate where the window is now
 
     AwMsg msg;
     msg.on_window_moved.window = window;
@@ -560,8 +562,9 @@ void draw_background(AwWindow* window) {
 
 void draw_foreground(AwWindow* window) {
     //printf("draw_foreground %p\r\n", window);
-    vdp_set_text_colour(window->bg_color | 0x80);
-    vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
+    vdp_set_graphics_colour(0, window->bg_color | 0x80);
+    uint8_t color = (window->bg_color == AW_DFLT_TITLE_COLOR ? 8 : AW_DFLT_TITLE_COLOR);
+    vdp_set_graphics_colour(0, color);
     vdp_move_to(0, 0);
     vdp_write_at_graphics_cursor();
     printf("FG: %s\r\n", window->text);
@@ -609,8 +612,8 @@ void draw_title_bar(AwWindow* window) {
 
 void draw_title(AwWindow* window) {
     //printf("draw_title %p\r\n", window);
-    vdp_set_text_colour(AW_DFLT_TITLE_BAR_COLOR | 0x80);
-    vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
+    vdp_set_graphics_colour(0, AW_DFLT_TITLE_BAR_COLOR | 0x80);
+    vdp_set_graphics_colour(0, AW_DFLT_TITLE_COLOR);
     vdp_move_to(AW_BORDER_THICKNESS + 2, AW_BORDER_THICKNESS + 2);
     vdp_write_at_graphics_cursor();
     printf("T: %s", window->text);
