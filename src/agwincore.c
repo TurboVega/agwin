@@ -20,7 +20,7 @@ extern "C" {
 
 #define AW_SCREEN_WIDTH         640
 #define AW_SCREEN_HEIGHT        480
-#define AW_MESSAGE_QUEUE_SIZE   64
+#define AW_MESSAGE_QUEUE_SIZE   128
 
 #define PLOT_MODE_FILLED_RECT   0x65
 #define FONT_SIZE               8
@@ -563,18 +563,18 @@ void draw_background(AwWindow* window) {
 void draw_foreground(AwWindow* window) {
     //printf("draw_foreground %p\r\n", window);
     vdp_set_graphics_colour(0, window->bg_color | 0x80);
-    uint8_t color = (window->bg_color == AW_DFLT_TITLE_COLOR ? 8 : AW_DFLT_TITLE_COLOR);
-    vdp_set_graphics_colour(0, color);
+    vdp_set_graphics_colour(0, window->fg_color);
     vdp_move_to(0, 0);
     vdp_write_at_graphics_cursor();
-    printf("FG: %s\r\n", window->text);
     AwSize size = core_get_window_size(window);
-    printf("Window at (%hu,%hu), size %hux%hu\r\n",
-            window->window_rect.left, window->window_rect.top,
+    printf("Window @ (%hu,%hu)\r\n",
+            window->window_rect.left, window->window_rect.top);
+    printf("     size %hux%hu\r\n",
             size.width, size.height);
     size = core_get_client_size(window);
-    printf("Client at (%hu,%hu), size %hux%hu\r\n",
-            window->client_rect.left, window->client_rect.top,
+    printf("Client @ (%hu,%hu)\r\n",
+            window->client_rect.left, window->client_rect.top);
+    printf("     size %hux%hu\r\n",
             size.width, size.height);
 }
 
@@ -616,7 +616,7 @@ void draw_title(AwWindow* window) {
     vdp_set_graphics_colour(0, AW_DFLT_TITLE_COLOR);
     vdp_move_to(AW_BORDER_THICKNESS + 2, AW_BORDER_THICKNESS + 2);
     vdp_write_at_graphics_cursor();
-    printf("T: %s", window->text);
+    printf("%s", window->text);
 }
 
 void draw_icons(AwWindow* window) {
@@ -947,21 +947,21 @@ void core_initialize() {
     flags.title_bar = 1;
     flags.icons = 1;
 
-    AwWindow* win1 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+1, flags,
-                        11, 41, 201, 201, "My App #1");
-    win1->bg_color = 9;
-
-    AwWindow* win2 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+2, flags,
-                        152, 122, 222, 222, "My App #2");
-    win2->bg_color = 10;
-
-    AwWindow* win3 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+3, flags,
-                        233, 233, 233, 233, "My App #3");
-    win3->bg_color = 11;
-
-    AwWindow* win4 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+4, flags,
-                        375, 75, 133, 233, "My App #4");
-    win4->bg_color = 12;
+    for (uint16_t row = 0; row < 4; row++) {
+        uint16_t y = row * 116 + 5; // 5, 121, 237, 348
+        for (uint16_t col = 0; col < 1; col++) {
+            uint16_t x = col * 155 + 5; // 5, 160, 315, 465
+                uint16_t i = row * 4 + col;
+                char text[10];
+                sprintf(text, "Color #%02hu", i);
+                printf("%s\r\n", text);
+                AwWindow* win = core_create_window(&agwin_app, root_window,
+                                                    AW_CLASS_USER + i, flags,
+                                    x, y, 150, 112, text);
+                win->bg_color = i;
+                win->fg_color = 15 - i;
+        }
+    }
 
     running = true;
 }
