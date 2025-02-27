@@ -40,16 +40,18 @@ int32_t core_handle_message(AwMsg* msg);
 
 AwApplication agwin_app = { "agwin", core_handle_message, 0, 0 };
 
-void key_event_handler(KEY_EVENT key_event)
-{
-	if (key_event.code == 0x7d) {
-		exit( 1 );						// Exit program if esc pressed
-	}
-//	vdp_cursor_tab( 0, 0 );
-//	printf( "Modifier %02x, key-code %02x, up/down %02x\n",
-//			key_event.mods, key_event.code, key_event.down );
-//	for ( int i = 31; i >= 0; i-- ) printf( "%02x", vdp_key_bits[i] );
-	return;
+void key_event_handler(KEY_EVENT key_event) {
+    if (active_window) {
+        AwMsg msg;
+        msg.on_key_event.window = active_window;
+        msg.on_key_event.msg_type = Aw_On_KeyEvent;
+        msg.on_key_event.state.key_data = key_event.key_data;
+        msg.on_key_event.state.all_mods = key_event.mods;
+        msg.on_key_event.state.ascii_code = key_event.ascii;
+        msg.on_key_event.state.key_code = key_event.code;
+        msg.on_key_event.state.down = key_event.down;
+        core_post_message(&msg);
+    }
 }
 
 uint8_t core_get_version() {
@@ -566,9 +568,27 @@ void draw_foreground(AwWindow* window) {
             size.width, size.height);
 }
 
+uint8_t get_border_color(AwWindow* window) {
+    return (window->flags.active ?
+            AW_DFLT_ACTIVE_BORDER_COLOR :
+            AW_DFLT_INACTIVE_BORDER_COLOR);
+}
+
+uint8_t get_title_bar_color(AwWindow* window) {
+    return (window->flags.active ?
+            AW_DFLT_ACTIVE_TITLE_BAR_COLOR | 0x80 :
+            AW_DFLT_INACTIVE_TITLE_BAR_COLOR | 0x80);
+}
+
+uint8_t get_title_color(AwWindow* window) {
+    return (window->flags.active ?
+            AW_DFLT_ACTIVE_TITLE_COLOR :
+            AW_DFLT_INACTIVE_TITLE_COLOR);
+}
+
 void draw_border(AwWindow* window) {
     //printf("draw_border %p\r\n", window);
-    vdp_set_graphics_colour(0, AW_DFLT_BORDER_COLOR);
+    vdp_set_graphics_colour(0, get_border_color(window));
     AwSize size = core_get_window_size(window);
 
     // horizontal top border
@@ -590,7 +610,7 @@ void draw_border(AwWindow* window) {
 
 void draw_title_bar(AwWindow* window) {
     //printf("draw_title_bar %p\r\n", window);
-    vdp_set_graphics_colour(0, AW_DFLT_TITLE_BAR_COLOR);
+    vdp_set_graphics_colour(0, get_title_bar_color(window));
     AwSize size = core_get_client_size(window);
 
     vdp_move_to(AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
@@ -600,8 +620,8 @@ void draw_title_bar(AwWindow* window) {
 
 void draw_title(AwWindow* window) {
     //printf("draw_title %p\r\n", window);
-    vdp_set_graphics_colour(0, AW_DFLT_TITLE_BAR_COLOR | 0x80);
-    vdp_set_graphics_colour(0, AW_DFLT_TITLE_COLOR);
+    vdp_set_graphics_colour(0, get_title_bar_color(window));
+    vdp_set_graphics_colour(0, get_title_color(window));
     vdp_move_to(AW_BORDER_THICKNESS + 2, AW_BORDER_THICKNESS + 2);
     vdp_write_at_graphics_cursor();
     printf("%s", window->text);
@@ -804,23 +824,7 @@ int32_t core_handle_message(AwMsg* msg) {
                     break;
                 }
 
-                case Aw_On_KeyAction: {
-                    break;
-                }
-
-                case Aw_On_KeyDown: {
-                    break;
-                }
-
-                case Aw_On_KeyRepeat: {
-                    break;
-                }
-
-                case Aw_On_KeyChar: {
-                    break;
-                }
-
-                case Aw_On_KeyUp: {
+                case Aw_On_KeyEvent: {
                     break;
                 }
 
@@ -924,7 +928,7 @@ void core_initialize() {
     flags.title_bar = 0;
     flags.icons = 0;
     flags.sizeable = 0;
-    flags.active = 1;
+    flags.active = 0;
     flags.enabled = 1;
     flags.selected = 0;
     flags.visible = 1;
@@ -949,6 +953,9 @@ void core_initialize() {
                                 x, y, 150, 112, text);
             win->bg_color = i;
             win->fg_color = 15 - i;
+            if (i == 10) {
+                core_activate_window(win, true);
+            }
         }
     }
 
@@ -1000,6 +1007,8 @@ void core_message_loop() {
                         size.width, size.height);*/
                 emit_paint_messages(root_window);
                 dirty_area = core_get_empty_rect();
+            } else {
+                vdp_update_key_state();
             }
         }
     }

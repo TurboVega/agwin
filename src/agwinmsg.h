@@ -27,7 +27,7 @@ typedef union tag_AwMsg {
     AwDoMsgExit                 do_exit;
 
     AwOnMsgCommon               on_common;
-    AwOnMsgInputAction          on_input_action;
+    AwOnMsgKeyEvent             on_key_event;
     AwOnMsgCommon               on_window_resized;
     AwOnMsgCommon               on_window_moved;
     AwOnMsgCommon               on_window_created;

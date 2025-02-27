@@ -10,11 +10,7 @@ extern "C" {
 
 typedef enum : uint8_t {
     Aw_On_Common = 101,
-    Aw_On_KeyAction,
-    Aw_On_KeyDown,
-    Aw_On_KeyRepeat,
-    Aw_On_KeyChar,
-    Aw_On_KeyUp,
+    Aw_On_KeyEvent,
     Aw_On_MouseAction,
     Aw_On_LeftButtonDown,
     Aw_On_LeftButtonUp,
@@ -43,21 +39,11 @@ typedef struct tag_AwOnMsgCommon {
     AwOnMsgType     msg_type;
 } AwOnMsgCommon;
 
-typedef struct tag_AwOnMsgInputAction {
+typedef struct tag_AwOnMsgKeyEvent {
     AwWindow*       window;
     AwOnMsgType     msg_type;
-    AwInputState    state;
-    AwInputAction   action;
-    uint16_t        key_code;
-    int16_t         key_char;
-    AwPoint         mouse_screen_pt;    // Mouse location relative to entire screen
-    AwPoint         mouse_window_pt;    // Mouse location relative to window beneath it
-    AwPoint         mouse_client_pt;    // Mouse location relative to client area beneath it
-} AwOnMsgInputAction;
-
-void aw_emit_keyboard_action();
-
-void aw_emit_mouse_action();
+    AwKeyState      state;
+} AwOnMsgKeyEvent;
 
 #ifdef __CPLUSPLUS
 } // extern "C"

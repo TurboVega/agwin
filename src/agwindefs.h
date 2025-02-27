@@ -39,11 +39,14 @@ extern "C" {
 #define AW_MSG_UNHANDLED        0
 #define AW_MSG_HANDLED          1
 
-#define AW_DFLT_BG_COLOR        0
-#define AW_DFLT_FG_COLOR        14
-#define AW_DFLT_BORDER_COLOR    2
-#define AW_DFLT_TITLE_BAR_COLOR 3
-#define AW_DFLT_TITLE_COLOR     0
+#define AW_DFLT_BG_COLOR                    15
+#define AW_DFLT_FG_COLOR                    0
+#define AW_DFLT_ACTIVE_BORDER_COLOR         12
+#define AW_DFLT_ACTIVE_TITLE_BAR_COLOR      4
+#define AW_DFLT_ACTIVE_TITLE_COLOR          11
+#define AW_DFLT_INACTIVE_BORDER_COLOR       8
+#define AW_DFLT_INACTIVE_TITLE_BAR_COLOR    7
+#define AW_DFLT_INACTIVE_TITLE_COLOR        0
 
 #define min(a, b)       ((a) < (b) ? (a) : (b))
 #define max(a, b)       ((a) > (b) ? (a) : (b))
@@ -108,27 +111,28 @@ typedef struct tag_AwPaintFlags {
     uint16_t        reserved6 : 1;  // reserved
 } AwPaintFlags;
 
-typedef struct tag_AwInputState {
-    uint8_t         key_down : 1;       // whether any key is currently pressed
-    uint8_t         key_repeat : 1;     // whether any key is currently being repeated
-    uint8_t         left_button_down;   // whether the left mouse button is currently held down
-    uint8_t         middle_button_down; // whether the middle mouse button is currently held down
-    uint8_t         right_button_down;  // whether the right mouse button is currently held down
-    uint8_t         ctrl : 1;           // whether the CTRL key is currently pressed
-    uint8_t         shift : 1;          // whether the SHIFT key is currently pressed
-    uint8_t         alt : 1;            // whether the ALT key is currently pressed
-} AwInputState;
-
-typedef struct tag_AwInputAction {
-    uint8_t         down : 1;           // whether the key/button is now down
-    uint8_t         up : 1;             // whether the key/button is now up
-    uint8_t         repeat : 1;         // whether the key is being repeated
-    uint8_t         click : 1;          // whether the button was clicked
-    uint8_t         double_click : 1;   // whether the button was double-clicked
-    uint8_t         move : 1;           // whether the mouse is being moved
-    uint8_t         reserved1 : 1;      // reserved
-    uint8_t         reserved2 : 1;      // reserved
-} AwInputAction;
+// This is more-or-less a copy of the AgDev KEY_EVENT
+typedef union tag_AwKeyState {
+    uint32_t        key_data;       // raw key data
+    struct {
+        union {
+            uint8_t all_mods;       // all modifiers
+            struct {
+                uint8_t ctrl : 1;           // whether the CTRL key is currently pressed
+                uint8_t shift : 1;          // whether the SHIFT key is currently pressed
+                uint8_t left_alt : 1;       // whether the LEFT ALT key is currently pressed
+                uint8_t right_alt : 1;      // whether the RIGHT ALT key is currently pressed
+                uint8_t caps_lock : 1;      // whether the CAPS LOCK is currently active
+                uint8_t num_lock : 1;       // whether the NUM LOCK is currently active
+                uint8_t scroll_lock : 1;    // whether the SCROLL LOCK is currently active
+                uint8_t gui : 1;            // GUI flag bit from MOS
+            } modifiers;
+        };
+        uint8_t     ascii_code;     // ASCII code for the key
+        uint8_t     key_code;       // keyboard code for the key
+        uint8_t     down;           // whether the key is currently pressed
+    };
+} AwKeyState;
 
 typedef struct tag_AwApplication {
     const char*     name;           // name of the app
