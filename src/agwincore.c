@@ -646,9 +646,11 @@ void core_paint_window(AwMsg* msg) {
     if (paint_flags->window) {
         vdp_context_select(window->window_ctx);
         vdp_move_to(window->window_rect.left, window->window_rect.top);
-        local_vdp_set_graphics_origin_via_plot();
         vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
         local_vdp_set_graphics_viewport_via_plot();
+
+        vdp_move_to(window->window_rect.left, window->window_rect.top);
+        local_vdp_set_graphics_origin_via_plot();
 
         /*vdp_move_to(window->window_rect.left/FONT_SIZE,
                     window->window_rect.top/FONT_SIZE);
@@ -682,9 +684,11 @@ void core_paint_window(AwMsg* msg) {
     if (paint_flags->client) {
         vdp_context_select(window->client_ctx);
         vdp_move_to(window->client_rect.left, window->client_rect.top);
-        local_vdp_set_graphics_origin_via_plot();
         vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
         local_vdp_set_graphics_viewport_via_plot();
+
+        vdp_move_to(window->client_rect.left, window->client_rect.top);
+        local_vdp_set_graphics_origin_via_plot();
 
         /*vdp_move_to(window->client_rect.left/FONT_SIZE,
                     window->client_rect.top/FONT_SIZE);
@@ -937,15 +941,15 @@ void core_initialize() {
     flags.icons = 1;
 
     AwWindow* win1 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+1, flags,
-                        100, 179, 266, 389, "My App #1");
+                        11, 11, 201, 201, "My App #1");
     win1->bg_color = 9;
 
     AwWindow* win2 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+2, flags,
-                        217, 15, 275, 222, "My App #2");
+                        122, 122, 222, 222, "My App #2");
     win2->bg_color = 10;
 
     AwWindow* win3 = core_create_window(&agwin_app, root_window, AW_CLASS_USER+3, flags,
-                        420, 350, 285, 137, "My App #3");
+                        233, 233, 233, 233, "My App #3");
     win3->bg_color = 11;
 
     running = true;
