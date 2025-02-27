@@ -147,7 +147,6 @@ typedef struct tag_AwWindow {
     char*           text;           // title of the window or text content
     uint16_t        class_id;       // non-unique class ID for the window
     uint16_t        window_ctx;     // VDP context ID for the entire window
-    uint16_t        client_ctx;     // VDP context ID for the client area
     AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
     AwWindowFlags   flags;          // flags describing the window

@@ -340,8 +340,6 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     vdp_context_reset(0xFF); // all flags set
     vdp_logical_scr_dims(false);
 
-    uint16_t client_ctx = window_ctx;
-
     vdp_context_select(0);
 
     core_set_text(window, text);
@@ -350,7 +348,6 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     window->app = app;
     window->class_id = class_id;
     window->window_ctx = window_ctx;
-    window->client_ctx = client_ctx;
     window->window_rect.right = width;
     window->window_rect.bottom = height;
     window->bg_color = AW_DFLT_BG_COLOR;
@@ -680,7 +677,7 @@ void core_paint_window(AwMsg* msg) {
     }
 
     if (paint_flags->client) {
-        vdp_context_select(window->client_ctx);
+        vdp_context_select(window->window_ctx);
         vdp_context_reset(0xFF); // all flags set
         vdp_logical_scr_dims(false);
         vdp_move_to(window->client_rect.left, window->client_rect.top);
