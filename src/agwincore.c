@@ -334,25 +334,15 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
 
     // Create new VDP context(s) for this window
     vdp_context_select(0);
-    vdp_context_save();
 
     uint16_t window_ctx = get_new_context_id();
     vdp_context_select(window_ctx);
     vdp_context_reset(0xFF); // all flags set
     vdp_logical_scr_dims(false);
-    vdp_context_save();
 
     uint16_t client_ctx = window_ctx;
-    if (flags.border || flags.title_bar) {
-        client_ctx = get_new_context_id();
-        vdp_context_select(client_ctx);
-        vdp_context_reset(0xFF); // all flags set
-        vdp_logical_scr_dims(false);
-        vdp_context_save();
-    }
 
     vdp_context_select(0);
-    vdp_context_restore();
 
     core_set_text(window, text);
     core_link_child(parent, window);
@@ -562,6 +552,7 @@ void draw_background(AwWindow* window) {
 
 void draw_foreground(AwWindow* window) {
     //printf("draw_foreground %p\r\n", window);
+    if (window == root_window) return;
     vdp_set_graphics_colour(0, window->bg_color | 0x80);
     vdp_set_graphics_colour(0, window->fg_color);
     vdp_move_to(0, 0);
@@ -648,10 +639,10 @@ void core_paint_window(AwMsg* msg) {
 
     AwPaintFlags* paint_flags = &paint_msg->flags;
 
-    vdp_context_select(0);
-
     if (paint_flags->window) {
         vdp_context_select(window->window_ctx);
+        vdp_context_reset(0xFF); // all flags set
+        vdp_logical_scr_dims(false);
         vdp_move_to(window->window_rect.left, window->window_rect.top);
         vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
         local_vdp_set_graphics_viewport_via_plot();
@@ -690,6 +681,8 @@ void core_paint_window(AwMsg* msg) {
 
     if (paint_flags->client) {
         vdp_context_select(window->client_ctx);
+        vdp_context_reset(0xFF); // all flags set
+        vdp_logical_scr_dims(false);
         vdp_move_to(window->client_rect.left, window->client_rect.top);
         vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
         local_vdp_set_graphics_viewport_via_plot();
@@ -718,7 +711,6 @@ void core_paint_window(AwMsg* msg) {
         if (paint_flags->foreground) {
             draw_foreground(window);
         }
-        vdp_context_restore();
     }
 
     vdp_context_select(0);
@@ -949,17 +941,17 @@ void core_initialize() {
 
     for (uint16_t row = 0; row < 4; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
-        for (uint16_t col = 0; col < 1; col++) {
+        for (uint16_t col = 0; col < 4; col++) {
             uint16_t x = col * 155 + 5; // 5, 160, 315, 465
-                uint16_t i = row * 4 + col;
-                char text[10];
-                sprintf(text, "Color #%02hu", i);
-                printf("%s\r\n", text);
-                AwWindow* win = core_create_window(&agwin_app, root_window,
-                                                    AW_CLASS_USER + i, flags,
-                                    x, y, 150, 112, text);
-                win->bg_color = i;
-                win->fg_color = 15 - i;
+            uint16_t i = row * 4 + col;
+            char text[10];
+            sprintf(text, "Color #%02hu", i);
+            printf("%s\r\n", text);
+            AwWindow* win = core_create_window(&agwin_app, root_window,
+                                                AW_CLASS_USER + i, flags,
+                                x, y, 150, 112, text);
+            win->bg_color = i;
+            win->fg_color = 15 - i;
         }
     }
 

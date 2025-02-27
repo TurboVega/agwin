@@ -30,9 +30,11 @@ int main( void )
 	vdp_clear_screen();
     vdp_clear_graphics();
 	vdp_cursor_enable(false);
+	vdp_context_select(0);
     vdp_context_save();
     core_initialize();
 	core_message_loop();
+	vdp_context_select(0);
     vdp_context_restore();
 	vdp_cursor_enable(true);
 	return 0;
