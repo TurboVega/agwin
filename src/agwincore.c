@@ -562,6 +562,8 @@ void draw_foreground(AwWindow* window) {
     //printf("draw_foreground %p\r\n", window);
     vdp_set_text_colour(window->bg_color | 0x80);
     vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
+    vdp_move_to(0, 0);
+    vdp_write_at_graphics_cursor();
     printf("FG: %s\r\n", window->text);
     AwSize size = core_get_window_size(window);
     printf("Window at (%hu,%hu), size %hux%hu\r\n",
@@ -607,8 +609,10 @@ void draw_title_bar(AwWindow* window) {
 
 void draw_title(AwWindow* window) {
     //printf("draw_title %p\r\n", window);
-    vdp_set_text_colour(window->bg_color | 0x80);
+    vdp_set_text_colour(AW_DFLT_TITLE_BAR_COLOR | 0x80);
     vdp_set_text_colour(AW_DFLT_TITLE_COLOR);
+    vdp_move_to(0, 0);
+    vdp_write_at_graphics_cursor();
     printf("T: %s", window->text);
 }
 
