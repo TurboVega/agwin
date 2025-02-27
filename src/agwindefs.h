@@ -84,9 +84,9 @@ typedef struct tag_AwWindowFlags {
     uint16_t        enabled : 1;    // whether the window is enabled
     uint16_t        selected : 1;   // whether the window is selected
     uint16_t        visible : 1;    // whether the window is visible
-    uint16_t        reserved1 : 1;  // reserved
-    uint16_t        reserved2 : 1;  // reserved
-    uint16_t        reserved3 : 1;  // reserved
+    uint16_t        title_dirty : 1;  // reserved
+    uint16_t        client_dirty : 1; // reserved
+    uint16_t        window_dirty : 1; // reserved
     uint16_t        reserved4 : 1;  // reserved
     uint16_t        reserved5 : 1;  // reserved
     uint16_t        reserved6 : 1;  // reserved

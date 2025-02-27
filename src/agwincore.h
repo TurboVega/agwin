@@ -61,7 +61,9 @@ void core_invalidate_client_rect(AwWindow* window, const AwRect* rect);
 
 AwRect core_get_global_window_rect(AwWindow* window);
 
-AwRect core_get_global_glient_rect(AwWindow* window);
+AwRect core_get_global_title_rect(AwWindow* window);
+
+AwRect core_get_global_client_rect(AwWindow* window);
 
 AwRect core_get_local_window_rect(AwWindow* window);
 
