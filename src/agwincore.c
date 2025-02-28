@@ -818,6 +818,10 @@ uint8_t get_title_color(AwWindow* window) {
             AW_DFLT_INACTIVE_TITLE_COLOR);
 }
 
+int16_t get_border_thickness(AwWindow* window) {
+    return (window->flags.border ? AW_BORDER_THICKNESS : 0);
+}
+
 void draw_border(AwWindow* window) {
     //printf("draw_border %p\r\n", window);
     vdp_set_graphics_colour(0, get_border_color(window));
@@ -842,32 +846,36 @@ void draw_border(AwWindow* window) {
 
 void draw_title_bar(AwWindow* window) {
     //printf("draw_title_bar %p\r\n", window);
+    int16_t thickness = get_border_thickness(window);
     vdp_set_graphics_colour(0, get_title_bar_color(window));
     AwSize size = core_get_client_size(window);
 
-    vdp_move_to(AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
-    vdp_filled_rect(AW_BORDER_THICKNESS + size.width - 1,
-            AW_BORDER_THICKNESS + size.height - 1);
+    vdp_move_to(thickness, thickness);
+    vdp_filled_rect(thickness + size.width - 1,
+                thickness + size.height - 1);
 }
 
 void draw_title(AwWindow* window) {
     //printf("draw_title %p\r\n", window);
+    int16_t thickness = get_border_thickness(window);
     vdp_set_graphics_colour(0, get_title_bar_color(window));
     vdp_set_graphics_colour(0, get_title_color(window));
-    vdp_move_to(AW_BORDER_THICKNESS + 2, AW_BORDER_THICKNESS + 2);
+    vdp_move_to(thickness + 2, thickness + 2);
     vdp_write_at_graphics_cursor();
     printf("%s", window->text);
 }
 
 void draw_icons(AwWindow* window) {
     //printf("draw_icons %p\r\n", window);
-    AwSize size = core_get_window_size(window);
-    int16_t x = size.width - AW_BORDER_THICKNESS - AW_ICON_WIDTH * 3;
-    aw_draw_icon(AW_ICON_MENU, x, AW_BORDER_THICKNESS);
+    int16_t thickness = get_border_thickness(window);
+    AwRect rect = core_get_global_window_rect(window);
+    int16_t x = rect.right - thickness - AW_ICON_WIDTH * 3;
+    int16_t y = rect.top + thickness;
+    aw_draw_icon(AW_ICON_MENU, x, y);
     x += AW_ICON_WIDTH;
-    aw_draw_icon(AW_ICON_MINIMIZE, x, AW_BORDER_THICKNESS);
+    aw_draw_icon(AW_ICON_MINIMIZE, x, y);
     x += AW_ICON_WIDTH;
-    aw_draw_icon(AW_ICON_CLOSE, x, AW_BORDER_THICKNESS);    
+    aw_draw_icon(AW_ICON_CLOSE, x, y);
 }
 
 typedef struct { uint8_t A; uint8_t B; uint8_t CMD; } VDU_A_B_CMD;
