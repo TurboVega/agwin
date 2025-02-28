@@ -136,12 +136,19 @@ typedef union tag_AwKeyState {
 
 // This comes from MOS system variables via AgDev SYSVAR
 typedef struct tag_AwMouseState {
-	uint16_t    x;
-	uint16_t    y;
-	uint8_t     buttons;
-	uint8_t     wheel;
-	uint16_t    delta_x;
-	uint16_t    delta_y;
+	uint16_t    x;                  // X coordinate of the mouse cursor
+	uint16_t    y;                  // Y coordinate of the mouse cursor
+    union {
+    	uint8_t     buttons;        // All button indicators
+        struct {
+            uint8_t left;           // whether the LEFT button is pressed
+            uint8_t middle;         // whether the MIDDLE button is pressed
+            uint8_t right;          // whether the RIGHT button is pressed
+        };
+    };
+	uint8_t     wheel;              // wheel rotation
+	uint16_t    delta_x;            // amount X changed
+	uint16_t    delta_y;            // amount Y changed
 } AwMouseState;
 
 typedef struct tag_AwApplication {
