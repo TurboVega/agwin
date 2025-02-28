@@ -26,12 +26,121 @@ SOFTWARE.
 
 #include "agwinicon.h"
 #include "agwincore.h"
+#include <agon/vdp_vdu.h>
 
 #ifdef __CPLUSPLUS
 extern "C" {
 #endif
 
-int32_t icon_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
+#define ICON_WIDTH  10
+#define ICON_HEIGHT 10
+
+#define V(color)    (((uint8_t)color)|0xC0)  /* makes pixel color visible */
+
+#define K   V(0x00)  // black
+#define R   V(0x20)  // dark red
+#define G   V(0x08)  // dark green
+#define Y   V(0x28)  // dark yellow
+#define B   V(0x02)  // dark blue
+#define M   V(0x22)  // dark magenta
+#define C   V(0x0A)  // dark cyan
+#define z   V(0x2A)  // light gray
+#define Z   V(0x15)  // dark gray
+#define r   V(0x30)  // light red
+#define g   V(0x0C)  // light green
+#define y   V(0x3C)  // light yellow
+#define b   V(0x03)  // light blue
+#define m   V(0x33)  // light magenta
+#define c   V(0x0F)  // light cyan
+#define w   V(0x3F)  // white
+#define _   0        // invisible
+
+const uint8_t icon_close[ICON_HEIGHT][ICON_WIDTH] = {
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,K,K,_,_,_,_,K,K,_ },
+    { _,K,w,K,_,_,K,w,K,_ },
+    { _,_,K,w,K,K,w,K,_,_ },
+    { _,_,_,K,w,w,K,_,_,_ },
+    { _,_,_,K,w,w,K,_,_,_ },
+    { _,_,K,w,K,K,w,K,_,_ },
+    { _,K,w,K,_,_,K,w,K,_ },
+    { _,K,K,_,_,_,_,K,K,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+};
+
+const uint8_t icon_menu[ICON_HEIGHT][ICON_WIDTH] = {
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,K,K,K,K,K,K,K,K,_ },
+    { _,K,w,w,w,w,w,w,K,_ },
+    { _,K,K,K,K,K,K,K,K,_ },
+    { _,K,w,w,w,w,w,w,K,_ },
+    { _,K,K,K,K,K,K,K,K,_ },
+    { _,K,w,w,w,w,w,w,K,_ },
+    { _,K,K,K,K,K,K,K,K,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+};
+
+const uint8_t icon_minimize[ICON_HEIGHT][ICON_WIDTH] = {
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,K,K,K,K,K,K,K,K,_ },
+    { _,K,w,w,w,w,w,w,K,_ },
+    { _,K,K,K,K,K,K,K,K,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+};
+
+const uint8_t icon_maximize[ICON_HEIGHT][ICON_WIDTH] = {
+    { _,_,_,_,_,_,_,_,_,_ },
+    { _,K,K,K,K,K,K,K,K,_ },
+    { _,K,w,w,w,w,w,w,K,_ },
+    { _,K,w,K,K,K,K,w,K,_ },
+    { _,K,w,K,K,K,K,w,K,_ },
+    { _,K,w,K,K,K,K,w,K,_ },
+    { _,K,w,K,K,K,K,w,K,_ },
+    { _,K,w,w,w,w,w,w,K,_ },
+    { _,K,K,K,K,K,K,K,K,_ },
+    { _,_,_,_,_,_,_,_,_,_ },
+};
+
+const uint8_t icon_restore[ICON_HEIGHT][ICON_WIDTH] = {
+    { _,_,_,_,_,_,_,_,_,_ },
+    { K,K,K,K,K,K,K,_,_,_ },
+    { K,w,w,w,w,w,K,_,_,_ },
+    { K,w,K,K,K,w,K,_,_,_ },
+    { K,w,K,w,w,w,w,w,w,_ },
+    { K,w,K,w,K,K,K,K,w,_ },
+    { K,w,w,w,K,K,K,K,w,_ },
+    { _,_,_,w,K,K,K,K,w,_ },
+    { _,_,_,w,K,K,K,K,w,_ },
+    { _,_,_,w,w,w,w,w,w,_ },
+};
+
+void register_icon(uint16_t icon_id, const uint8_t* pixels) {
+    vdp_adv_clear_buffer(icon_id);
+    vdp_adv_write_block_data(icon_id, ICON_WIDTH * ICON_HEIGHT, (char*) pixels);
+    vdp_adv_select_bitmap(icon_id);
+    vdp_adv_bitmap_from_buffer(ICON_WIDTH, ICON_HEIGHT, 1);
+}
+
+void aw_register_icons() {
+    register_icon(ICON_CLOSE, (const uint8_t*) icon_close);
+    register_icon(ICON_MENU, (const uint8_t*) icon_menu);
+    register_icon(ICON_MINIMIZE, (const uint8_t*) icon_minimize);
+    register_icon(ICON_MAXIMIZE, (const uint8_t*) icon_maximize);
+    register_icon(ICON_RESTORE, (const uint8_t*) icon_restore);
+}
+
+void aw_draw_icon(uint16_t icon_id, int16_t x, int16_t y) {
+    vdp_adv_select_bitmap(icon_id);
+    vdp_draw_bitmap(x, y);
+}
+
+int32_t aw_icon_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
     switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
             break;

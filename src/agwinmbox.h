@@ -32,7 +32,7 @@ SOFTWARE.
 extern "C" {
 #endif
 
-int32_t message_box_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt);
+int32_t aw_message_box_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt);
 
 #ifdef __CPLUSPLUS
 } // extern "C"

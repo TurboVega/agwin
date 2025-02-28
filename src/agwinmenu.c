@@ -31,7 +31,7 @@ SOFTWARE.
 extern "C" {
 #endif
 
-int32_t menu_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
+int32_t aw_menu_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
     switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
             break;

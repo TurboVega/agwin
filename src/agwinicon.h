@@ -32,7 +32,15 @@ SOFTWARE.
 extern "C" {
 #endif
 
-int32_t icon_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt);
+#define ICON_CLOSE      ((uint16_t)63900)
+#define ICON_MENU       ((uint16_t)63901)
+#define ICON_MINIMIZE   ((uint16_t)63902)
+#define ICON_MAXIMIZE   ((uint16_t)63903)
+#define ICON_RESTORE    ((uint16_t)63904)
+
+void aw_register_icons();
+
+int32_t aw_icon_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt);
 
 #ifdef __CPLUSPLUS
 } // extern "C"

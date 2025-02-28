@@ -31,7 +31,7 @@ SOFTWARE.
 extern "C" {
 #endif
 
-int32_t root_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
+int32_t aw_root_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
     return core_handle_message(window, msg, halt);
 }
 
