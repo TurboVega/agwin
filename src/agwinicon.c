@@ -35,7 +35,7 @@ extern "C" {
 #define ICON_WIDTH  10
 #define ICON_HEIGHT 10
 
-#define V(color)    (((uint8_t)color)|0xC0)  /* makes pixel color visible */
+#define V(color)    (((uint8_t)(color))|0xC0)  /* makes pixel color visible */
 
 #define K   V(0x00)  // black
 #define R   V(0x20)  // dark red
@@ -135,9 +135,9 @@ void aw_register_icons() {
     register_icon(ICON_RESTORE, (const uint8_t*) icon_restore);
 }
 
-void aw_draw_icon(uint16_t icon_id, int16_t x, int16_t y) {
+void aw_draw_icon(uint16_t icon_id, int16_t xpos, int16_t ypos) {
     vdp_adv_select_bitmap(icon_id);
-    vdp_draw_bitmap(x, y);
+    vdp_draw_bitmap(xpos, ypos);
 }
 
 int32_t aw_icon_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
