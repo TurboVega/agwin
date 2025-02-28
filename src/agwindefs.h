@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __CPLUSPLUS
 extern "C" {
@@ -20,24 +21,9 @@ extern "C" {
 #define AW_TTITLE_TEXT_HEIGHT   8       // pixels
 #define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
 
-// Some standard window classes
-#define AW_CLASS_ROOT           ((uint16_t) 1)
-#define AW_CLASS_MENU           ((uint16_t) 2)
-#define AW_CLASS_MENU_ITEM      ((uint16_t) 3)
-#define AW_CLASS_LIST           ((uint16_t) 4)
-#define AW_CLASS_LIST_ITEM      ((uint16_t) 5)
-#define AW_CLASS_EDIT_TEXT      ((uint16_t) 6)
-#define AW_CLASS_STATIC_TEXT    ((uint16_t) 7)
-#define AW_CLASS_MESSAGE_BOX    ((uint16_t) 8)
-#define AW_CLASS_ICON           ((uint16_t) 9)
-#define AW_CLASS_USER           ((uint16_t) 100) // and onward
-
 #ifndef NULL
 #define NULL 0
 #endif
-
-#define AW_MSG_UNHANDLED        0
-#define AW_MSG_HANDLED          1
 
 #define AW_DFLT_BG_COLOR                    15
 #define AW_DFLT_FG_COLOR                    0
@@ -51,10 +37,18 @@ extern "C" {
 #define min(a, b)       ((a) < (b) ? (a) : (b))
 #define max(a, b)       ((a) > (b) ? (a) : (b))
 
-typedef union tag_AwMsg AwMsg;
+typedef struct tag_AwApplication AwApplication;
+typedef struct tag_AwClass AwClass;
 typedef struct tag_AwWindow AwWindow;
+typedef union tag_AwMsg AwMsg;
 
-typedef int32_t (*AwMsgHandler)(AwMsg* msg);
+// The window may be the same window as specified in the message,
+// or may be an ancestor window. The return value may depend on
+// the message type (primarily for use with immediate processing,
+// as opposed to posting). To halt further processing of a message,
+// set the outgoing halt value to true.
+//
+typedef int32_t (*AwMsgHandler)(AwWindow* window, AwMsg* msg, bool* halt);
 
 typedef struct tag_AwRect {
     int16_t     left;       // inclusive left edge of the rectangle (this is inside the rectangle)
@@ -153,24 +147,33 @@ typedef struct tag_AwMouseState {
 
 typedef struct tag_AwApplication {
     const char*     name;           // name of the app
-    AwMsgHandler    msg_handler;    // points to the message handler function
     uint32_t*       load_address;   // location that the app was loaded
     uint32_t        memory_size;    // amount of memory allocated to app
+    const AwClass*  classes;        // points to array of window classes (may be NULL)
+    AwWindow*       first_windows;  // points to chain of windows created by/for the app
+    uint8_t         num_classes;    // number of window classes defined by the app
 } AwApplication;
+
+typedef struct tag_AwClass {
+    const char*     name;           // name of the class
+    const AwClass*  parent;         // points to the parent class (may be NULL)
+    AwMsgHandler    msg_handler;    // points to the message handler function
+} AwClass;
 
 typedef struct tag_AwWindow {
     AwApplication*  app;            // points to the app that owns the window
+    const AwClass*  window_class;   // points to the class of the app
     AwWindow*       parent;         // points to the parent window
     AwWindow*       first_child;    // points to the first child window
     AwWindow*       last_child;     // points to the last child window
     AwWindow*       prev_sibling;   // points to the previous sibling window
     AwWindow*       next_sibling;   // points to the next sibling window
     char*           text;           // title of the window or text content
-    uint16_t        class_id;       // non-unique class ID for the window
     AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
     AwWindowFlags   flags;          // flags describing the window
     uint32_t        text_size;      // allocated space for text (not the text length)
+    void*           extra_data;     // additional custom data defined by the app
     uint8_t         bg_color;       // color of background, espcially when drawn by core
     uint8_t         fg_color;       // color of text, espcially when drawn by core
 } AwWindow;

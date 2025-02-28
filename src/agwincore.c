@@ -52,9 +52,11 @@ bool        prior_right_click;
 
 volatile SYSVAR * sys_var; // points to MOS system variables
 
-int32_t core_handle_message(AwMsg* msg);
+int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt);
 
-AwApplication agwin_app = { "agwin", core_handle_message, 0, 0 };
+AwClass root_class = { "root", NULL, core_handle_message };
+
+AwApplication agwin_app = { "agwin", 0, 0, &root_class, NULL, 1 };
 
 void key_event_handler(KEY_EVENT key_event) {
     if (active_window) {
@@ -74,7 +76,7 @@ AwWindow* core_find_window_at_point(AwWindow* window, uint16_t x, uint16_t y) {
     AwWindow* some_child = NULL;
     AwWindow* child = window->first_child;
     while (child) {
-        if (child->flags.visible) {
+        if (child->flags.visible && child->flags.enabled) {
             AwRect rect = core_get_intersect_rect(&window->client_rect, &child->window_rect);
             if (core_rect_contains_point(&rect, x, y)) {
                 some_child = child;
@@ -194,6 +196,10 @@ void update_mouse_state() {
         last_mouse_state = msg.on_mouse_event.state;
         sys_var->vdp_pflags &= ~vdp_pflag_mouse;
     }
+}
+
+const AwClass* core_get_root_class() {
+    return &root_class;
 }
 
 uint8_t core_get_version() {
@@ -332,13 +338,26 @@ AwWindow* core_get_top_level_window(AwWindow* window) {
     }
 }
 
+const char* empty_text = "";
+
 void core_set_text(AwWindow* window, const char* text) {
+    if (text == NULL) {
+        if (window->text != empty_text) {
+            free(window->text);
+        }
+        window->text = (char*) empty_text;
+        window->text_size = 0;
+        return;
+    }
+
     uint32_t size = strlen(text) + 1;
     if (size <= window->text_size) {
         // Text fits in allocated space
         strcpy(window->text, text);
     } else {
-        free(window->text);
+        if (window->text != empty_text) {
+            free(window->text);
+        }
 
         // Allocate memory for the window text
         char* ptext = (char*) malloc(size);
@@ -347,7 +366,7 @@ void core_set_text(AwWindow* window, const char* text) {
             window->text_size = size;
             strcpy(ptext, text);
         } else {
-            window->text = "";
+            window->text = (char*) empty_text;
             window->text_size = 0;
         }
     }
@@ -490,18 +509,32 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
     //printf("end link\r\n");
 }
 
-AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t class_id, AwWindowFlags flags,
-                        int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text) {
-    if ((app == NULL) || (width < 0) || (height < 0) || (class_id == 0) || (text == 0)) {
+AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
+                        const AwClass* wclass, AwWindowFlags flags,
+                        int16_t x, int16_t y, uint16_t width, uint16_t height,
+                        const char* text, uint32_t extra_data_size) {
+    if ((app == NULL) || (wclass == NULL) || (width < 0) || (height < 0)) {
         return 0; // bad parameter(s)
+    }
+
+    if (parent == NULL) {
+        parent = root_window;
     }
 
     // Allocate memory for the window structure
     AwWindow* window = (AwWindow*) malloc(sizeof(AwWindow));
     if (window == NULL) {
-        return 0; // no memory
+        return NULL; // no memory
     }
     memset(window, 0, sizeof(AwWindow));
+
+    if (extra_data_size) {
+        window->extra_data = malloc(extra_data_size);
+        if (!window->extra_data) {
+            free(window);
+            return NULL; // no memory
+        }
+    }
 
     vdp_context_select(0);
     vdp_logical_scr_dims(false);
@@ -510,7 +543,7 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent, uint16_t clas
     core_link_child(parent, window);
     window->flags = flags;
     window->app = app;
-    window->class_id = class_id;
+    window->window_class = wclass;
     window->window_rect.right = width;
     window->window_rect.bottom = height;
     window->bg_color = AW_DFLT_BG_COLOR;
@@ -651,23 +684,20 @@ void core_destroy_window(AwWindow* window) {
 }
 
 int32_t core_process_message(AwMsg* msg) {
-    AwApplication* app = msg->do_common.window->app;
-    int32_t result = (*app->msg_handler)(msg);
-    if (result == AW_MSG_UNHANDLED) {
-        switch (msg->do_common.window->class_id) {
-            case AW_CLASS_ROOT:         return root_win_msg_handler(msg);
-            case AW_CLASS_MENU:         return menu_win_msg_handler(msg);
-            case AW_CLASS_MENU_ITEM:    return menu_win_msg_handler(msg);
-            case AW_CLASS_LIST:         return list_win_msg_handler(msg);
-            case AW_CLASS_LIST_ITEM:    return list_win_msg_handler(msg);
-            case AW_CLASS_EDIT_TEXT :   return edit_text_win_msg_handler(msg);
-            case AW_CLASS_STATIC_TEXT:  return static_text_win_msg_handler(msg);
-            case AW_CLASS_MESSAGE_BOX : return message_box_win_msg_handler(msg);
-            case AW_CLASS_ICON:         return icon_win_msg_handler(msg);
-            default: return core_handle_message(msg);
+    AwWindow* window = msg->do_common.window;
+    while (window) {
+        const AwClass* wclass = window->window_class;
+        while (wclass) {
+            bool halt = false;
+            int32_t result = (*wclass->msg_handler)(window, msg, &halt);
+            if (halt) {
+                return result;
+            }
+            wclass = wclass->parent;
         }
+        window = window->parent;
     }
-    return result;
+    return 0;
 }
 
 void core_exit_app(AwApplication* app) {
@@ -891,7 +921,7 @@ void core_paint_window(AwMsg* msg) {
     }
 }
 
-int32_t core_handle_message(AwMsg* msg) {
+int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
     //printf("handle %p %hu\r\n", msg->do_common.window, (uint16_t) msg->do_common.msg_type);
     switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
@@ -1071,7 +1101,7 @@ int32_t core_handle_message(AwMsg* msg) {
                 }
 
                 case Aw_On_WindowActivated: {
-
+                    break;
                 }
             
                 case Aw_On_Terminate: {
@@ -1085,7 +1115,7 @@ int32_t core_handle_message(AwMsg* msg) {
         }
     }
 
-    return AW_MSG_HANDLED;
+    return 0;
 }
 
 void core_initialize() {
@@ -1099,32 +1129,8 @@ void core_initialize() {
     flags.selected = 0;
     flags.visible = 1;
 
-    root_window = core_create_window(&agwin_app, NULL, AW_CLASS_ROOT, flags,
-                        0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Root");
-
-    flags.border = 1;
-    flags.title_bar = 1;
-    flags.icons = 1;
-
-    for (uint16_t row = 0; row < 4; row++) {
-        uint16_t y = row * 116 + 5; // 5, 121, 237, 348
-        for (uint16_t col = 0; col < 4; col++) {
-            uint16_t x = col * 155 + 5; // 5, 160, 315, 465
-            uint16_t i = row * 4 + col;
-            char text[10];
-            sprintf(text, "Color #%02hu", i);
-            printf("%s\r\n", text);
-            AwWindow* win = core_create_window(&agwin_app, root_window,
-                                                AW_CLASS_USER + i, flags,
-                                x, y, 150, 112, text);
-            win->bg_color = i;
-            win->fg_color = 15 - i;
-            if (i == 10) {
-                core_activate_window(win, true);
-            }
-        }
-    }
-
+    root_window = core_create_window(&agwin_app, NULL, &root_class, flags,
+                        0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Root", 0);
     running = true;
 }
 

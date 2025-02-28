@@ -1,7 +1,6 @@
 #pragma once
 
 #include "agwindefs.h"
-#include <stdbool.h>
 
 #ifdef __CPLUSPLUS
 extern "C" {
@@ -11,7 +10,7 @@ void core_initialize();
 
 void core_message_loop();
 
-int32_t core_handle_message(AwMsg* msg);
+int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt);
 
 uint8_t core_get_version();
 
@@ -51,9 +50,12 @@ AwWindow* core_get_active_window();
 
 AwWindow* core_get_top_level_window(AwWindow* window);
 
+const AwClass* core_get_root_class();
+
 AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
-                uint16_t class_id, AwWindowFlags flags,
-                int16_t x, int16_t y, uint16_t width, uint16_t height, const char* text);
+                const AwClass* wclass, AwWindowFlags flags,
+                int16_t x, int16_t y, uint16_t width, uint16_t height,
+                const char* text, uint32_t extra_data_size);
 
 void core_invalidate_window(AwWindow* window);
 

@@ -22,6 +22,49 @@ void wait_clock(clock_t ticks)
 }
 */
 
+int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt);
+
+AwClass my_class = { "myclass", NULL, my_handle_message };
+
+AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
+
+void init_my_app() {
+    my_class.parent = core_get_root_class();
+
+    AwWindowFlags flags;
+    flags.border = 1;
+    flags.title_bar = 1;
+    flags.icons = 1;
+    flags.sizeable = 0;
+    flags.active = 0;
+    flags.enabled = 1;
+    flags.selected = 0;
+    flags.visible = 1;
+
+    for (uint16_t row = 0; row < 4; row++) {
+        uint16_t y = row * 116 + 5; // 5, 121, 237, 348
+        for (uint16_t col = 0; col < 4; col++) {
+            uint16_t x = col * 155 + 5; // 5, 160, 315, 465
+            uint16_t i = row * 4 + col;
+            char text[10];
+            sprintf(text, "Color #%02hu", i);
+            printf("%s\r\n", text);
+            AwWindow* win = core_create_window(&my_app, NULL,
+								&my_class, flags,
+                                x, y, 150, 112, text, 0);
+            win->bg_color = i;
+            win->fg_color = 15 - i;
+            if (i == 10) {
+                core_activate_window(win, true);
+            }
+        }
+    }
+}
+
+int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
+	return 0; // default to core processing
+}
+
 int main( void )
 {
 	sys_var = vdp_vdu_init();
@@ -43,6 +86,7 @@ int main( void )
 	vdp_mouse_set_position(center.x, center.y);
 
     core_initialize();
+	init_my_app();
 	core_message_loop();
 
 	vdp_context_select(0);

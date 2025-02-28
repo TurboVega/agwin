@@ -4,6 +4,7 @@
         "agwindesk.h": "c",
         "agwinedit.h": "c",
         "agwinmsg.h": "c",
-        "agwindo.h": "c"
+        "agwindo.h": "c",
+        "agwincore.h": "c"
     }
 }
