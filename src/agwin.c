@@ -35,16 +35,8 @@ SOFTWARE.
 
 extern volatile SYSVAR * sys_var; // points to MOS system variables
 
-/*
-void wait_clock(clock_t ticks)
-{
-	clock_t ticks_now = clock();
-
-	do {
-		vdp_update_key_state();
-	} while (clock() - ticks_now < ticks);
-}
-*/
+// The "my..." code and data is used for a simple test, and will
+// be removed once there is a better example of a loaded app.
 
 int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt);
 
