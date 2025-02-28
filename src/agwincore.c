@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 #include <agon/vdp_key.h>
 #include <agon/vdp_vdu.h>
 
@@ -25,6 +26,9 @@ extern "C" {
 #define PLOT_MODE_FILLED_RECT   0x65
 #define FONT_SIZE               8
 
+#define MOUSE_LONG_CLICK_TIME   30      // minimum centiseconds to be a long click
+#define MOUSE_DBL_CLICK_TIME    40      // maximum centiseconds to be a double-click
+
 AwWindow* root_window;
 AwWindow* active_window;
 AwRect    dirty_area;
@@ -35,8 +39,16 @@ uint8_t     msg_read_index;
 uint8_t     msg_write_index;
 bool        running;
 uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
-AwKeyState  last_key_state;
 AwMouseState last_mouse_state;
+uint32_t    last_left_btn_down;
+uint32_t    last_middle_btn_down;
+uint32_t    last_right_btn_down;
+uint32_t    last_left_btn_up;
+uint32_t    last_middle_btn_up;
+uint32_t    last_right_btn_up;
+bool        prior_left_click;
+bool        prior_middle_click;
+bool        prior_right_click;
 
 volatile SYSVAR * sys_var; // points to MOS system variables
 
@@ -63,8 +75,8 @@ AwWindow* core_find_window_at_point(AwWindow* window, uint16_t x, uint16_t y) {
     AwWindow* child = window->first_child;
     while (child) {
         if (child->flags.visible) {
-            AwRect* rect = core_get_intersect_rect(&window->client_rect, &child->window_rect);
-            if (core_rect_contains_point(rect, x, y)) {
+            AwRect rect = core_get_intersect_rect(&window->client_rect, &child->window_rect);
+            if (core_rect_contains_point(&rect, x, y)) {
                 some_child = child;
                 AwWindow* grandchild = core_find_window_at_point(child, x, y);
                 if (grandchild) {
@@ -79,13 +91,16 @@ AwWindow* core_find_window_at_point(AwWindow* window, uint16_t x, uint16_t y) {
 
 void update_mouse_state() {
     if (sys_var->vdp_pflags & vdp_pflag_mouse) {
+        uint32_t now = (uint32_t) clock();
+        time_t ticks = now - last_left_btn_up;
+        printf("%lu %lu\r\n", now, ticks);
         AwMsg msg;
         msg.on_mouse_event.state.buttons = sys_var->mouseButtons;
         msg.on_mouse_event.state.wheel = sys_var->mouseWheel;
         msg.on_mouse_event.state.x = sys_var->mouseX;
-        msg.on_mouse_event.state.y = sys_var.mouseY;
-        msg.on_mouse_event.state.delta_x = sys_var.mouseXDelta;
-        msg.on_mouse_event.state.delta_y = sysVar.mouseYDelta;
+        msg.on_mouse_event.state.y = sys_var->mouseY;
+        msg.on_mouse_event.state.delta_x = sys_var->mouseXDelta;
+        msg.on_mouse_event.state.delta_y = sys_var->mouseYDelta;
 
         // Find out what window is beneath the mouse cursor
         msg.on_mouse_event.window =
@@ -95,22 +110,87 @@ void update_mouse_state() {
                 msg.on_mouse_event.state.y);
 
         // Determine what changed (what event happened)
+        if (last_mouse_state.left != msg.on_mouse_event.state.left) {
+            if (msg.on_mouse_event.state.left) {
+                msg.on_mouse_event.msg_type = Aw_On_LeftButtonDown;
+                core_post_message(&msg);
+                last_left_btn_down = now;
+            } else {
+                msg.on_mouse_event.msg_type = Aw_On_LeftButtonUp;
+                core_post_message(&msg);
+                if (prior_left_click) {
+                    if (ticks <= MOUSE_DBL_CLICK_TIME) {
+                        msg.on_mouse_event.msg_type = Aw_On_LeftButtonDoubleClick;
+                    } else {
+                        msg.on_mouse_event.msg_type = Aw_On_LeftButtonClick;
+                    }
+                } else {
+                    if (ticks < MOUSE_LONG_CLICK_TIME) {
+                        msg.on_mouse_event.msg_type = Aw_On_LeftButtonClick;
+                    } else {
+                        msg.on_mouse_event.msg_type = Aw_On_LeftButtonLongClick;
+                    }
+                    prior_left_click = true;
+                }
+                core_post_message(&msg);
+                last_left_btn_up = now;
+            }
+        }
 
-        
-        msg.on_mouse_event.msg_type = Aw_On_LeftButtonDown;
-        msg.on_mouse_event.msg_type = Aw_On_LeftButtonUp;
-        msg.on_mouse_event.msg_type = Aw_On_LeftButtonClick;
-        msg.on_mouse_event.msg_type = Aw_On_LeftButtonDoubleClick;
-        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonDown;
-        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonUp;
-        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonClick;
-        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonDoubleClick;
-        msg.on_mouse_event.msg_type = Aw_On_RightButtonDown;
-        msg.on_mouse_event.msg_type = Aw_On_RightButtonUp;
-        msg.on_mouse_event.msg_type = Aw_On_RightButtonClick;
-        msg.on_mouse_event.msg_type = Aw_On_RightButtonDoubleClick;
+        if (last_mouse_state.middle != msg.on_mouse_event.state.middle) {
+            if (msg.on_mouse_event.state.middle) {
+                msg.on_mouse_event.msg_type = Aw_On_MiddleButtonDown;
+                core_post_message(&msg);
+                last_middle_btn_down = now;
+            } else {
+                msg.on_mouse_event.msg_type = Aw_On_MiddleButtonUp;
+                core_post_message(&msg);
+                if (prior_middle_click) {
+                    if (ticks <= MOUSE_DBL_CLICK_TIME) {
+                        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonDoubleClick;
+                    } else {
+                        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonClick;
+                    }
+                } else {
+                    if (ticks < MOUSE_LONG_CLICK_TIME) {
+                        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonClick;
+                    } else {
+                        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonLongClick;
+                    }
+                    prior_middle_click = true;
+                }
+                core_post_message(&msg);
+                last_middle_btn_up = now;
+            }
+        }
 
-        core_post_message(&msg);
+        if (last_mouse_state.right != msg.on_mouse_event.state.right) {
+            if (msg.on_mouse_event.state.right) {
+                msg.on_mouse_event.msg_type = Aw_On_RightButtonDown;
+                core_post_message(&msg);
+                last_right_btn_down = now;
+            } else {
+                msg.on_mouse_event.msg_type = Aw_On_RightButtonUp;
+                core_post_message(&msg);
+                if (prior_right_click) {
+                    if (ticks <= MOUSE_DBL_CLICK_TIME) {
+                        msg.on_mouse_event.msg_type = Aw_On_RightButtonDoubleClick;
+                    } else {
+                        msg.on_mouse_event.msg_type = Aw_On_RightButtonClick;
+                    }
+                } else {
+                    if (ticks < MOUSE_LONG_CLICK_TIME) {
+                        msg.on_mouse_event.msg_type = Aw_On_RightButtonClick;
+                    } else {
+                        msg.on_mouse_event.msg_type = Aw_On_RightButtonLongClick;
+                    }
+                    prior_right_click = true;
+                }
+                core_post_message(&msg);
+                last_right_btn_up = now;
+            }
+        }
+
         last_mouse_state = msg.on_mouse_event.state;
         sys_var->vdp_pflags &= ~vdp_pflag_mouse;
     }
@@ -653,25 +733,17 @@ void draw_foreground(AwWindow* window) {
     vdp_move_to(0, 0);
     vdp_clear_graphics();
     vdp_write_at_graphics_cursor();
-    if (window != active_window) {
-        AwSize size = core_get_window_size(window);
-        printf("Window @ (%hu,%hu)\r\n",
-                window->window_rect.left, window->window_rect.top);
-        printf("     size %hux%hu\r\n",
-                size.width, size.height);
-        size = core_get_client_size(window);
-        printf("Client @ (%hu,%hu)\r\n",
-                window->client_rect.left, window->client_rect.top);
-        printf("     size %hux%hu\r\n",
-                size.width, size.height);
-    } else {
-        printf("Last Key Event\r\n");
-        printf("data:  %08lX\r\n", last_key_state.key_data);
-        printf("code:  %02hX\r\n", last_key_state.key_code);
-        printf("ascii: %02hX\r\n", last_key_state.ascii_code);
-        printf("mods:  %04hX\r\n", last_key_state.all_mods);
-        printf("state: %s\r\n", (last_key_state.down ? "DOWN" : "UP"));
-    }
+
+    AwSize size = core_get_window_size(window);
+    printf("Window @ (%hu,%hu)\r\n",
+            window->window_rect.left, window->window_rect.top);
+    printf("     size %hux%hu\r\n",
+            size.width, size.height);
+    size = core_get_client_size(window);
+    printf("Client @ (%hu,%hu)\r\n",
+            window->client_rect.left, window->client_rect.top);
+    printf("     size %hux%hu\r\n",
+            size.width, size.height);
 }
 
 uint8_t get_border_color(AwWindow* window) {
@@ -911,11 +983,6 @@ int32_t core_handle_message(AwMsg* msg) {
                 }
 
                 case Aw_On_KeyEvent: {
-                    if (active_window && active_window->flags.title_bar) {
-                        last_key_state = msg->on_key_event.state;
-                        key_state_changed = true;
-                        core_invalidate_client(active_window);
-                    }
                     break;
                 }
 
@@ -928,6 +995,10 @@ int32_t core_handle_message(AwMsg* msg) {
                 }
 
                 case Aw_On_LeftButtonClick: {
+                    break;
+                }
+
+                case Aw_On_LeftButtonLongClick: {
                     break;
                 }
 
@@ -947,6 +1018,10 @@ int32_t core_handle_message(AwMsg* msg) {
                     break;
                 }
 
+                case Aw_On_MiddleButtonLongClick: {
+                    break;
+                }
+
                 case Aw_On_MiddleButtonDoubleClick: {
                     break;
                 }
@@ -960,6 +1035,10 @@ int32_t core_handle_message(AwMsg* msg) {
                 }
 
                 case Aw_On_RightButtonClick: {
+                    break;
+                }
+
+                case Aw_On_RightButtonLongClick: {
                     break;
                 }
 
