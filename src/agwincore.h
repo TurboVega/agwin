@@ -33,7 +33,13 @@ void core_expand_rect_unevenly(AwRect* rect, int16_t dleft, int16_t dtop, int16_
 
 AwRect core_get_screen_rect();
 
+AwSize core_get_screen_size();
+
+AwPoint core_get_screen_center();
+
 AwRect core_get_empty_rect();
+
+bool core_rect_contains_point(const AwRect* rect, int16_t x, int16_t y);
 
 AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2);
 

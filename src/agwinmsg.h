@@ -28,6 +28,7 @@ typedef union tag_AwMsg {
 
     AwOnMsgCommon               on_common;
     AwOnMsgKeyEvent             on_key_event;
+    AwOnMsgMouseEvent           on_mouse_event;
     AwOnMsgCommon               on_window_resized;
     AwOnMsgCommon               on_window_moved;
     AwOnMsgCommon               on_window_created;

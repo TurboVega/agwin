@@ -11,7 +11,6 @@ extern "C" {
 typedef enum : uint8_t {
     Aw_On_Common = 101,
     Aw_On_KeyEvent,
-    Aw_On_MouseAction,
     Aw_On_LeftButtonDown,
     Aw_On_LeftButtonUp,
     Aw_On_LeftButtonClick,
@@ -44,6 +43,12 @@ typedef struct tag_AwOnMsgKeyEvent {
     AwOnMsgType     msg_type;
     AwKeyState      state;
 } AwOnMsgKeyEvent;
+
+typedef struct tag_AwOnMsgMouseEvent {
+    AwWindow*       window;
+    AwOnMsgType     msg_type;
+    AwMouseState    state;
+} AwOnMsgMouseEvent;
 
 #ifdef __CPLUSPLUS
 } // extern "C"

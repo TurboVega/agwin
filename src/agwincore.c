@@ -36,7 +36,9 @@ uint8_t     msg_write_index;
 bool        running;
 uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
 AwKeyState  last_key_state;
-bool        key_state_changed;
+AwMouseState last_mouse_state;
+
+volatile SYSVAR * sys_var; // points to MOS system variables
 
 int32_t core_handle_message(AwMsg* msg);
 
@@ -53,6 +55,64 @@ void key_event_handler(KEY_EVENT key_event) {
         msg.on_key_event.state.key_code = key_event.code;
         msg.on_key_event.state.down = key_event.down;
         core_post_message(&msg);
+    }
+}
+
+AwWindow* core_find_window_at_point(AwWindow* window, uint16_t x, uint16_t y) {
+    AwWindow* some_child = NULL;
+    AwWindow* child = window->first_child;
+    while (child) {
+        if (child->flags.visible) {
+            AwRect* rect = core_get_intersect_rect(&window->client_rect, &child->window_rect);
+            if (core_rect_contains_point(rect, x, y)) {
+                some_child = child;
+                AwWindow* grandchild = core_find_window_at_point(child, x, y);
+                if (grandchild) {
+                    some_child = grandchild;
+                }
+            }
+        }
+        child = child->next_sibling;
+    }
+    return some_child;
+}
+
+void update_mouse_state() {
+    if (sys_var->vdp_pflags & vdp_pflag_mouse) {
+        AwMsg msg;
+        msg.on_mouse_event.state.buttons = sys_var->mouseButtons;
+        msg.on_mouse_event.state.wheel = sys_var->mouseWheel;
+        msg.on_mouse_event.state.x = sys_var->mouseX;
+        msg.on_mouse_event.state.y = sys_var.mouseY;
+        msg.on_mouse_event.state.delta_x = sys_var.mouseXDelta;
+        msg.on_mouse_event.state.delta_y = sysVar.mouseYDelta;
+
+        // Find out what window is beneath the mouse cursor
+        msg.on_mouse_event.window =
+            core_find_window_at_point(
+                root_window,
+                msg.on_mouse_event.state.x,
+                msg.on_mouse_event.state.y);
+
+        // Determine what changed (what event happened)
+
+        
+        msg.on_mouse_event.msg_type = Aw_On_LeftButtonDown;
+        msg.on_mouse_event.msg_type = Aw_On_LeftButtonUp;
+        msg.on_mouse_event.msg_type = Aw_On_LeftButtonClick;
+        msg.on_mouse_event.msg_type = Aw_On_LeftButtonDoubleClick;
+        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonDown;
+        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonUp;
+        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonClick;
+        msg.on_mouse_event.msg_type = Aw_On_MiddleButtonDoubleClick;
+        msg.on_mouse_event.msg_type = Aw_On_RightButtonDown;
+        msg.on_mouse_event.msg_type = Aw_On_RightButtonUp;
+        msg.on_mouse_event.msg_type = Aw_On_RightButtonClick;
+        msg.on_mouse_event.msg_type = Aw_On_RightButtonDoubleClick;
+
+        core_post_message(&msg);
+        last_mouse_state = msg.on_mouse_event.state;
+        sys_var->vdp_pflags &= ~vdp_pflag_mouse;
     }
 }
 
@@ -115,6 +175,20 @@ AwRect core_get_screen_rect() {
     return rect;
 }
 
+AwSize core_get_screen_size() {
+    AwSize size;
+    size.width = AW_SCREEN_WIDTH;
+    size.height = AW_SCREEN_HEIGHT;
+    return size;
+};
+
+AwPoint core_get_screen_center() {
+    AwPoint pt;
+    pt.x = AW_SCREEN_WIDTH / 2;
+    pt.y = AW_SCREEN_HEIGHT / 2;
+    return pt;
+}
+
 AwRect core_get_empty_rect() {
     AwRect rect;
     rect.left = 0;
@@ -122,6 +196,13 @@ AwRect core_get_empty_rect() {
     rect.right = 0;
     rect.bottom = 0;
     return rect;
+}
+
+bool core_rect_contains_point(const AwRect* rect, int16_t x, int16_t y) {
+    return (x >= rect->left &&
+            x < rect->right &&
+            y >= rect->top &&
+            y < rect->bottom);
 }
 
 AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
@@ -692,15 +773,6 @@ void core_paint_window(AwMsg* msg) {
         vdp_move_to(window->window_rect.left, window->window_rect.top);
         local_vdp_set_graphics_origin_via_plot();
 
-        /*vdp_move_to(window->window_rect.left/FONT_SIZE,
-                    window->window_rect.top/FONT_SIZE);
-        vdp_move_to((window->window_rect.right/FONT_SIZE)-1,
-                    (window->window_rect.bottom/FONT_SIZE)-1);*/
-        //vdp_move_to(0, 0);
-        //vdp_move_to(7, 5);
-        //local_vdp_set_text_viewport_via_plot();
-        //vdp_cursor_tab(0, 0);
-
         vdp_set_text_viewport(
                     (window->window_rect.left/FONT_SIZE)+1,
                     (window->window_rect.top/FONT_SIZE)+1,
@@ -731,15 +803,6 @@ void core_paint_window(AwMsg* msg) {
 
         vdp_move_to(window->client_rect.left, window->client_rect.top);
         local_vdp_set_graphics_origin_via_plot();
-
-        /*vdp_move_to(window->client_rect.left/FONT_SIZE,
-                    window->client_rect.top/FONT_SIZE);
-        vdp_move_to((window->client_rect.right/FONT_SIZE)-1,
-                    (window->client_rect.bottom/FONT_SIZE)-1);*/
-        //vdp_move_to(0, 0);
-        //vdp_move_to(7, 5);
-        //local_vdp_set_text_viewport_via_plot();
-        //vdp_cursor_tab(0, 0);
 
         vdp_set_text_viewport(
                     (window->client_rect.left/FONT_SIZE)+1,
@@ -853,10 +916,6 @@ int32_t core_handle_message(AwMsg* msg) {
                         key_state_changed = true;
                         core_invalidate_client(active_window);
                     }
-                    break;
-                }
-
-                case Aw_On_MouseAction: {
                     break;
                 }
 
@@ -1058,6 +1117,7 @@ void core_message_loop() {
                 dirty_area = core_get_empty_rect();
             } else {
                 vdp_update_key_state();
+                update_mouse_state();
             }
         }
     }

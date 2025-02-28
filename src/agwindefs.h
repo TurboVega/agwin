@@ -134,6 +134,16 @@ typedef union tag_AwKeyState {
     };
 } AwKeyState;
 
+// This comes from MOS system variables via AgDev SYSVAR
+typedef struct tag_AwMouseState {
+	uint16_t    x;
+	uint16_t    y;
+	uint8_t     buttons;
+	uint8_t     wheel;
+	uint16_t    delta_x;
+	uint16_t    delta_y;
+} AwMouseState;
+
 typedef struct tag_AwApplication {
     const char*     name;           // name of the app
     AwMsgHandler    msg_handler;    // points to the message handler function
