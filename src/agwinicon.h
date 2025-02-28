@@ -32,11 +32,14 @@ SOFTWARE.
 extern "C" {
 #endif
 
-#define ICON_CLOSE      ((uint16_t)63900)
-#define ICON_MENU       ((uint16_t)63901)
-#define ICON_MINIMIZE   ((uint16_t)63902)
-#define ICON_MAXIMIZE   ((uint16_t)63903)
-#define ICON_RESTORE    ((uint16_t)63904)
+#define AW_ICON_WIDTH  10
+#define AW_ICON_HEIGHT 10
+
+#define AW_ICON_CLOSE      ((uint16_t)63900)
+#define AW_ICON_MENU       ((uint16_t)63901)
+#define AW_ICON_MINIMIZE   ((uint16_t)63902)
+#define AW_ICON_MAXIMIZE   ((uint16_t)63903)
+#define AW_ICON_RESTORE    ((uint16_t)63904)
 
 void aw_register_icons();
 

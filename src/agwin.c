@@ -32,6 +32,7 @@ SOFTWARE.
 #include <stdlib.h>
 
 #include "agwincore.h"
+#include "agwinicon.h"
 
 extern volatile SYSVAR * sys_var; // points to MOS system variables
 
@@ -102,6 +103,7 @@ int main( void )
 	vdp_mouse_set_position(center.x, center.y);
 
     core_initialize();
+    aw_register_icons();
 	init_my_app();
 	core_message_loop();
 

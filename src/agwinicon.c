@@ -32,9 +32,6 @@ SOFTWARE.
 extern "C" {
 #endif
 
-#define ICON_WIDTH  10
-#define ICON_HEIGHT 10
-
 #define V(color)    (((uint8_t)(color))|0xC0)  /* makes pixel color visible */
 
 #define K   V(0x00)  // black
@@ -55,7 +52,7 @@ extern "C" {
 #define w   V(0x3F)  // white
 #define _   0        // invisible
 
-const uint8_t icon_close[ICON_HEIGHT][ICON_WIDTH] = {
+const uint8_t icon_close[AW_ICON_HEIGHT][AW_ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
     { _,K,K,_,_,_,_,K,K,_ },
     { _,K,w,K,_,_,K,w,K,_ },
@@ -68,7 +65,7 @@ const uint8_t icon_close[ICON_HEIGHT][ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
 };
 
-const uint8_t icon_menu[ICON_HEIGHT][ICON_WIDTH] = {
+const uint8_t icon_menu[AW_ICON_HEIGHT][AW_ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
     { _,_,_,_,_,_,_,_,_,_ },
     { _,K,K,K,K,K,K,K,K,_ },
@@ -81,7 +78,7 @@ const uint8_t icon_menu[ICON_HEIGHT][ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
 };
 
-const uint8_t icon_minimize[ICON_HEIGHT][ICON_WIDTH] = {
+const uint8_t icon_minimize[AW_ICON_HEIGHT][AW_ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
     { _,_,_,_,_,_,_,_,_,_ },
     { _,_,_,_,_,_,_,_,_,_ },
@@ -94,7 +91,7 @@ const uint8_t icon_minimize[ICON_HEIGHT][ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
 };
 
-const uint8_t icon_maximize[ICON_HEIGHT][ICON_WIDTH] = {
+const uint8_t icon_maximize[AW_ICON_HEIGHT][AW_ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
     { _,K,K,K,K,K,K,K,K,_ },
     { _,K,w,w,w,w,w,w,K,_ },
@@ -107,7 +104,7 @@ const uint8_t icon_maximize[ICON_HEIGHT][ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
 };
 
-const uint8_t icon_restore[ICON_HEIGHT][ICON_WIDTH] = {
+const uint8_t icon_restore[AW_ICON_HEIGHT][AW_ICON_WIDTH] = {
     { _,_,_,_,_,_,_,_,_,_ },
     { K,K,K,K,K,K,K,_,_,_ },
     { K,w,w,w,w,w,K,_,_,_ },
@@ -122,17 +119,17 @@ const uint8_t icon_restore[ICON_HEIGHT][ICON_WIDTH] = {
 
 void register_icon(uint16_t icon_id, const uint8_t* pixels) {
     vdp_adv_clear_buffer(icon_id);
-    vdp_adv_write_block_data(icon_id, ICON_WIDTH * ICON_HEIGHT, (char*) pixels);
+    vdp_adv_write_block_data(icon_id, AW_ICON_WIDTH * AW_ICON_HEIGHT, (char*) pixels);
     vdp_adv_select_bitmap(icon_id);
-    vdp_adv_bitmap_from_buffer(ICON_WIDTH, ICON_HEIGHT, 1);
+    vdp_adv_bitmap_from_buffer(AW_ICON_WIDTH, AW_ICON_HEIGHT, 1);
 }
 
 void aw_register_icons() {
-    register_icon(ICON_CLOSE, (const uint8_t*) icon_close);
-    register_icon(ICON_MENU, (const uint8_t*) icon_menu);
-    register_icon(ICON_MINIMIZE, (const uint8_t*) icon_minimize);
-    register_icon(ICON_MAXIMIZE, (const uint8_t*) icon_maximize);
-    register_icon(ICON_RESTORE, (const uint8_t*) icon_restore);
+    register_icon(AW_ICON_CLOSE, (const uint8_t*) icon_close);
+    register_icon(AW_ICON_MENU, (const uint8_t*) icon_menu);
+    register_icon(AW_ICON_MINIMIZE, (const uint8_t*) icon_minimize);
+    register_icon(AW_ICON_MAXIMIZE, (const uint8_t*) icon_maximize);
+    register_icon(AW_ICON_RESTORE, (const uint8_t*) icon_restore);
 }
 
 void aw_draw_icon(uint16_t icon_id, int16_t xpos, int16_t ypos) {

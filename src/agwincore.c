@@ -119,7 +119,7 @@ void update_mouse_state() {
     if (sys_var->vdp_pflags & vdp_pflag_mouse) {
         uint32_t now = (uint32_t) clock();
         time_t ticks = now - last_left_btn_up;
-        printf("%lu %lu\r\n", now, ticks);
+
         AwMsg msg;
         msg.on_mouse_event.state.buttons = sys_var->mouseButtons;
         msg.on_mouse_event.state.wheel = sys_var->mouseWheel;
@@ -861,6 +861,13 @@ void draw_title(AwWindow* window) {
 
 void draw_icons(AwWindow* window) {
     //printf("draw_icons %p\r\n", window);
+    AwSize size = core_get_window_size(window);
+    int16_t x = size.width - AW_BORDER_THICKNESS - AW_ICON_WIDTH * 3;
+    aw_draw_icon(AW_ICON_MENU, x, AW_BORDER_THICKNESS);
+    x += AW_ICON_WIDTH;
+    aw_draw_icon(AW_ICON_MINIMIZE, x, AW_BORDER_THICKNESS);
+    x += AW_ICON_WIDTH;
+    aw_draw_icon(AW_ICON_CLOSE, x, AW_BORDER_THICKNESS);    
 }
 
 typedef struct { uint8_t A; uint8_t B; uint8_t CMD; } VDU_A_B_CMD;
@@ -915,7 +922,7 @@ void core_paint_window(AwMsg* msg) {
             draw_title(window);
         }
         if (paint_flags->icons) {
-            //draw_icons(window);
+            draw_icons(window);
         }
     }
 
