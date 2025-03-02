@@ -153,6 +153,7 @@ typedef union tag_AwKeyState {
 } AwKeyState;
 
 // This comes from MOS system variables via AgDev SYSVAR
+// The "start_*" members only apply for drag/drop messages
 typedef struct tag_AwMouseState {
     AwWindow*   start_window;       // window under mouse when button first pressed
 	uint16_t    start_x;            // X coordinate of the mouse cursor when button first pressed

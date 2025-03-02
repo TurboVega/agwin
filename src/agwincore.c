@@ -134,6 +134,24 @@ void update_mouse_state() {
 
         // Determine what changed (what event happened)
 
+        // Check if/how the "start_*" members apply
+        if (last_mouse_state.buttons) {
+            // For continue pressed motion (drag) or end pressed motion (drop)
+            msg.on_mouse_event.state.start_window = last_mouse_state.start_window;
+            msg.on_mouse_event.state.start_x = last_mouse_state.start_x;
+            msg.on_mouse_event.state.start_y = last_mouse_state.start_y;
+        } else if (msg.on_mouse_event.state.buttons) {
+            // For start pressed motion (click)
+            msg.on_mouse_event.state.start_window = msg.on_mouse_event.window;
+            msg.on_mouse_event.state.start_x = msg.on_mouse_event.state.cur_x;
+            msg.on_mouse_event.state.start_y = msg.on_mouse_event.state.cur_y;
+        } else {
+            // For unpressed motion (move), the "start_*" members do not apply
+            msg.on_mouse_event.state.start_window = NULL;
+            msg.on_mouse_event.state.start_x = 0;
+            msg.on_mouse_event.state.start_y = 0;
+        }
+
         // If the mouse position changed, and the buttons were pressed before,
         // and are still pressed now, then the mouse was "dragged". If the
         // buttons were not pressed before, and are not pressed now, then
@@ -151,16 +169,6 @@ void update_mouse_state() {
                     core_post_message(&msg);
                 }
             }
-        }
-
-        if (last_mouse_state.buttons) {
-            msg.on_mouse_event.state.start_window = last_mouse_state.start_window;
-            msg.on_mouse_event.state.start_x = last_mouse_state.start_x;
-            msg.on_mouse_event.state.start_y = last_mouse_state.start_y;
-        } else if (msg.on_mouse_event.state.buttons) {
-            msg.on_mouse_event.state.start_window = msg.on_mouse_event.window;
-            msg.on_mouse_event.state.start_x = msg.on_mouse_event.state.cur_x;
-            msg.on_mouse_event.state.start_y = msg.on_mouse_event.state.cur_y;
         }
 
         if (last_mouse_state.left != msg.on_mouse_event.state.left) {
