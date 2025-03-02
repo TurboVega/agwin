@@ -138,6 +138,8 @@ void aw_draw_icon(uint16_t icon_id, int16_t xpos, int16_t ypos) {
 }
 
 int32_t aw_icon_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
+    (void)window; // presently unused
+    (void)halt; // presently unused
     switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
             break;

@@ -48,15 +48,21 @@ AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
 void init_my_app() {
     my_class.parent = core_get_root_class();
 
-    AwWindowFlags flags;
-    flags.border = 1;
-    flags.title_bar = 1;
-    flags.icons = 1;
-    flags.sizeable = 0;
-    flags.active = 0;
-    flags.enabled = 1;
-    flags.selected = 0;
-    flags.visible = 1;
+    AwWindowStyle style;
+    style.border = 1;
+    style.title_bar = 1;
+    style.close_icon = 1;
+    style.minimize_icon = 1;
+    style.maximize_icon = 1;
+    style.menu_icon = 1;
+    style.sizeable = 1;
+    style.moveable = 1;
+
+    AwWindowState state;
+    state.active = 0;
+    state.enabled = 1;
+    state.selected = 0;
+    state.visible = 1;
 
     for (uint16_t row = 0; row < 4; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
@@ -67,7 +73,7 @@ void init_my_app() {
             sprintf(text, "Color #%02hu", i);
             printf("%s\r\n", text);
             AwWindow* win = core_create_window(&my_app, NULL,
-								&my_class, flags,
+								&my_class, style, state,
                                 x, y, 150, 112, text, 0);
             win->bg_color = i;
             win->fg_color = 15 - i;
@@ -79,6 +85,9 @@ void init_my_app() {
 }
 
 int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
+    (void)window; // presently unused
+    (void)msg; // presently unused
+    (void)halt; // presently unused
 	return 0; // default to core processing
 }
 

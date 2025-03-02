@@ -91,30 +91,42 @@ typedef struct tag_AwSize {
     int16_t     height;     // vertical size
 } AwSize;
 
-typedef struct tag_AwWindowFlags {
+typedef struct tag_AwWindowStyle {
     uint16_t        top_level : 1;  // whether the window is a top-level window
     uint16_t        popup : 1;      // whether the window is a popup (e.g., dialog) window
     uint16_t        border : 1;     // whether the window has a border
     uint16_t        title_bar : 1;  // whether the window has a title bar
-    uint16_t        icons : 1;      // whether the window has icons in the title bar
+    uint16_t        close_icon: 1;  // whether the window has the close icon in the title bar
+    uint16_t        minimize_icon: 1;  // whether the window has the minimize icon in the title bar
+    uint16_t        maximize_icon: 1;  // whether the window has the maximize icon in the title bar
+    uint16_t        menu_icon: 1;   // whether the window has the menu icon in the title bar
     uint16_t        sizeable : 1;   // whether the window can be resized
+    uint16_t        moveable : 1;   // whether the window can be moved
+    uint16_t        reserved : 6;   // reserved
+} AwWindowStyle;
+
+typedef struct tag_AwWindowState {
     uint16_t        active : 1;     // whether the window is active
     uint16_t        enabled : 1;    // whether the window is enabled
     uint16_t        selected : 1;   // whether the window is selected
     uint16_t        visible : 1;    // whether the window is visible
-    uint16_t        title_dirty : 1;  // reserved
-    uint16_t        client_dirty : 1; // reserved
-    uint16_t        window_dirty : 1; // reserved
-    uint16_t        reserved4 : 1;  // reserved
-    uint16_t        reserved5 : 1;  // reserved
-    uint16_t        reserved6 : 1;  // reserved
-} AwWindowFlags;
+    uint16_t        minimized : 1;  // whether the window is minimized
+    uint16_t        maximized : 1;  // whether the window is maximized
+    uint16_t        title_dirty : 1;  // whether the title bar is dirty
+    uint16_t        client_dirty : 1; // whether the client area is dirty
+    uint16_t        window_dirty : 1; // whether the entire window is dirty
+    uint16_t        reserved : 7;   // reserved
+} AwWindowState;
 
 typedef struct tag_AwPaintFlags {
     uint16_t        border : 1;     // paint the border
     uint16_t        title_bar : 1;  // paint the title bar
     uint16_t        title : 1;      // paint the title
-    uint16_t        icons: 1;       // paint the icons in the title bar
+    uint16_t        close_icon: 1;  // paint the close icon in the title bar
+    uint16_t        minimize_icon: 1;  // paint the minimize icon in the title bar
+    uint16_t        maximize_icon: 1;  // paint the maximize icon in the title bar
+    uint16_t        restore_icon: 1;   // paint the restore icon in the title bar
+    uint16_t        menu_icon: 1;   // paint the menu icon in the title bar
     uint16_t        background : 1; // paint the client background
     uint16_t        foreground : 1; // paint the client foreground
     uint16_t        enabled : 1;    // whether the window is enabled
@@ -124,9 +136,6 @@ typedef struct tag_AwPaintFlags {
     uint16_t        reserved1 : 1;  // reserved
     uint16_t        reserved2 : 1;  // reserved
     uint16_t        reserved3 : 1;  // reserved
-    uint16_t        reserved4 : 1;  // reserved
-    uint16_t        reserved5 : 1;  // reserved
-    uint16_t        reserved6 : 1;  // reserved
 } AwPaintFlags;
 
 // This is more-or-less a copy of the AgDev KEY_EVENT
@@ -199,7 +208,8 @@ typedef struct tag_AwWindow {
     char*           text;           // title of the window or text content
     AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
-    AwWindowFlags   flags;          // flags describing the window
+    AwWindowStyle   style;          // indicators describing the style of the window
+    AwWindowState   state;          // indicators describing the current state of the window
     uint32_t        text_size;      // allocated space for text (not the text length)
     void*           extra_data;     // additional custom data defined by the app
     uint8_t         bg_color;       // color of background, espcially when drawn by core

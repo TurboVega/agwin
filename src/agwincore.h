@@ -77,7 +77,7 @@ AwWindow* core_get_top_level_window(AwWindow* window);
 const AwClass* core_get_root_class();
 
 AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
-                const AwClass* wclass, AwWindowFlags flags,
+                const AwClass* wclass, AwWindowStyle style, AwWindowState state,
                 int16_t x, int16_t y, uint16_t width, uint16_t height,
                 const char* text, uint32_t extra_data_size);
 
@@ -104,6 +104,16 @@ AwRect core_get_local_client_rect(AwWindow* window);
 AwRect core_get_sizing_window_rect(AwWindow* window);
 
 AwRect core_get_sizing_client_rect(AwWindow* window);
+
+AwRect core_get_close_icon_rect(AwWindow* window);
+
+AwRect core_get_minimize_icon_rect(AwWindow* window);
+
+AwRect core_get_maximize_icon_rect(AwWindow* window);
+
+AwRect core_get_restore_icon_rect(AwWindow* window);
+
+AwRect core_get_menu_icon_rect(AwWindow* window);
 
 AwSize core_get_window_size(AwWindow* window);
 

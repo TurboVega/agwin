@@ -97,7 +97,7 @@ AwWindow* core_find_window_at_point(AwWindow* window, uint16_t x, uint16_t y) {
     AwWindow* some_child = NULL;
     AwWindow* child = window->first_child;
     while (child) {
-        if (child->flags.visible && child->flags.enabled) {
+        if (child->state.visible && child->state.enabled) {
             AwRect rect = core_get_intersect_rect(&window->client_rect, &child->window_rect);
             if (core_rect_contains_point(&rect, x, y)) {
                 some_child = child;
@@ -393,7 +393,7 @@ AwWindow* core_get_active_window() {
 AwWindow* core_get_top_level_window(AwWindow* window) {
     while (true)
     {
-        if (window->flags.top_level) {
+        if (window->style.top_level) {
             return window;
         }
         if (window->parent) {
@@ -445,7 +445,7 @@ AwRect core_get_global_window_rect(AwWindow* window) {
 AwRect core_get_global_title_rect(AwWindow* window) {
     AwRect rect;
     rect.left = window->client_rect.left;
-    rect.top = window->window_rect.top + (window->flags.border ? AW_BORDER_THICKNESS : 0);
+    rect.top = window->window_rect.top + (window->style.border ? AW_BORDER_THICKNESS : 0);
     rect.right = window->client_rect.right;
     rect.bottom = rect.top + AW_TITLE_BAR_HEIGHT;
     return rect;
@@ -473,12 +473,12 @@ void add_more_dirt(AwRect* rect) {
 }
 
 void core_invalidate_window(AwWindow* window) {
-    window->flags.window_dirty = 1;
+    window->state.window_dirty = 1;
     add_more_dirt(&window->window_rect);
 }
 
 void core_invalidate_client(AwWindow* window) {
-    window->flags.client_dirty = 1;
+    window->state.client_dirty = 1;
     add_more_dirt(&window->client_rect);
 }
 
@@ -508,11 +508,11 @@ void core_move_window(AwWindow* window, int16_t x, int16_t y) {
     AwSize client_size = window_size;
     int16_t top_deco_height = 0;
     int16_t deco_thickness = 0;
-    if (window->flags.border) {
+    if (window->style.border) {
         top_deco_height = AW_BORDER_THICKNESS;
         deco_thickness = AW_BORDER_THICKNESS;
     }
-    if (window->flags.title_bar) {
+    if (window->style.title_bar) {
         top_deco_height += AW_TITLE_BAR_HEIGHT;
     }
     client_size.width -= deco_thickness * 2;
@@ -576,7 +576,8 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
 }
 
 AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
-                        const AwClass* wclass, AwWindowFlags flags,
+                        const AwClass* wclass, AwWindowStyle style,
+                        AwWindowState state,
                         int16_t x, int16_t y, uint16_t width, uint16_t height,
                         const char* text, uint32_t extra_data_size) {
     if ((app == NULL) || (wclass == NULL) || (width < 0) || (height < 0)) {
@@ -607,7 +608,8 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
 
     core_set_text(window, text);
     core_link_child(parent, window);
-    window->flags = flags;
+    window->style = style;
+    window->state = state;
     window->app = app;
     window->window_class = wclass;
     window->window_rect.right = width;
@@ -629,7 +631,7 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
 }
 
 void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
-    window->flags.window_dirty = 1;
+    window->state.window_dirty = 1;
     AwRect new_rect = *rect;
     core_offset_rect(&new_rect, window->window_rect.left, window->window_rect.top);
     AwRect extra_rect = core_get_intersect_rect(&window->window_rect, &new_rect);
@@ -637,7 +639,7 @@ void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
 }
 
 void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
-    window->flags.client_dirty = 1;
+    window->state.client_dirty = 1;
     AwRect new_rect = *rect;
     core_offset_rect(&new_rect, window->client_rect.left, window->client_rect.top);
     AwRect extra_rect = core_get_intersect_rect(&window->window_rect, &new_rect);
@@ -645,7 +647,7 @@ void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
 }
 
 void core_invalidate_title_bar(AwWindow* window) {
-    window->flags.title_dirty = 1;
+    window->state.title_dirty = 1;
     AwRect title_rect = core_get_global_title_rect(window);
     add_more_dirt(&title_rect);
 }
@@ -691,19 +693,115 @@ AwRect core_get_sizing_client_rect(AwWindow* window) {
     return rect;
 }
 
+int16_t get_border_thickness(AwWindow* window) {
+    return (window->style.border ? AW_BORDER_THICKNESS : 0);
+}
+
+AwRect core_get_close_icon_rect(AwWindow* window) {
+    if (window->style.close_icon) {
+        int16_t thickness = get_border_thickness(window);
+        AwRect rect = core_get_global_window_rect(window);
+        rect.right -= thickness;
+        rect.left = rect.right - AW_ICON_WIDTH;
+        rect.top += thickness;
+        rect.bottom = rect.top + AW_ICON_HEIGHT;
+        return rect;
+    } else {
+        return core_get_empty_rect();
+    }
+}
+
+AwRect core_get_minimize_icon_rect(AwWindow* window) {
+    if (window->style.minimize_icon && !window->state.minimized) {
+        int16_t thickness = get_border_thickness(window);
+        AwRect rect = core_get_global_window_rect(window);
+        rect.right -= thickness;
+        if (window->style.close_icon) {
+            rect.right -= AW_ICON_WIDTH;
+        }
+        rect.left = rect.right - AW_ICON_WIDTH;
+        rect.top += thickness;
+        rect.bottom = rect.top + AW_ICON_HEIGHT;
+        return rect;
+    } else {
+        return core_get_empty_rect();
+    }
+}
+
+AwRect core_get_maximize_icon_rect(AwWindow* window) {
+    if (window->style.maximize_icon && !window->state.maximized) {
+        int16_t thickness = get_border_thickness(window);
+        AwRect rect = core_get_global_window_rect(window);
+        rect.right -= thickness;
+        if (window->style.close_icon) {
+            rect.right -= AW_ICON_WIDTH;
+        }
+        if (window->style.minimize_icon && !window->state.minimized) {
+            rect.right -= AW_ICON_WIDTH;
+        }
+        rect.left = rect.right - AW_ICON_WIDTH;
+        rect.top += thickness;
+        rect.bottom = rect.top + AW_ICON_HEIGHT;
+        return rect;
+    } else {
+        return core_get_empty_rect();
+    }
+}
+
+AwRect core_get_restore_icon_rect(AwWindow* window) {
+    if ((window->style.minimize_icon || window->style.maximize_icon) &&
+        (window->state.minimized || window->state.maximized)) {
+        int16_t thickness = get_border_thickness(window);
+        AwRect rect = core_get_global_window_rect(window);
+        rect.right -= thickness;
+        if (window->style.close_icon) {
+            rect.right -= AW_ICON_WIDTH;
+        }
+        rect.left = rect.right - AW_ICON_WIDTH;
+        rect.top += thickness;
+        rect.bottom = rect.top + AW_ICON_HEIGHT;
+        return rect;
+    } else {
+        return core_get_empty_rect();
+    }
+}
+
+AwRect core_get_menu_icon_rect(AwWindow* window) {
+    if (window->style.menu_icon) {
+        int16_t thickness = get_border_thickness(window);
+        AwRect rect = core_get_global_window_rect(window);
+        rect.right -= thickness;
+        if (window->style.close_icon) {
+            rect.right -= AW_ICON_WIDTH;
+        }
+        if (window->style.minimize_icon && !window->state.minimized) {
+            rect.right -= AW_ICON_WIDTH;
+        }
+        if (window->style.maximize_icon && !window->state.maximized) {
+            rect.right -= AW_ICON_WIDTH;
+        }
+        rect.left = rect.right - AW_ICON_WIDTH;
+        rect.top += thickness;
+        rect.bottom = rect.top + AW_ICON_HEIGHT;
+        return rect;
+    } else {
+        return core_get_empty_rect();
+    }
+}
+
 void core_activate_window(AwWindow* window, bool active) {
     if (active) {
-        if (window->flags.enabled && (window != active_window)) {
+        if (window->state.enabled && (window != active_window)) {
             if (active_window) {
                 core_activate_window(active_window, false);
             }
-            window->flags.active = 1;
+            window->state.active = 1;
             active_window = window;
             core_invalidate_window(window);
         }
     } else {
         if (window == active_window) {
-            window->flags.active = 0;
+            window->state.active = 0;
             active_window = NULL;
             core_invalidate_window(window);
         }
@@ -712,13 +810,13 @@ void core_activate_window(AwWindow* window, bool active) {
 
 void core_enable_window(AwWindow* window, bool enabled) {
     if (enabled) {
-        if (!window->flags.enabled) {
-            window->flags.enabled = 1;
+        if (!window->state.enabled) {
+            window->state.enabled = 1;
             core_invalidate_window(window);
         }
     } else {
-        if (window->flags.enabled) {
-            window->flags.enabled = 0;
+        if (window->state.enabled) {
+            window->state.enabled = 0;
             if (window == active_window) {
                 core_activate_window(active_window, false);
             }
@@ -729,13 +827,13 @@ void core_enable_window(AwWindow* window, bool enabled) {
 
 void core_show_window(AwWindow* window, bool visible) {
     if (visible) {
-        if (!window->flags.visible) {
-            window->flags.visible = 1;
+        if (!window->state.visible) {
+            window->state.visible = 1;
             core_invalidate_window(window);
         }
     } else {
-        if (window->flags.visible) {
-            window->flags.visible = 0;
+        if (window->state.visible) {
+            window->state.visible = 0;
             core_invalidate_window(window);
         }
     }
@@ -751,10 +849,10 @@ void core_destroy_window(AwWindow* window) {
 
 int32_t core_process_message(AwMsg* msg) {
     AwWindow* window = msg->do_common.window;
+    bool halt = false;
     while (window) {
         const AwClass* wclass = window->window_class;
         while (wclass) {
-            bool halt = false;
             int32_t result = (*wclass->msg_handler)(window, msg, &halt);
             if (halt) {
                 return result;
@@ -777,34 +875,47 @@ void core_terminate() {
 void core_set_paint_msg(AwMsg* msg, AwWindow* window,
                 bool entire, bool title, bool client) {
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
-    AwPaintFlags* paint_flags = &paint_msg->flags;
+    AwPaintFlags* paint_flags = &paint_msg->style;
 
     paint_msg->window = window;
     paint_msg->msg_type = Aw_Do_PaintWindow;
     paint_msg->all_flags = 0;
 
-    if (window->flags.enabled) {
+    if (window->state.enabled) {
         paint_flags->enabled = 1;
     }
 
-    if (window->flags.selected) {
+    if (window->state.selected) {
         paint_flags->selected = 1;
     }
 
     if (entire) {
         paint_flags->window = 1;
-        if (window->flags.border) {
+        if (window->style.border) {
             paint_flags->border = 1;
         }
     }
 
     if (entire || title) {
-        if (window->flags.title_bar) {
+        if (window->style.title_bar) {
             paint_flags->title_bar = 1;
             paint_flags->title = 1;
         }
-        if (window->flags.icons) {
-            paint_flags->icons = 1;
+        if (window->style.close_icon) {
+            paint_flags->close_icon = 1;
+        }
+        if (window->style.minimize_icon && !window->state.minimized) {
+            paint_flags->minimize_icon = 1;
+        }
+        if (window->style.maximize_icon && !window->state.maximized) {
+            paint_flags->maximize_icon = 1;
+        }
+        if ((window->style.minimize_icon || window->style.maximize_icon) &&
+            (window->state.minimized || window->state.maximized)) {
+            paint_flags->restore_icon = 1;
+        }
+        if (window->style.menu_icon) {
+            paint_flags->menu_icon = 1;
         }
     }
 
@@ -843,25 +954,21 @@ void draw_foreground(AwWindow* window) {
 }
 
 uint8_t get_border_color(AwWindow* window) {
-    return (window->flags.active ?
+    return (window->state.active ?
             AW_DFLT_ACTIVE_BORDER_COLOR :
             AW_DFLT_INACTIVE_BORDER_COLOR);
 }
 
 uint8_t get_title_bar_color(AwWindow* window) {
-    return (window->flags.active ?
+    return (window->state.active ?
             AW_DFLT_ACTIVE_TITLE_BAR_COLOR | 0x80 :
             AW_DFLT_INACTIVE_TITLE_BAR_COLOR | 0x80);
 }
 
 uint8_t get_title_color(AwWindow* window) {
-    return (window->flags.active ?
+    return (window->state.active ?
             AW_DFLT_ACTIVE_TITLE_COLOR :
             AW_DFLT_INACTIVE_TITLE_COLOR);
-}
-
-int16_t get_border_thickness(AwWindow* window) {
-    return (window->flags.border ? AW_BORDER_THICKNESS : 0);
 }
 
 void draw_border(AwWindow* window) {
@@ -907,19 +1014,6 @@ void draw_title(AwWindow* window) {
     printf("%s", window->text);
 }
 
-void draw_icons(AwWindow* window) {
-    //printf("draw_icons %p\r\n", window);
-    int16_t thickness = get_border_thickness(window);
-    AwRect rect = core_get_global_window_rect(window);
-    int16_t x = rect.right - thickness - AW_ICON_WIDTH * 3;
-    int16_t y = rect.top + thickness;
-    aw_draw_icon(AW_ICON_MENU, x, y);
-    x += AW_ICON_WIDTH;
-    aw_draw_icon(AW_ICON_MINIMIZE, x, y);
-    x += AW_ICON_WIDTH;
-    aw_draw_icon(AW_ICON_CLOSE, x, y);
-}
-
 typedef struct { uint8_t A; uint8_t B; uint8_t CMD; } VDU_A_B_CMD;
 
 static VDU_A_B_CMD vdu_set_text_viewport_via_plot = { 23, 0, 0x9C };
@@ -933,21 +1027,21 @@ void local_vdp_set_graphics_origin_via_plot( void ) { VDP_PUTS( vdu_set_graphics
 void local_vdp_move_graphics_origin_and_viewport( void ) { VDP_PUTS( vdu_move_graphics_origin_and_viewport ); }
 
 void core_paint_window(AwMsg* msg) {
-    //printf("paint %p, flags %04hX\r\n",
+    //printf("paint %p, style %04hX\r\n",
     //        msg->do_paint_window.window, msg->do_paint_window.all_flags);
 
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
     AwWindow* window = paint_msg->window;
 
-    if (!window->flags.visible) {
+    if (!window->state.visible) {
         return;
     }
 
-    AwPaintFlags* paint_flags = &paint_msg->flags;
+    AwPaintFlags* paint_flags = &paint_msg->style;
 
     if (paint_flags->window) {
         vdp_context_select(0);
-        vdp_context_reset(0xFF); // all flags set
+        vdp_context_reset(0xFF); // all style set
         vdp_logical_scr_dims(false);
         vdp_move_to(window->window_rect.left, window->window_rect.top);
         vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
@@ -971,14 +1065,41 @@ void core_paint_window(AwMsg* msg) {
         if (paint_flags->title) {
             draw_title(window);
         }
-        if (paint_flags->icons) {
-            draw_icons(window);
+        if (paint_flags->close_icon) {
+            AwRect rect = core_get_close_icon_rect(window);
+            if (rect.right) {
+                aw_draw_icon(AW_ICON_CLOSE, rect.left, rect.top);
+            }
+        }
+        if (paint_flags->minimize_icon) {
+            AwRect rect = core_get_minimize_icon_rect(window);
+            if (rect.right) {
+                aw_draw_icon(AW_ICON_MINIMIZE, rect.left, rect.top);
+            }
+        }
+        if (paint_flags->maximize_icon) {
+            AwRect rect = core_get_maximize_icon_rect(window);
+            if (rect.right) {
+                aw_draw_icon(AW_ICON_MAXIMIZE, rect.left, rect.top);
+            }
+        }
+        if (paint_flags->restore_icon) {
+            AwRect rect = core_get_restore_icon_rect(window);
+            if (rect.right) {
+                aw_draw_icon(AW_ICON_RESTORE, rect.left, rect.top);
+            }
+        }
+        if (paint_flags->menu_icon) {
+            AwRect rect = core_get_menu_icon_rect(window);
+            if (rect.right) {
+                aw_draw_icon(AW_ICON_MENU, rect.left, rect.top);
+            }
         }
     }
 
     if (paint_flags->client) {
         vdp_context_select(0);
-        vdp_context_reset(0xFF); // all flags set
+        vdp_context_reset(0xFF); // all style set
         vdp_logical_scr_dims(false);
         vdp_move_to(window->client_rect.left, window->client_rect.top);
         vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
@@ -1003,6 +1124,8 @@ void core_paint_window(AwMsg* msg) {
 }
 
 int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
+    (void)window; // presently unused
+    (void)halt; // presently unused
     //printf("handle %p %hu\r\n", msg->do_common.window, (uint16_t) msg->do_common.msg_type);
     switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
@@ -1212,24 +1335,30 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
 }
 
 void core_initialize() {
-    AwWindowFlags flags;
-    flags.border = 1;
-    flags.title_bar = 0;
-    flags.icons = 0;
-    flags.sizeable = 0;
-    flags.active = 0;
-    flags.enabled = 1;
-    flags.selected = 0;
-    flags.visible = 1;
+    AwWindowStyle style;
+    style.border = 1;
+    style.title_bar = 0;
+    style.close_icon = 0;
+    style.minimize_icon = 0;
+    style.maximize_icon = 0;
+    style.menu_icon = 0;
+    style.sizeable = 0;
+    style.moveable = 0;
 
-    root_window = core_create_window(&agwin_app, NULL, &root_class, flags,
+    AwWindowState state;
+    state.active = 0;
+    state.enabled = 1;
+    state.selected = 0;
+    state.visible = 1;
+
+    root_window = core_create_window(&agwin_app, NULL, &root_class, style, state,
                         0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Root", 0);
     running = true;
 }
 
 void emit_paint_messages(AwWindow* window) {
     AwMsg msg;
-    if (window->flags.window_dirty) {
+    if (window->state.window_dirty) {
         // Entire window may be dirty
         msg.do_paint_window.paint_rect =
             core_get_intersect_rect(&dirty_area, &window->window_rect);
@@ -1240,7 +1369,7 @@ void emit_paint_messages(AwWindow* window) {
         }
     } else {
         // Part of window may be dirty
-        if (window->flags.title_dirty) {
+        if (window->state.title_dirty) {
             AwRect title_rect = core_get_global_title_rect(window);
             msg.do_paint_window.paint_rect =
                 core_get_intersect_rect(&dirty_area, &title_rect);
@@ -1251,7 +1380,7 @@ void emit_paint_messages(AwWindow* window) {
             }
         }
 
-        if (window->flags.client_dirty) {
+        if (window->state.client_dirty) {
             msg.do_paint_window.paint_rect =
                 core_get_intersect_rect(&dirty_area, &window->client_rect);
             AwSize size = core_get_rect_size(&msg.do_paint_window.paint_rect);
@@ -1262,9 +1391,9 @@ void emit_paint_messages(AwWindow* window) {
         }
     }
 
-    window->flags.window_dirty = 0;
-    window->flags.title_dirty = 0;
-    window->flags.client_dirty = 0;
+    window->state.window_dirty = 0;
+    window->state.title_dirty = 0;
+    window->state.client_dirty = 0;
 
     window = window->first_child;
     while (window) {
