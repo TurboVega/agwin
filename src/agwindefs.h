@@ -154,8 +154,11 @@ typedef union tag_AwKeyState {
 
 // This comes from MOS system variables via AgDev SYSVAR
 typedef struct tag_AwMouseState {
-	uint16_t    x;                  // X coordinate of the mouse cursor
-	uint16_t    y;                  // Y coordinate of the mouse cursor
+    AwWindow*   start_window;       // window under mouse when button first pressed
+	uint16_t    start_x;            // X coordinate of the mouse cursor when button first pressed
+	uint16_t    start_y;            // Y coordinate of the mouse cursor when button first pressed
+	uint16_t    cur_x;              // current X coordinate of the mouse cursor
+	uint16_t    cur_y;              // current Y coordinate of the mouse cursor
     union {
     	uint8_t     buttons;        // All button indicators
         struct {

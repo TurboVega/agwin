@@ -64,9 +64,6 @@ uint8_t     msg_write_index;
 bool        running;
 uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
 AwMouseState last_mouse_state;
-uint32_t    last_left_btn_down;
-uint32_t    last_middle_btn_down;
-uint32_t    last_right_btn_down;
 uint32_t    last_left_btn_up;
 uint32_t    last_middle_btn_up;
 uint32_t    last_right_btn_up;
@@ -121,10 +118,10 @@ void update_mouse_state() {
         time_t ticks = now - last_left_btn_up;
 
         AwMsg msg;
-        msg.on_mouse_event.state.buttons = sys_var->mouseButtons;
+        msg.on_mouse_event.state.buttons = sys_var->mouseButtons & 0x07;
         msg.on_mouse_event.state.wheel = sys_var->mouseWheel;
-        msg.on_mouse_event.state.x = sys_var->mouseX;
-        msg.on_mouse_event.state.y = sys_var->mouseY;
+        msg.on_mouse_event.state.cur_x = sys_var->mouseX;
+        msg.on_mouse_event.state.cur_y = sys_var->mouseY;
         msg.on_mouse_event.state.delta_x = sys_var->mouseXDelta;
         msg.on_mouse_event.state.delta_y = sys_var->mouseYDelta;
 
@@ -132,15 +129,44 @@ void update_mouse_state() {
         msg.on_mouse_event.window =
             core_find_window_at_point(
                 root_window,
-                msg.on_mouse_event.state.x,
-                msg.on_mouse_event.state.y);
+                msg.on_mouse_event.state.cur_x,
+                msg.on_mouse_event.state.cur_y);
 
         // Determine what changed (what event happened)
+
+        // If the mouse position changed, and the buttons were pressed before,
+        // and are still pressed now, then the mouse was "dragged". If the
+        // buttons were not pressed before, and are not pressed now, then
+        // the mouse was "moved". We check for "dropped" further below.
+        if (msg.on_mouse_event.state.cur_x != last_mouse_state.cur_x ||
+            msg.on_mouse_event.state.cur_y != last_mouse_state.cur_y) {
+            if (msg.on_mouse_event.state.buttons) {
+                if (last_mouse_state.buttons) {
+                    msg.on_mouse_event.msg_type = Aw_On_MouseDragged;
+                    core_post_message(&msg);
+                }
+            } else {
+                if (!last_mouse_state.buttons) {
+                    msg.on_mouse_event.msg_type = Aw_On_MouseMoved;
+                    core_post_message(&msg);
+                }
+            }
+        }
+
+        if (last_mouse_state.buttons) {
+            msg.on_mouse_event.state.start_window = last_mouse_state.start_window;
+            msg.on_mouse_event.state.start_x = last_mouse_state.start_x;
+            msg.on_mouse_event.state.start_y = last_mouse_state.start_y;
+        } else if (msg.on_mouse_event.state.buttons) {
+            msg.on_mouse_event.state.start_window = msg.on_mouse_event.window;
+            msg.on_mouse_event.state.start_x = msg.on_mouse_event.state.cur_x;
+            msg.on_mouse_event.state.start_y = msg.on_mouse_event.state.cur_y;
+        }
+
         if (last_mouse_state.left != msg.on_mouse_event.state.left) {
             if (msg.on_mouse_event.state.left) {
                 msg.on_mouse_event.msg_type = Aw_On_LeftButtonDown;
                 core_post_message(&msg);
-                last_left_btn_down = now;
             } else {
                 msg.on_mouse_event.msg_type = Aw_On_LeftButtonUp;
                 core_post_message(&msg);
@@ -167,7 +193,6 @@ void update_mouse_state() {
             if (msg.on_mouse_event.state.middle) {
                 msg.on_mouse_event.msg_type = Aw_On_MiddleButtonDown;
                 core_post_message(&msg);
-                last_middle_btn_down = now;
             } else {
                 msg.on_mouse_event.msg_type = Aw_On_MiddleButtonUp;
                 core_post_message(&msg);
@@ -194,7 +219,6 @@ void update_mouse_state() {
             if (msg.on_mouse_event.state.right) {
                 msg.on_mouse_event.msg_type = Aw_On_RightButtonDown;
                 core_post_message(&msg);
-                last_right_btn_down = now;
             } else {
                 msg.on_mouse_event.msg_type = Aw_On_RightButtonUp;
                 core_post_message(&msg);
@@ -214,6 +238,16 @@ void update_mouse_state() {
                 }
                 core_post_message(&msg);
                 last_right_btn_up = now;
+            }
+        }
+
+        // If the mouse position changed, and the buttons were pressed before,
+        // but are not pressed now, then the mouse was "dropped".
+        if (msg.on_mouse_event.state.cur_x != last_mouse_state.cur_x ||
+            msg.on_mouse_event.state.cur_y != last_mouse_state.cur_y) {
+            if (last_mouse_state.buttons && !msg.on_mouse_event.state.buttons) {
+                msg.on_mouse_event.msg_type = Aw_On_MouseDropped;
+                core_post_message(&msg);
             }
         }
 
@@ -1112,6 +1146,18 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
                 }
 
                 case Aw_On_RightButtonDoubleClick: {
+                    break;
+                }
+
+                case Aw_On_MouseMoved: {
+                    break;
+                }
+
+                case Aw_On_MouseDragged: {
+                    break;
+                }
+
+                case Aw_On_MouseDropped: {
                     break;
                 }
 

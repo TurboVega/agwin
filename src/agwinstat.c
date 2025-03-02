@@ -164,6 +164,18 @@ int32_t aw_static_text_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt)
                     break;
                 }
 
+                case Aw_On_MouseMoved: {
+                    break;
+                }
+
+                case Aw_On_MouseDragged: {
+                    break;
+                }
+
+                case Aw_On_MouseDropped: {
+                    break;
+                }
+
                 case Aw_On_WindowResized: {
                     break;
                 }
