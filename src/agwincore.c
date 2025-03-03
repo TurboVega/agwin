@@ -1275,10 +1275,122 @@ void core_paint_window(AwMsg* msg) {
     }
 }
 
+int32_t on_mouse_dragged(AwMsg* msg) {
+    AwRect rect = core_get_global_window_rect(msg->on_mouse_event.state.start_window);
+    AwPoint pt;
+    pt.x = rect.left;
+    pt.y = rect.top;
+    AwSize size;
+    size.width = rect.right - rect.left;
+    size.height = rect.bottom - rect.top;
+    bool adjust_pos = false;
+    bool adjust_size = false;
+
+    switch (msg->on_mouse_event.state.target) {
+        case AwMtLeftBorder: {
+            pt.x = msg->on_mouse_event.state.cur_x;
+            size.width = rect.right - pt.x;
+            adjust_pos = true;
+            adjust_size = true;
+            break;
+        }
+
+        case AwMtTopBorder: {
+            pt.y = msg->on_mouse_event.state.cur_y;
+            size.height = rect.bottom - pt.y;
+            adjust_pos = true;
+            adjust_size = true;
+            break;
+        }
+
+        case AwMtRightBorder: {
+            size.width = msg->on_mouse_event.state.cur_x - rect.left;
+            adjust_size = true;
+            break;
+        }
+
+        case AwMtBottomBorder: {
+            size.height = msg->on_mouse_event.state.cur_y - rect.top;
+            adjust_size = true;
+            break;
+        }
+
+        case AwMtUpperLeftCorner: {
+            pt.x = msg->on_mouse_event.state.cur_x;
+            size.width = rect.right - pt.x;
+            pt.y = msg->on_mouse_event.state.cur_y;
+            size.height = rect.bottom - pt.y;
+            adjust_pos = true;
+            adjust_size = true;
+            break;
+        }
+
+        case AwMtUpperRightCorner: {
+            size.width = msg->on_mouse_event.state.cur_x - rect.left;
+            pt.y = msg->on_mouse_event.state.cur_y;
+            size.height = rect.bottom - pt.y;
+            adjust_pos = true;
+            adjust_size = true;
+            break;
+        }
+
+        case AwMtLowerRightCorner: {
+            size.width = msg->on_mouse_event.state.cur_x - rect.left;
+            size.height = msg->on_mouse_event.state.cur_y - rect.top;
+            adjust_size = true;
+            break;
+        }
+
+        case AwMtLowerLeftCorner: {
+            pt.x = msg->on_mouse_event.state.cur_x;
+            size.width = rect.right - pt.x;
+            size.height = msg->on_mouse_event.state.cur_y - rect.top;
+            adjust_pos = true;
+            adjust_size = true;
+            break;
+        }
+
+        case AwMtTitleBar: {
+            pt.x += msg->on_mouse_event.state.cur_x - msg->on_mouse_event.state.start_x;
+            pt.y += msg->on_mouse_event.state.cur_y - msg->on_mouse_event.state.start_y;
+            adjust_pos = true;
+            break;
+        }
+
+        default: {
+        }
+    }
+
+    if (adjust_pos) {
+        AwMsg new_msg;
+        new_msg.do_move_window.window = msg->on_mouse_event.state.start_window;
+        new_msg.do_move_window.msg_type = Aw_Do_MoveWindow;
+        new_msg.do_move_window.pt.x = pt.x;
+        new_msg.do_move_window.pt.y = pt.y;
+        core_post_message(&new_msg);
+    }
+
+    if (adjust_size) {
+        AwMsg new_msg;
+        new_msg.do_resize_window.window = msg->on_mouse_event.state.start_window;
+        new_msg.do_resize_window.msg_type = Aw_Do_ResizeWindow;
+        new_msg.do_resize_window.width = size.width;
+        new_msg.do_resize_window.height = size.height;
+        core_post_message(&new_msg);
+    }
+
+    return 0;
+}
+
+int32_t on_mouse_dropped(AwWindow* window, AwMsg* msg) {
+    (void)window;
+    (void)msg;
+    return 0;
+}
+
 int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
-    (void)window; // presently unused
-    (void)halt; // presently unused
     //printf("handle %p %hu\r\n", msg->do_common.window, (uint16_t) msg->do_common.msg_type);
+    *halt = true; // this is the last chance to handle a messge
     switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
             break;
@@ -1437,10 +1549,11 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
                 }
 
                 case Aw_On_MouseDragged: {
-                    break;
+                    return on_mouse_dragged(msg);
                 }
 
                 case Aw_On_MouseDropped: {
+                    return on_mouse_dropped(window, msg);
                     break;
                 }
 
