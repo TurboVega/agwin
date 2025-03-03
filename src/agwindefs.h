@@ -161,6 +161,25 @@ typedef union tag_AwKeyState {
     };
 } AwKeyState;
 
+typedef enum : uint8_t {
+    AwMtNothing = 0,
+    AwMtLeftBorder,
+    AwMtTopBorder,
+    AwMtRightBorder,
+    AwMtBottomBorder,
+    AwMtUpperLeftCorner,
+    AwMtUpperRightCorner,
+    AwMtLowerRightCorner,
+    AwMtLowerLeftCorner,
+    AwMtTitleBar,
+    AwMtCloseIcon,
+    AwMtMinimizeIcon,
+    AwMtMaximizeIcon,
+    AwMtRestoreIcon,
+    AwMtMenuIcon,
+    AwMtClientArea,
+} MouseTarget;
+
 // This comes from MOS system variables via AgDev SYSVAR
 // The "start_*" members only apply for drag/drop messages
 typedef struct tag_AwMouseState {
@@ -180,6 +199,7 @@ typedef struct tag_AwMouseState {
 	uint8_t     wheel;              // wheel rotation
 	uint16_t    delta_x;            // amount X changed
 	uint16_t    delta_y;            // amount Y changed
+    MouseTarget target;             // what thing over which the mouse pointer sits
 } AwMouseState;
 
 typedef struct tag_AwApplication {

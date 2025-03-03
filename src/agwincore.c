@@ -52,6 +52,7 @@ extern "C" {
 
 #define MOUSE_LONG_CLICK_TIME   30      // minimum centiseconds to be a long click
 #define MOUSE_DBL_CLICK_TIME    40      // maximum centiseconds to be a double-click
+#define CORNER_CLOSENESS        4       // distance from physical corner where we assume wall
 
 AwWindow* root_window;
 AwWindow* active_window;
@@ -112,6 +113,10 @@ AwWindow* core_find_window_at_point(AwWindow* window, uint16_t x, uint16_t y) {
     return some_child;
 }
 
+int16_t get_border_thickness(AwWindow* window) {
+    return (window->style.border ? AW_BORDER_THICKNESS : 0);
+}
+
 void update_mouse_state() {
     if (sys_var->vdp_pflags & vdp_pflag_mouse) {
         uint32_t now = (uint32_t) clock();
@@ -131,6 +136,118 @@ void update_mouse_state() {
                 root_window,
                 msg.on_mouse_event.state.cur_x,
                 msg.on_mouse_event.state.cur_y);
+
+        // Determine on what thing the mouse pointer sits
+        do {
+            AwRect rect = core_get_global_client_rect(msg.on_mouse_event.window);
+            if (core_rect_contains_point(&rect,
+                msg.on_mouse_event.state.cur_x,
+                msg.on_mouse_event.state.cur_y)) {
+                msg.on_mouse_event.state.target = AwMtClientArea;
+                break;
+            }
+
+            rect = core_get_close_icon_rect(msg.on_mouse_event.window);
+            if (core_rect_contains_point(&rect,
+                msg.on_mouse_event.state.cur_x,
+                msg.on_mouse_event.state.cur_y)) {
+                msg.on_mouse_event.state.target = AwMtCloseIcon;
+                break;
+            }
+
+            rect = core_get_minimize_icon_rect(msg.on_mouse_event.window);
+            if (core_rect_contains_point(&rect,
+                msg.on_mouse_event.state.cur_x,
+                msg.on_mouse_event.state.cur_y)) {
+                msg.on_mouse_event.state.target = AwMtMinimizeIcon;
+                break;
+            }
+
+            rect = core_get_maximize_icon_rect(msg.on_mouse_event.window);
+            if (core_rect_contains_point(&rect,
+                msg.on_mouse_event.state.cur_x,
+                msg.on_mouse_event.state.cur_y)) {
+                msg.on_mouse_event.state.target = AwMtMaximizeIcon;
+                break;
+            }
+
+            rect = core_get_restore_icon_rect(msg.on_mouse_event.window);
+            if (core_rect_contains_point(&rect,
+                msg.on_mouse_event.state.cur_x,
+                msg.on_mouse_event.state.cur_y)) {
+                msg.on_mouse_event.state.target = AwMtRestoreIcon;
+                break;
+            }
+
+            rect = core_get_menu_icon_rect(msg.on_mouse_event.window);
+            if (core_rect_contains_point(&rect,
+                msg.on_mouse_event.state.cur_x,
+                msg.on_mouse_event.state.cur_y)) {
+                msg.on_mouse_event.state.target = AwMtMenuIcon;
+                break;
+            }
+
+            if (msg.on_mouse_event.window->style.sizeable) {
+                rect = core_get_local_window_rect(msg.on_mouse_event.window);
+                uint16_t thickness = get_border_thickness(msg.on_mouse_event.window);
+                if (msg.on_mouse_event.state.cur_x >= rect.left &&
+                    msg.on_mouse_event.state.cur_x < rect.left + thickness) {
+                    int16_t y = msg.on_mouse_event.state.cur_y - rect.top;
+                    if (y < CORNER_CLOSENESS) {
+                        msg.on_mouse_event.state.target = AwMtUpperLeftCorner;
+                        break;
+                    } else if (y >= rect.bottom - CORNER_CLOSENESS) {
+                        msg.on_mouse_event.state.target = AwMtLowerLeftCorner;
+                        break;
+                    } else {
+                        msg.on_mouse_event.state.target = AwMtLeftBorder;
+                        break;
+                    }
+                }
+                if (msg.on_mouse_event.state.cur_x >= rect.right - thickness &&
+                    msg.on_mouse_event.state.cur_x < rect.right) {
+                    int16_t y = msg.on_mouse_event.state.cur_y - rect.top;
+                    if (y < CORNER_CLOSENESS) {
+                        msg.on_mouse_event.state.target = AwMtUpperRightCorner;
+                        break;
+                    } else if (y >= rect.bottom - CORNER_CLOSENESS) {
+                        msg.on_mouse_event.state.target = AwMtLowerRightCorner;
+                        break;
+                    } else {
+                        msg.on_mouse_event.state.target = AwMtRightBorder;
+                        break;
+                    }
+                }
+                if (msg.on_mouse_event.state.cur_y >= rect.top &&
+                    msg.on_mouse_event.state.cur_y < rect.top + thickness) {
+                    int16_t x = msg.on_mouse_event.state.cur_x - rect.left;
+                    if (x < CORNER_CLOSENESS) {
+                        msg.on_mouse_event.state.target = AwMtUpperLeftCorner;
+                        break;
+                    } else if (x >= rect.right - CORNER_CLOSENESS) {
+                        msg.on_mouse_event.state.target = AwMtUpperRightCorner;
+                        break;
+                    } else {
+                        msg.on_mouse_event.state.target = AwMtTopBorder;
+                        break;
+                    }
+                }
+                if (msg.on_mouse_event.state.cur_y >= rect.bottom - thickness &&
+                    msg.on_mouse_event.state.cur_y < rect.bottom) {
+                    int16_t x = msg.on_mouse_event.state.cur_x - rect.left;
+                    if (x < CORNER_CLOSENESS) {
+                        msg.on_mouse_event.state.target = AwMtLowerLeftCorner;
+                        break;
+                    } else if (x >= rect.right - CORNER_CLOSENESS) {
+                        msg.on_mouse_event.state.target = AwMtLowerRightCorner;
+                        break;
+                    } else {
+                        msg.on_mouse_event.state.target = AwMtBottomBorder;
+                        break;
+                    }
+                }
+            }
+        } while (false);
 
         // Determine what changed (what event happened)
 
@@ -581,7 +698,15 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
                         int16_t x, int16_t y, uint16_t width, uint16_t height,
                         const char* text, uint32_t extra_data_size) {
     if ((app == NULL) || (wclass == NULL) || (width < 0) || (height < 0)) {
-        return 0; // bad parameter(s)
+        return NULL; // bad parameter(s)
+    }
+
+    if (style.sizeable && !style.border) {
+        return NULL; // pad parameter
+    }
+
+    if (style.moveable && !style.title_bar) {
+        return NULL; // pad parameter
     }
 
     if (parent == NULL) {
@@ -691,10 +816,6 @@ AwRect core_get_sizing_client_rect(AwWindow* window) {
     rect.right = size.width;
     rect.bottom = size.height;
     return rect;
-}
-
-int16_t get_border_thickness(AwWindow* window) {
-    return (window->style.border ? AW_BORDER_THICKNESS : 0);
 }
 
 AwRect core_get_close_icon_rect(AwWindow* window) {
