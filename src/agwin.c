@@ -107,6 +107,7 @@ int main( void )
 	vdp_cursor_enable(false);
 	vdp_mouse_reset();
 	vdp_mouse_enable();
+    vdp_mouse_set_cursor(AwMcPointerSimple);
 
 	AwPoint center = core_get_screen_center();
 	vdp_mouse_set_position(center.x, center.y);

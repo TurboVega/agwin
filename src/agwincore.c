@@ -71,6 +71,7 @@ uint32_t    last_right_btn_up;
 bool        prior_left_click;
 bool        prior_middle_click;
 bool        prior_right_click;
+AwMouseCursor current_cursor = AwMcPointerSimple;
 
 volatile SYSVAR * sys_var; // points to MOS system variables
 
@@ -121,6 +122,7 @@ void update_mouse_state() {
     if (sys_var->vdp_pflags & vdp_pflag_mouse) {
         uint32_t now = (uint32_t) clock();
         time_t ticks = now - last_left_btn_up;
+        AwMouseCursor possible_cursor = AwMcPointerSimple;
 
         AwMsg msg;
         msg.on_mouse_event.state.buttons = sys_var->mouseButtons & 0x07;
@@ -187,6 +189,14 @@ void update_mouse_state() {
                 break;
             }
 
+            rect = core_get_global_title_rect(msg.on_mouse_event.window);
+            if (core_rect_contains_point(&rect,
+                msg.on_mouse_event.state.cur_x,
+                msg.on_mouse_event.state.cur_y)) {
+                msg.on_mouse_event.state.target = AwMtTitleBar;
+                break;
+            }
+
             if (msg.on_mouse_event.window->style.sizeable) {
                 rect = core_get_local_window_rect(msg.on_mouse_event.window);
                 uint16_t thickness = get_border_thickness(msg.on_mouse_event.window);
@@ -195,12 +205,15 @@ void update_mouse_state() {
                     int16_t y = msg.on_mouse_event.state.cur_y - rect.top;
                     if (y < CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtUpperLeftCorner;
+                        possible_cursor = AwMcResize1;
                         break;
                     } else if (y >= rect.bottom - CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtLowerLeftCorner;
+                        possible_cursor = AwMcResize4;
                         break;
                     } else {
                         msg.on_mouse_event.state.target = AwMtLeftBorder;
+                        possible_cursor = AwMcLeftArrow;
                         break;
                     }
                 }
@@ -209,12 +222,15 @@ void update_mouse_state() {
                     int16_t y = msg.on_mouse_event.state.cur_y - rect.top;
                     if (y < CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtUpperRightCorner;
+                        possible_cursor = AwMcResize2;
                         break;
                     } else if (y >= rect.bottom - CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtLowerRightCorner;
+                        possible_cursor = AwMcResize3;
                         break;
                     } else {
                         msg.on_mouse_event.state.target = AwMtRightBorder;
+                        possible_cursor = AwMcRightArrow;
                         break;
                     }
                 }
@@ -223,12 +239,15 @@ void update_mouse_state() {
                     int16_t x = msg.on_mouse_event.state.cur_x - rect.left;
                     if (x < CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtUpperLeftCorner;
+                        possible_cursor = AwMcResize1;
                         break;
                     } else if (x >= rect.right - CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtUpperRightCorner;
+                        possible_cursor = AwMcResize2;
                         break;
                     } else {
                         msg.on_mouse_event.state.target = AwMtTopBorder;
+                        possible_cursor = AwMcUpArrow;
                         break;
                     }
                 }
@@ -237,12 +256,15 @@ void update_mouse_state() {
                     int16_t x = msg.on_mouse_event.state.cur_x - rect.left;
                     if (x < CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtLowerLeftCorner;
+                        possible_cursor = AwMcResize4;
                         break;
                     } else if (x >= rect.right - CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtLowerRightCorner;
+                        possible_cursor = AwMcResize3;
                         break;
                     } else {
                         msg.on_mouse_event.state.target = AwMtBottomBorder;
+                        possible_cursor = AwMcDownArrow;
                         break;
                     }
                 }
@@ -285,6 +307,15 @@ void update_mouse_state() {
                     msg.on_mouse_event.msg_type = Aw_On_MouseMoved;
                     core_post_message(&msg);
                 }
+            }
+        }
+
+        // If the buttons are now all released, make sure the mouse
+        // cursor is up-to-date.
+        if (!msg.on_mouse_event.state.buttons) {
+            if (current_cursor != possible_cursor) {
+                current_cursor = possible_cursor;
+                vdp_mouse_set_cursor(current_cursor);
             }
         }
 

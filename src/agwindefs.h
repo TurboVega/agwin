@@ -161,6 +161,32 @@ typedef union tag_AwKeyState {
     };
 } AwKeyState;
 
+// These come from the Console8 VDP document:
+// https://agonconsole8.github.io/agon-docs/vdp/System-Commands/
+//
+typedef enum : uint8_t {
+    AwMcPointerAmigaLike = 0,   // 11x11 Amiga like colored mouse pointer
+    AwMcPointerSimpleReduced,   // 10x15 mouse pointer
+    AwMcPointerSimple,          // 11x19 mouse pointer
+    AwMcPointerShadowed,        // 11x19 shadowed mouse pointer
+    AwMcPointer,                // 12x17 mouse pointer
+    AwMcPen,                    // 16x16 pen
+    AwMcCross1,                 // 9x9 cross
+    AwMcCross2,                 // 11x11 cross
+    AwMcPoint,                  // 5x5 point
+    AwMcLeftArrow,              // 11x11 left arrow
+    AwMcRightArrow,             // 11x11 right arrow
+    AwMcDownArrow,              // 11x11 down arrow
+    AwMcUpArrow,                // 11x11 up arrow
+    AwMcMove,                   // 19x19 move
+    AwMcResize1,                // 12x12 resize orientation 1
+    AwMcResize2,                // 12x12 resize orientation 2
+    AwMcResize3,                // 11x17 resize orientation 3
+    AwMcResize4,                // 17x11 resize orientation 4
+    AwMcTextInput,              // 7x15 text input
+} AwMouseCursor;
+
+
 typedef enum : uint8_t {
     AwMtNothing = 0,
     AwMtLeftBorder,
