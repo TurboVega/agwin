@@ -205,15 +205,15 @@ void update_mouse_state() {
                     int16_t y = msg.on_mouse_event.state.cur_y - rect.top;
                     if (y < CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtUpperLeftCorner;
-                        possible_cursor = AwMcResize1;
+                        possible_cursor = AwMcResize2;
                         break;
                     } else if (y >= rect.bottom - CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtLowerLeftCorner;
-                        possible_cursor = AwMcResize4;
+                        possible_cursor = AwMcResize1;
                         break;
                     } else {
                         msg.on_mouse_event.state.target = AwMtLeftBorder;
-                        possible_cursor = AwMcLeftArrow;
+                        possible_cursor = AwMcResize4;
                         break;
                     }
                 }
@@ -222,15 +222,15 @@ void update_mouse_state() {
                     int16_t y = msg.on_mouse_event.state.cur_y - rect.top;
                     if (y < CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtUpperRightCorner;
-                        possible_cursor = AwMcResize2;
+                        possible_cursor = AwMcResize1;
                         break;
                     } else if (y >= rect.bottom - CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtLowerRightCorner;
-                        possible_cursor = AwMcResize3;
+                        possible_cursor = AwMcResize2;
                         break;
                     } else {
                         msg.on_mouse_event.state.target = AwMtRightBorder;
-                        possible_cursor = AwMcRightArrow;
+                        possible_cursor = AwMcResize4;
                         break;
                     }
                 }
@@ -239,15 +239,15 @@ void update_mouse_state() {
                     int16_t x = msg.on_mouse_event.state.cur_x - rect.left;
                     if (x < CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtUpperLeftCorner;
-                        possible_cursor = AwMcResize1;
+                        possible_cursor = AwMcResize2;
                         break;
                     } else if (x >= rect.right - CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtUpperRightCorner;
-                        possible_cursor = AwMcResize2;
+                        possible_cursor = AwMcResize1;
                         break;
                     } else {
                         msg.on_mouse_event.state.target = AwMtTopBorder;
-                        possible_cursor = AwMcUpArrow;
+                        possible_cursor = AwMcResize3;
                         break;
                     }
                 }
@@ -256,15 +256,15 @@ void update_mouse_state() {
                     int16_t x = msg.on_mouse_event.state.cur_x - rect.left;
                     if (x < CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtLowerLeftCorner;
-                        possible_cursor = AwMcResize4;
+                        possible_cursor = AwMcResize1;
                         break;
                     } else if (x >= rect.right - CORNER_CLOSENESS) {
                         msg.on_mouse_event.state.target = AwMtLowerRightCorner;
-                        possible_cursor = AwMcResize3;
+                        possible_cursor = AwMcResize2;
                         break;
                     } else {
                         msg.on_mouse_event.state.target = AwMtBottomBorder;
-                        possible_cursor = AwMcDownArrow;
+                        possible_cursor = AwMcResize3;
                         break;
                     }
                 }
