@@ -96,27 +96,37 @@ void key_event_handler(KEY_EVENT key_event) {
 }
 
 AwWindow* core_find_window_at_point(AwWindow* window, uint16_t x, uint16_t y) {
-    AwWindow* some_child = NULL;
-    AwWindow* child = window->first_child;
-    while (child) {
-        if (child->state.visible && child->state.enabled) {
-            AwRect rect = core_get_intersect_rect(&window->client_rect, &child->window_rect);
-            if (core_rect_contains_point(&rect, x, y)) {
-                some_child = child;
-                AwWindow* grandchild = core_find_window_at_point(child, x, y);
-                if (grandchild) {
-                    some_child = grandchild;
-                }
+    if (window->state.visible && window->state.enabled &&
+        core_rect_contains_point(&window->window_rect, x, y)) {
+        AwWindow* some_win = window;
+        AwWindow* child = window->first_child;
+        while (child) {
+            AwWindow* win = core_find_window_at_point(child, x, y);
+            if (win) {
+                some_win = win;
             }
+            child = child->next_sibling;
         }
-        child = child->next_sibling;
+        return some_win;
     }
-    return some_child;
+    return NULL;
 }
 
 int16_t get_border_thickness(AwWindow* window) {
     return (window->style.border ? AW_BORDER_THICKNESS : 0);
 }
+
+typedef struct { uint8_t A; uint8_t B; uint8_t CMD; } VDU_A_B_CMD;
+
+static VDU_A_B_CMD vdu_set_text_viewport_via_plot = { 23, 0, 0x9C };
+static VDU_A_B_CMD vdu_set_graphics_viewport_via_plot = { 23, 0, 0x9D };
+static VDU_A_B_CMD vdu_set_graphics_origin_via_plot = { 23, 0, 0x9E };
+static VDU_A_B_CMD vdu_move_graphics_origin_and_viewport = { 23, 0, 0x9F };
+
+void local_vdp_set_text_viewport_via_plot( void ) { VDP_PUTS( vdu_set_text_viewport_via_plot ); }
+void local_vdp_set_graphics_viewport_via_plot( void ) { VDP_PUTS( vdu_set_graphics_viewport_via_plot ); }
+void local_vdp_set_graphics_origin_via_plot( void ) { VDP_PUTS( vdu_set_graphics_origin_via_plot ); }
+void local_vdp_move_graphics_origin_and_viewport( void ) { VDP_PUTS( vdu_move_graphics_origin_and_viewport ); }
 
 void update_mouse_state() {
     if (sys_var->vdp_pflags & vdp_pflag_mouse) {
@@ -272,6 +282,31 @@ void update_mouse_state() {
         } while (false);
 
         // Determine what changed (what event happened)
+vdp_context_select(0);
+vdp_context_reset(0xFF); // all style set
+vdp_logical_scr_dims(false);
+vdp_move_to(0, 0);
+vdp_move_to(640-1, 480-1);
+local_vdp_set_graphics_viewport_via_plot();
+vdp_move_to(0, 0);
+local_vdp_set_graphics_origin_via_plot();
+vdp_set_text_viewport(
+            (0/FONT_SIZE)+1,
+            (0/FONT_SIZE)+1,
+            (640/FONT_SIZE)-1,
+            (480/FONT_SIZE)-1);
+vdp_set_graphics_colour(0, 1 | 0x80);
+vdp_set_graphics_colour(0, 2);
+
+vdp_move_to(0,0);
+vdp_filled_rect(600, 100);
+vdp_write_at_graphics_cursor();
+vdp_move_to(0,0);
+vdp_set_graphics_colour(0, 15);
+printf("\r\n@a (%hu,%hu) %s %hu", msg.on_mouse_event.state.cur_x,
+ msg.on_mouse_event.state.cur_y,
+ msg.on_mouse_event.window->window_class->name,
+ msg.on_mouse_event.state.target);
 
         // Check if/how the "start_*" members apply
         if (last_mouse_state.buttons) {
@@ -279,6 +314,7 @@ void update_mouse_state() {
             msg.on_mouse_event.state.start_window = last_mouse_state.start_window;
             msg.on_mouse_event.state.start_x = last_mouse_state.start_x;
             msg.on_mouse_event.state.start_y = last_mouse_state.start_y;
+            msg.on_mouse_event.state.target = last_mouse_state.target;
         } else if (msg.on_mouse_event.state.buttons) {
             // For start pressed motion (click)
             msg.on_mouse_event.state.start_window = msg.on_mouse_event.window;
@@ -291,6 +327,8 @@ void update_mouse_state() {
             msg.on_mouse_event.state.start_y = 0;
         }
 
+printf(" @b %hu", msg.on_mouse_event.state.target);
+
         // If the mouse position changed, and the buttons were pressed before,
         // and are still pressed now, then the mouse was "dragged". If the
         // buttons were not pressed before, and are not pressed now, then
@@ -301,14 +339,18 @@ void update_mouse_state() {
                 if (last_mouse_state.buttons) {
                     msg.on_mouse_event.msg_type = Aw_On_MouseDragged;
                     core_post_message(&msg);
+printf(" @drag");
                 }
             } else {
                 if (!last_mouse_state.buttons) {
                     msg.on_mouse_event.msg_type = Aw_On_MouseMoved;
                     core_post_message(&msg);
+printf(" @move");
                 }
             }
         }
+
+printf(" @c %hu %hu", msg.on_mouse_event.msg_type, possible_cursor);
 
         // If the buttons are now all released, make sure the mouse
         // cursor is up-to-date.
@@ -316,6 +358,7 @@ void update_mouse_state() {
             if (current_cursor != possible_cursor) {
                 current_cursor = possible_cursor;
                 vdp_mouse_set_cursor(current_cursor);
+printf(" @d");
             }
         }
 
@@ -323,20 +366,26 @@ void update_mouse_state() {
             if (msg.on_mouse_event.state.left) {
                 msg.on_mouse_event.msg_type = Aw_On_LeftButtonDown;
                 core_post_message(&msg);
+printf(" @lbd");
             } else {
                 msg.on_mouse_event.msg_type = Aw_On_LeftButtonUp;
                 core_post_message(&msg);
+printf(" @lbu");
                 if (prior_left_click) {
                     if (ticks <= MOUSE_DBL_CLICK_TIME) {
                         msg.on_mouse_event.msg_type = Aw_On_LeftButtonDoubleClick;
+printf(" @lbdc");
                     } else {
                         msg.on_mouse_event.msg_type = Aw_On_LeftButtonClick;
+printf(" @lbc1");
                     }
                 } else {
                     if (ticks < MOUSE_LONG_CLICK_TIME) {
                         msg.on_mouse_event.msg_type = Aw_On_LeftButtonClick;
+printf(" @lbc2");
                     } else {
                         msg.on_mouse_event.msg_type = Aw_On_LeftButtonLongClick;
+printf(" @lblc");
                     }
                     prior_left_click = true;
                 }
@@ -397,14 +446,12 @@ void update_mouse_state() {
             }
         }
 
-        // If the mouse position changed, and the buttons were pressed before,
-        // but are not pressed now, then the mouse was "dropped".
-        if (msg.on_mouse_event.state.cur_x != last_mouse_state.cur_x ||
-            msg.on_mouse_event.state.cur_y != last_mouse_state.cur_y) {
-            if (last_mouse_state.buttons && !msg.on_mouse_event.state.buttons) {
-                msg.on_mouse_event.msg_type = Aw_On_MouseDropped;
-                core_post_message(&msg);
-            }
+        // If the buttons were pressed before, but are not pressed now,
+        // then the mouse was "dropped".
+        if (last_mouse_state.buttons && !msg.on_mouse_event.state.buttons) {
+            msg.on_mouse_event.msg_type = Aw_On_MouseDropped;
+            core_post_message(&msg);
+printf(" @DROP (%hu,%hu)", msg.on_mouse_event.state.cur_x, msg.on_mouse_event.state.cur_y);
         }
 
         last_mouse_state = msg.on_mouse_event.state;
@@ -621,12 +668,10 @@ void add_more_dirt(AwRect* rect) {
 }
 
 void core_invalidate_window(AwWindow* window) {
-    window->state.window_dirty = 1;
     add_more_dirt(&window->window_rect);
 }
 
 void core_invalidate_client(AwWindow* window) {
-    window->state.client_dirty = 1;
     add_more_dirt(&window->client_rect);
 }
 
@@ -787,7 +832,6 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
 }
 
 void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
-    window->state.window_dirty = 1;
     AwRect new_rect = *rect;
     core_offset_rect(&new_rect, window->window_rect.left, window->window_rect.top);
     AwRect extra_rect = core_get_intersect_rect(&window->window_rect, &new_rect);
@@ -795,7 +839,6 @@ void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
 }
 
 void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
-    window->state.client_dirty = 1;
     AwRect new_rect = *rect;
     core_offset_rect(&new_rect, window->client_rect.left, window->client_rect.top);
     AwRect extra_rect = core_get_intersect_rect(&window->window_rect, &new_rect);
@@ -803,7 +846,6 @@ void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
 }
 
 void core_invalidate_title_bar(AwWindow* window) {
-    window->state.title_dirty = 1;
     AwRect title_rect = core_get_global_title_rect(window);
     add_more_dirt(&title_rect);
 }
@@ -1166,18 +1208,6 @@ void draw_title(AwWindow* window) {
     printf("%s", window->text);
 }
 
-typedef struct { uint8_t A; uint8_t B; uint8_t CMD; } VDU_A_B_CMD;
-
-static VDU_A_B_CMD vdu_set_text_viewport_via_plot = { 23, 0, 0x9C };
-static VDU_A_B_CMD vdu_set_graphics_viewport_via_plot = { 23, 0, 0x9D };
-static VDU_A_B_CMD vdu_set_graphics_origin_via_plot = { 23, 0, 0x9E };
-static VDU_A_B_CMD vdu_move_graphics_origin_and_viewport = { 23, 0, 0x9F };
-
-void local_vdp_set_text_viewport_via_plot( void ) { VDP_PUTS( vdu_set_text_viewport_via_plot ); }
-void local_vdp_set_graphics_viewport_via_plot( void ) { VDP_PUTS( vdu_set_graphics_viewport_via_plot ); }
-void local_vdp_set_graphics_origin_via_plot( void ) { VDP_PUTS( vdu_set_graphics_origin_via_plot ); }
-void local_vdp_move_graphics_origin_and_viewport( void ) { VDP_PUTS( vdu_move_graphics_origin_and_viewport ); }
-
 void core_paint_window(AwMsg* msg) {
     //printf("paint %p, style %04hX\r\n",
     //        msg->do_paint_window.window, msg->do_paint_window.all_flags);
@@ -1276,6 +1306,12 @@ void core_paint_window(AwMsg* msg) {
 }
 
 int32_t on_mouse_dragged(AwMsg* msg) {
+    (void)msg;
+    return 0;
+}
+
+int32_t on_mouse_dropped(AwWindow* window, AwMsg* msg) {
+    (void)window;
     AwRect rect = core_get_global_window_rect(msg->on_mouse_event.state.start_window);
     AwPoint pt;
     pt.x = rect.left;
@@ -1362,11 +1398,18 @@ int32_t on_mouse_dragged(AwMsg* msg) {
     }
 
     if (adjust_pos) {
+        AwRect parent_rect;
+        if (msg->on_mouse_event.state.start_window->parent) {
+            parent_rect = core_get_global_client_rect(msg->on_mouse_event.state.start_window->parent);
+        } else {
+            parent_rect = core_get_screen_rect();
+        }
+
         AwMsg new_msg;
         new_msg.do_move_window.window = msg->on_mouse_event.state.start_window;
         new_msg.do_move_window.msg_type = Aw_Do_MoveWindow;
-        new_msg.do_move_window.pt.x = pt.x;
-        new_msg.do_move_window.pt.y = pt.y;
+        new_msg.do_move_window.pt.x = pt.x - parent_rect.left;
+        new_msg.do_move_window.pt.y = pt.y - parent_rect.top;
         core_post_message(&new_msg);
     }
 
@@ -1379,12 +1422,6 @@ int32_t on_mouse_dragged(AwMsg* msg) {
         core_post_message(&new_msg);
     }
 
-    return 0;
-}
-
-int32_t on_mouse_dropped(AwWindow* window, AwMsg* msg) {
-    (void)window;
-    (void)msg;
     return 0;
 }
 
@@ -1621,48 +1658,39 @@ void core_initialize() {
     running = true;
 }
 
-void emit_paint_messages(AwWindow* window) {
+void paint_windows(AwWindow* window) {
     AwMsg msg;
-    if (window->state.window_dirty) {
-        // Entire window may be dirty
-        msg.do_paint_window.paint_rect =
-            core_get_intersect_rect(&dirty_area, &window->window_rect);
-        AwSize size = core_get_rect_size(&msg.do_paint_window.paint_rect);
-        if (size.width || size.height) {
-            core_set_paint_msg(&msg, window, true, false, false);
-            core_post_message(&msg);
-        }
-    } else {
-        // Part of window may be dirty
-        if (window->state.title_dirty) {
-            AwRect title_rect = core_get_global_title_rect(window);
-            msg.do_paint_window.paint_rect =
-                core_get_intersect_rect(&dirty_area, &title_rect);
-            AwSize size = core_get_rect_size(&msg.do_paint_window.paint_rect);
-            if (size.width || size.height) {
-                core_set_paint_msg(&msg, window, false, true, false);
-                core_post_message(&msg);
-            }
-        }
 
-        if (window->state.client_dirty) {
-            msg.do_paint_window.paint_rect =
-                core_get_intersect_rect(&dirty_area, &window->client_rect);
-            AwSize size = core_get_rect_size(&msg.do_paint_window.paint_rect);
-            if (size.width || size.height) {
-                core_set_paint_msg(&msg, window, false, false, true);
-                core_post_message(&msg);
-            }
-        }
+    // Part of window may be dirty
+    AwRect title_rect = core_get_global_title_rect(window);
+    AwRect dirty_title_rect = core_get_intersect_rect(&dirty_area, &title_rect);
+    AwSize dirty_title_size = core_get_rect_size(&title_rect);
+
+    AwRect client_rect = core_get_global_client_rect(window);
+    AwRect dirty_client_rect = core_get_intersect_rect(&dirty_area, &client_rect);
+    AwSize dirty_client_size = core_get_rect_size(&client_rect);
+
+    AwRect window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
+    AwRect dirty_window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
+    AwSize dirty_window_size = core_get_rect_size(&window_rect);
+
+    if (dirty_window_size.width || (dirty_title_size.width && dirty_client_size.width)) {
+        msg.do_paint_window.paint_rect = dirty_window_rect;
+        core_set_paint_msg(&msg, window, true, false, false);
+        core_process_message(&msg);
+    } else if (dirty_title_size.width) {
+        msg.do_paint_window.paint_rect = dirty_title_rect;
+        core_set_paint_msg(&msg, window, false, true, false);
+        core_process_message(&msg);
+    } else if (dirty_client_size.width) {
+        msg.do_paint_window.paint_rect = dirty_client_rect;
+        core_set_paint_msg(&msg, window, false, false, true);
+        core_process_message(&msg);
     }
-
-    window->state.window_dirty = 0;
-    window->state.title_dirty = 0;
-    window->state.client_dirty = 0;
 
     window = window->first_child;
     while (window) {
-        emit_paint_messages(window);
+        paint_windows(window);
         window = window->next_sibling;
     }
 }
@@ -1685,7 +1713,7 @@ void core_message_loop() {
                         dirty_area.left, dirty_area.top,
                         dirty_area.right, dirty_area.bottom,
                         size.width, size.height);*/
-                emit_paint_messages(root_window);
+                paint_windows(root_window);
                 dirty_area = core_get_empty_rect();
             } else {
                 vdp_update_key_state();
