@@ -282,31 +282,6 @@ void update_mouse_state() {
         } while (false);
 
         // Determine what changed (what event happened)
-vdp_context_select(0);
-vdp_context_reset(0xFF); // all style set
-vdp_logical_scr_dims(false);
-vdp_move_to(0, 0);
-vdp_move_to(640-1, 480-1);
-local_vdp_set_graphics_viewport_via_plot();
-vdp_move_to(0, 0);
-local_vdp_set_graphics_origin_via_plot();
-vdp_set_text_viewport(
-            (0/FONT_SIZE)+1,
-            (0/FONT_SIZE)+1,
-            (640/FONT_SIZE)-1,
-            (480/FONT_SIZE)-1);
-vdp_set_graphics_colour(0, 1 | 0x80);
-vdp_set_graphics_colour(0, 2);
-
-vdp_move_to(0,0);
-vdp_filled_rect(600, 100);
-vdp_write_at_graphics_cursor();
-vdp_move_to(0,0);
-vdp_set_graphics_colour(0, 15);
-printf("\r\n@a (%hu,%hu) %s %hu", msg.on_mouse_event.state.cur_x,
- msg.on_mouse_event.state.cur_y,
- msg.on_mouse_event.window->window_class->name,
- msg.on_mouse_event.state.target);
 
         // Check if/how the "start_*" members apply
         if (last_mouse_state.buttons) {
@@ -327,8 +302,6 @@ printf("\r\n@a (%hu,%hu) %s %hu", msg.on_mouse_event.state.cur_x,
             msg.on_mouse_event.state.start_y = 0;
         }
 
-printf(" @b %hu", msg.on_mouse_event.state.target);
-
         // If the mouse position changed, and the buttons were pressed before,
         // and are still pressed now, then the mouse was "dragged". If the
         // buttons were not pressed before, and are not pressed now, then
@@ -339,18 +312,14 @@ printf(" @b %hu", msg.on_mouse_event.state.target);
                 if (last_mouse_state.buttons) {
                     msg.on_mouse_event.msg_type = Aw_On_MouseDragged;
                     core_post_message(&msg);
-printf(" @drag");
                 }
             } else {
                 if (!last_mouse_state.buttons) {
                     msg.on_mouse_event.msg_type = Aw_On_MouseMoved;
                     core_post_message(&msg);
-printf(" @move");
                 }
             }
         }
-
-printf(" @c %hu %hu", msg.on_mouse_event.msg_type, possible_cursor);
 
         // If the buttons are now all released, make sure the mouse
         // cursor is up-to-date.
@@ -358,7 +327,6 @@ printf(" @c %hu %hu", msg.on_mouse_event.msg_type, possible_cursor);
             if (current_cursor != possible_cursor) {
                 current_cursor = possible_cursor;
                 vdp_mouse_set_cursor(current_cursor);
-printf(" @d");
             }
         }
 
@@ -366,26 +334,20 @@ printf(" @d");
             if (msg.on_mouse_event.state.left) {
                 msg.on_mouse_event.msg_type = Aw_On_LeftButtonDown;
                 core_post_message(&msg);
-printf(" @lbd");
             } else {
                 msg.on_mouse_event.msg_type = Aw_On_LeftButtonUp;
                 core_post_message(&msg);
-printf(" @lbu");
                 if (prior_left_click) {
                     if (ticks <= MOUSE_DBL_CLICK_TIME) {
                         msg.on_mouse_event.msg_type = Aw_On_LeftButtonDoubleClick;
-printf(" @lbdc");
                     } else {
                         msg.on_mouse_event.msg_type = Aw_On_LeftButtonClick;
-printf(" @lbc1");
                     }
                 } else {
                     if (ticks < MOUSE_LONG_CLICK_TIME) {
                         msg.on_mouse_event.msg_type = Aw_On_LeftButtonClick;
-printf(" @lbc2");
                     } else {
                         msg.on_mouse_event.msg_type = Aw_On_LeftButtonLongClick;
-printf(" @lblc");
                     }
                     prior_left_click = true;
                 }
@@ -451,7 +413,6 @@ printf(" @lblc");
         if (last_mouse_state.buttons && !msg.on_mouse_event.state.buttons) {
             msg.on_mouse_event.msg_type = Aw_On_MouseDropped;
             core_post_message(&msg);
-printf(" @DROP (%hu,%hu)", msg.on_mouse_event.state.cur_x, msg.on_mouse_event.state.cur_y);
         }
 
         last_mouse_state = msg.on_mouse_event.state;
@@ -651,20 +612,10 @@ AwRect core_get_global_client_rect(AwWindow* window) {
 }
 
 void add_more_dirt(AwRect* rect) {
-    /*AwSize size = core_get_rect_size(rect);
-    printf("add dirt (%hu,%hu)-(%hu,%hu) %hux%hu\r\n",
-            rect->left, rect->top,
-            rect->right, rect->bottom,
-            size.width, size.height);*/
     AwRect screen = core_get_screen_rect();
     AwRect filth1 = core_get_intersect_rect(rect, &screen);
     AwRect filth2 = core_get_union_rect(&dirty_area, &filth1);
     dirty_area = filth2;
-    /*size = core_get_rect_size(&dirty_area);
-    printf("dirty (%hu,%hu)-(%hu,%hu) %hux%hu\r\n",
-            dirty_area.left, dirty_area.top,
-            dirty_area.right, dirty_area.bottom,
-            size.width, size.height);*/
 }
 
 void core_invalidate_window(AwWindow* window) {
@@ -676,7 +627,6 @@ void core_invalidate_client(AwWindow* window) {
 }
 
 void core_post_message(AwMsg* msg) {
-    //printf("post %p %hu\r\n", msg->do_common.window, msg->do_common.msg_type);
     if (msg_count < AW_MESSAGE_QUEUE_SIZE) {
         AwMsg* pmsg = &message_queue[msg_write_index++];
         if (msg_write_index >= AW_MESSAGE_QUEUE_SIZE) {
@@ -755,17 +705,18 @@ void core_resize_window(AwWindow* window, int16_t width, int16_t height) {
 }
 
 void core_link_child(AwWindow* parent, AwWindow* child) {
-    //printf("link parent %p, child %p ... ", parent, child);
-    if (parent->first_child) {
-        parent->last_child->next_sibling = child;
-        child->prev_sibling = parent->last_child;
-    } else {
-        parent->first_child = child;
-        child->prev_sibling = NULL;
+    if (parent) {
+        // Non-root window
+        if (parent->first_child) {
+            parent->last_child->next_sibling = child;
+            child->prev_sibling = parent->last_child;
+        } else {
+            parent->first_child = child;
+            child->prev_sibling = NULL;
+        }
+        parent->last_child = child;
+        child->next_sibling = NULL;
     }
-    parent->last_child = child;
-    child->next_sibling = NULL;
-    //printf("end link\r\n");
 }
 
 AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
@@ -1121,13 +1072,11 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window,
 }
 
 void draw_background(AwWindow* window) {
-    //printf("draw_background %p\r\n", window);
     vdp_set_graphics_colour(0, window->bg_color | 0x80);
     vdp_clear_graphics();
 }
 
 void draw_foreground(AwWindow* window) {
-    //printf("draw_foreground %p\r\n", window);
     if (window == root_window) return;
     vdp_set_graphics_colour(0, window->bg_color | 0x80);
     vdp_set_graphics_colour(0, window->fg_color);
@@ -1166,7 +1115,6 @@ uint8_t get_title_color(AwWindow* window) {
 }
 
 void draw_border(AwWindow* window) {
-    //printf("draw_border %p\r\n", window);
     vdp_set_graphics_colour(0, get_border_color(window));
     AwSize size = core_get_window_size(window);
 
@@ -1188,7 +1136,6 @@ void draw_border(AwWindow* window) {
 }
 
 void draw_title_bar(AwWindow* window) {
-    //printf("draw_title_bar %p\r\n", window);
     int16_t thickness = get_border_thickness(window);
     vdp_set_graphics_colour(0, get_title_bar_color(window));
     AwSize size = core_get_client_size(window);
@@ -1199,7 +1146,6 @@ void draw_title_bar(AwWindow* window) {
 }
 
 void draw_title(AwWindow* window) {
-    //printf("draw_title %p\r\n", window);
     int16_t thickness = get_border_thickness(window);
     vdp_set_graphics_colour(0, get_title_bar_color(window));
     vdp_set_graphics_colour(0, get_title_color(window));
@@ -1209,9 +1155,6 @@ void draw_title(AwWindow* window) {
 }
 
 void core_paint_window(AwMsg* msg) {
-    //printf("paint %p, style %04hX\r\n",
-    //        msg->do_paint_window.window, msg->do_paint_window.all_flags);
-
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
     AwWindow* window = paint_msg->window;
 
@@ -1426,7 +1369,6 @@ int32_t on_mouse_dropped(AwWindow* window, AwMsg* msg) {
 }
 
 int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
-    //printf("handle %p %hu\r\n", msg->do_common.window, (uint16_t) msg->do_common.msg_type);
     *halt = true; // this is the last chance to handle a messge
     switch (msg->do_common.msg_type) {
         case Aw_Do_Common: {
@@ -1709,10 +1651,6 @@ void core_message_loop() {
             AwSize size = core_get_rect_size(&dirty_area);
             if (size.width || size.height) {
                 // Something needs to be painted
-                /*printf("dirty (%hu,%hu)-(%hu,%hu) %hux%hu\r\n",
-                        dirty_area.left, dirty_area.top,
-                        dirty_area.right, dirty_area.bottom,
-                        size.width, size.height);*/
                 paint_windows(root_window);
                 dirty_area = core_get_empty_rect();
             } else {
