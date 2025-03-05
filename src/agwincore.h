@@ -30,6 +30,8 @@ SOFTWARE.
 extern "C" {
 #endif
 
+#pragma pack(push, 1)
+
 #ifdef AGWIN_APP
 
 void        core_activate_window(AwWindow* window, bool active);
@@ -80,6 +82,7 @@ void        core_invalidate_client_rect(AwWindow* window, const AwRect* rect);
 void        core_invalidate_title_bar(AwWindow* window);
 void        core_invalidate_window(AwWindow* window);
 void        core_invalidate_window_rect(AwWindow* window, const AwRect* rect);
+int         core_load_app(const char* path);
 void        core_message_loop();
 void        core_move_window(AwWindow* window, int16_t x, int16_t y);
 void        core_offset_rect(AwRect* rect, int16_t dx, int16_t dy);
@@ -141,6 +144,7 @@ typedef void        (*aw_core_invalidate_client_rect)(AwWindow* window, const Aw
 typedef void        (*aw_core_invalidate_title_bar)(AwWindow* window);
 typedef void        (*aw_core_invalidate_window)(AwWindow* window);
 typedef void        (*aw_core_invalidate_window_rect)(AwWindow* window, const AwRect* rect);
+typedef int         (*aw_core_load_app)(const char* path);
 typedef void        (*aw_core_message_loop)();
 typedef void        (*aw_core_move_window)(AwWindow* window, int16_t x, int16_t y);
 typedef void        (*aw_core_offset_rect)(AwRect* rect, int16_t dx, int16_t dy);
@@ -198,6 +202,7 @@ typedef struct tag_AwFcnTable {
     aw_core_invalidate_title_bar        invalidate_title_bar;
     aw_core_invalidate_window           invalidate_window;
     aw_core_invalidate_window_rect      invalidate_window_rect;
+    aw_core_load_app                    load_app;
     aw_core_message_loop                message_loop;
     aw_core_move_window                 move_window;
     aw_core_offset_rect                 offset_rect;
@@ -209,6 +214,21 @@ typedef struct tag_AwFcnTable {
     aw_core_show_window                 show_window;
     aw_core_terminate                   terminate;
 } AwFcnTable;
+
+typedef int (*AwStart)();
+
+typedef struct tag_AwAppHeader {
+    AwStart         jump_start;         // points to C initialization code
+    char            program_name[61];   // used by argc
+    char            marker[3];          // contains 'WIN'
+    uint8_t         version;            // version of header
+    uint8_t         run_mode;           // 0=Z80, 1=ADL
+    uint8_t*        load_address;       // where to load the application
+    AwApplication*  app;                // points to the application structure
+    const AwFcnTable* core_functions;   // points to the core function table
+} AwAppHeader;
+
+#pragma pack(pop)
 
 #ifdef __CPLUSPLUS
 } // extern "C"

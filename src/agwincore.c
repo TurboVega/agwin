@@ -38,6 +38,7 @@ SOFTWARE.
 #include <time.h>
 #include <agon/vdp_key.h>
 #include <agon/vdp_vdu.h>
+#include <mos_api.h>
 
 #ifdef __CPLUSPLUS
 extern "C" {
@@ -753,6 +754,10 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
             free(window);
             return NULL; // no memory
         }
+    }
+
+    if (state.active && active_window) {
+        core_activate_window(active_window, false);
     }
 
     vdp_context_select(0);
@@ -1708,6 +1713,7 @@ const AwFcnTable aw_core_functions = {
     core_invalidate_title_bar,
     core_invalidate_window,
     core_invalidate_window_rect,
+    core_load_app,
     core_message_loop,
     core_move_window,
     core_offset_rect,
@@ -1719,6 +1725,29 @@ const AwFcnTable aw_core_functions = {
     core_show_window,
     core_terminate,
 };
+
+int core_load_app(const char* path) {
+    AwAppHeader app_header;
+	FILE *fp;
+    int rc = -1;
+
+    if ((fp = fopen(path, "rb"))) {
+        size_t byte_cnt = fread((void*)&app_header, 1, sizeof(app_header), fp);
+        if (byte_cnt == (size_t) sizeof(app_header)) {
+            fseek(fp, 0, SEEK_END);
+            long file_size = ftell(fp);
+            fseek(fp, 0, SEEK_SET);
+            byte_cnt = fread(app_header.load_address, 1, file_size, fp);
+            if (byte_cnt == file_size) {
+                AwAppHeader* hdr = (AwAppHeader*) app_header.load_address;
+                hdr->core_functions = &aw_core_functions;
+                rc = (*app_header.jump_start)();
+            }
+        }
+        fclose(fp);
+    }
+    return rc;
+}
 
 #ifdef __CPLUSPLUS
 } // extern "C"
