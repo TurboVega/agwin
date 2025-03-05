@@ -10,8 +10,9 @@ LDHAS_ARG_PROCESSING = 0
 BSSHEAP_LOW = 060000
 BSSHEAP_HIGH = 09FFFF
 
-CFLAGS = -Wall -Wextra -Oz
-CXXFLAGS = -Wall -Wextra -Oz
+CFLAGS = -Wall -Wextra -Oz -DAGWIN_APP
+CXXFLAGS = -Wall -Wextra -Oz -DAGWIN_APP
+
 
 BITMAPS = $(call NATIVEPATH,/images/*)
 BITMAPS_DEST = $(call NATIVEPATH,$(BINDIR)/bitmaps)
