@@ -1082,23 +1082,6 @@ void draw_background(AwWindow* window) {
 }
 
 void draw_foreground(AwWindow* window) {
-    if (window == root_window) return;
-    vdp_set_graphics_colour(0, window->bg_color | 0x80);
-    vdp_set_graphics_colour(0, window->fg_color);
-    vdp_move_to(0, 0);
-    vdp_clear_graphics();
-    vdp_write_at_graphics_cursor();
-
-    AwSize size = core_get_window_size(window);
-    printf("Window @ (%hu,%hu)\r\n",
-            window->window_rect.left, window->window_rect.top);
-    printf("     size %hux%hu\r\n",
-            size.width, size.height);
-    size = core_get_client_size(window);
-    printf("Client @ (%hu,%hu)\r\n",
-            window->client_rect.left, window->client_rect.top);
-    printf("     size %hux%hu\r\n",
-            size.width, size.height);
 }
 
 uint8_t get_border_color(AwWindow* window) {
@@ -1741,7 +1724,8 @@ int core_load_app(const char* path) {
             if (byte_cnt == file_size) {
                 AwAppHeader* hdr = (AwAppHeader*) app_header.load_address;
                 hdr->core_functions = &aw_core_functions;
-                rc = (*app_header.jump_start)();
+                AwStart start = (AwStart) app_header.load_address;
+                rc = (*start)();
             }
         }
         fclose(fp);

@@ -218,7 +218,7 @@ typedef struct tag_AwFcnTable {
 typedef int (*AwStart)();
 
 typedef struct tag_AwAppHeader {
-    AwStart         jump_start;         // points to C initialization code
+    uint8_t         jump_start[4];      // points to C initialization code
     char            program_name[60];   // used by argc
     char            marker[3];          // contains 'WIN'
     uint8_t         version;            // version of header

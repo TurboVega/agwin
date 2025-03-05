@@ -49,14 +49,14 @@ extern "C" {
 #define NULL 0
 #endif
 
-#define AW_DFLT_BG_COLOR                    15
-#define AW_DFLT_FG_COLOR                    0
+#define AW_DFLT_BG_COLOR                    0
+#define AW_DFLT_FG_COLOR                    15
 #define AW_DFLT_ACTIVE_BORDER_COLOR         12
 #define AW_DFLT_ACTIVE_TITLE_BAR_COLOR      4
 #define AW_DFLT_ACTIVE_TITLE_COLOR          11
 #define AW_DFLT_INACTIVE_BORDER_COLOR       8
-#define AW_DFLT_INACTIVE_TITLE_BAR_COLOR    7
-#define AW_DFLT_INACTIVE_TITLE_COLOR        0
+#define AW_DFLT_INACTIVE_TITLE_BAR_COLOR    8
+#define AW_DFLT_INACTIVE_TITLE_COLOR        7
 
 #define min(a, b)       ((a) < (b) ? (a) : (b))
 #define max(a, b)       ((a) > (b) ? (a) : (b))
