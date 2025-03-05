@@ -1025,7 +1025,7 @@ void core_terminate() {
 void core_set_paint_msg(AwMsg* msg, AwWindow* window,
                 bool entire, bool title, bool client) {
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
-    AwPaintFlags* paint_flags = &paint_msg->style;
+    AwPaintFlags* paint_flags = &paint_msg->flags;
 
     paint_msg->window = window;
     paint_msg->msg_type = Aw_Do_PaintWindow;
@@ -1082,6 +1082,7 @@ void draw_background(AwWindow* window) {
 }
 
 void draw_foreground(AwWindow* window) {
+    (void)window; // unused
 }
 
 uint8_t get_border_color(AwWindow* window) {
@@ -1142,6 +1143,42 @@ void draw_title(AwWindow* window) {
     printf("%s", window->text);
 }
 
+void core_set_client_viewport(AwWindow* window) {
+    vdp_context_select(0);
+    vdp_context_reset(0xFF); // all style set
+    vdp_logical_scr_dims(false);
+    vdp_move_to(window->client_rect.left, window->client_rect.top);
+    vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
+    local_vdp_set_graphics_viewport_via_plot();
+
+    vdp_move_to(window->client_rect.left, window->client_rect.top);
+    local_vdp_set_graphics_origin_via_plot();
+
+    vdp_set_text_viewport(
+                (window->client_rect.left/FONT_SIZE)+1,
+                (window->client_rect.top/FONT_SIZE)+1,
+                (window->client_rect.right/FONT_SIZE)-1,
+                (window->client_rect.bottom/FONT_SIZE)-1);
+}
+
+void core_set_window_viewport(AwWindow* window) {
+    vdp_context_select(0);
+    vdp_context_reset(0xFF); // all style set
+    vdp_logical_scr_dims(false);
+    vdp_move_to(window->window_rect.left, window->window_rect.top);
+    vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
+    local_vdp_set_graphics_viewport_via_plot();
+
+    vdp_move_to(window->window_rect.left, window->window_rect.top);
+    local_vdp_set_graphics_origin_via_plot();
+
+    vdp_set_text_viewport(
+                (window->window_rect.left/FONT_SIZE)+1,
+                (window->window_rect.top/FONT_SIZE)+1,
+                (window->window_rect.right/FONT_SIZE)-1,
+                (window->window_rect.bottom/FONT_SIZE)-1);
+}
+
 void core_paint_window(AwMsg* msg) {
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
     AwWindow* window = paint_msg->window;
@@ -1150,24 +1187,10 @@ void core_paint_window(AwMsg* msg) {
         return;
     }
 
-    AwPaintFlags* paint_flags = &paint_msg->style;
+    AwPaintFlags* paint_flags = &paint_msg->flags;
 
     if (paint_flags->window) {
-        vdp_context_select(0);
-        vdp_context_reset(0xFF); // all style set
-        vdp_logical_scr_dims(false);
-        vdp_move_to(window->window_rect.left, window->window_rect.top);
-        vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
-        local_vdp_set_graphics_viewport_via_plot();
-
-        vdp_move_to(window->window_rect.left, window->window_rect.top);
-        local_vdp_set_graphics_origin_via_plot();
-
-        vdp_set_text_viewport(
-                    (window->window_rect.left/FONT_SIZE)+1,
-                    (window->window_rect.top/FONT_SIZE)+1,
-                    (window->window_rect.right/FONT_SIZE)-1,
-                    (window->window_rect.bottom/FONT_SIZE)-1);
+        core_set_window_viewport(window);
 
         if (paint_flags->border) {
             draw_border(window);
@@ -1211,21 +1234,7 @@ void core_paint_window(AwMsg* msg) {
     }
 
     if (paint_flags->client) {
-        vdp_context_select(0);
-        vdp_context_reset(0xFF); // all style set
-        vdp_logical_scr_dims(false);
-        vdp_move_to(window->client_rect.left, window->client_rect.top);
-        vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
-        local_vdp_set_graphics_viewport_via_plot();
-
-        vdp_move_to(window->client_rect.left, window->client_rect.top);
-        local_vdp_set_graphics_origin_via_plot();
-
-        vdp_set_text_viewport(
-                    (window->client_rect.left/FONT_SIZE)+1,
-                    (window->client_rect.top/FONT_SIZE)+1,
-                    (window->client_rect.right/FONT_SIZE)-1,
-                    (window->client_rect.bottom/FONT_SIZE)-1);
+        core_set_client_viewport(window);
 
         if (paint_flags->background) {
             draw_background(window);
@@ -1700,11 +1709,14 @@ const AwFcnTable aw_core_functions = {
     core_message_loop,
     core_move_window,
     core_offset_rect,
+    core_paint_window,
     core_post_message,
     core_process_message,
     core_rect_contains_point,
     core_resize_window,
+    core_set_client_viewport,
     core_set_text,
+    core_set_window_viewport,
     core_show_window,
     core_terminate,
 };

@@ -61,7 +61,7 @@ typedef struct tag_AwDoMsgPaintWindow {
     AwDoMsgType     msg_type;
     AwRect          paint_rect;
     union {
-        AwPaintFlags style;
+        AwPaintFlags flags;
         uint16_t     all_flags;
     };
 } AwDoMsgPaintWindow;
