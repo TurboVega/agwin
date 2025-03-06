@@ -1160,11 +1160,8 @@ void core_set_client_viewport(AwWindow* window) {
     vdp_move_to(window->client_rect.left, window->client_rect.top);
     local_vdp_set_graphics_origin_via_plot();
 
-    vdp_set_text_viewport(
-                (window->client_rect.left/FONT_SIZE)+1,
-                (window->client_rect.top/FONT_SIZE)+1,
-                (window->client_rect.right/FONT_SIZE)-1,
-                (window->client_rect.bottom/FONT_SIZE)-1);
+    vdp_move_to(window->client_rect.left, window->client_rect.top);
+    local_vdp_set_text_viewport_via_plot();
 }
 
 void core_set_window_viewport(AwWindow* window) {
@@ -1178,11 +1175,8 @@ void core_set_window_viewport(AwWindow* window) {
     vdp_move_to(window->window_rect.left, window->window_rect.top);
     local_vdp_set_graphics_origin_via_plot();
 
-    vdp_set_text_viewport(
-                (window->window_rect.left/FONT_SIZE)+1,
-                (window->window_rect.top/FONT_SIZE)+1,
-                (window->window_rect.right/FONT_SIZE)-1,
-                (window->window_rect.bottom/FONT_SIZE)-1);
+    vdp_move_to(window->window_rect.left, window->window_rect.top);
+    local_vdp_set_text_viewport_via_plot();
 }
 
 void core_paint_window(AwMsg* msg) {
