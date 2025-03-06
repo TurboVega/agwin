@@ -743,6 +743,53 @@ void core_unlink_child(AwWindow* child) {
     child->prev_sibling = NULL;
 }
 
+void core_minimize_window(AwWindow* window) {
+    if (!window->state.minimized) {
+        if (window->state.maximized) {
+            AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+            window->window_rect = mm->save_window_rect;
+            window->client_rect = mm->save_client_rect;
+        } else {
+            AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+            mm->save_window_rect = window->window_rect;
+            mm->save_client_rect = window->client_rect;
+        }
+        window->state.minimized = 1;
+        window->state.maximized = 0;
+        core_invalidate_window(window);
+    }
+}
+
+void core_maximize_window(AwWindow* window) {
+    if (!window->state.maximized) {
+        if (window->state.minimized) {
+            AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+            window->window_rect = mm->save_window_rect;
+            window->client_rect = mm->save_client_rect;
+        } else {
+            AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+            mm->save_window_rect = window->window_rect;
+            mm->save_client_rect = window->client_rect;
+        }
+        window->state.minimized = 0;
+        window->state.maximized = 1;
+        AwSize size = core_get_window_size(window->parent);
+        core_move_window(window, 0, 0);
+        core_resize_window(window, size.width, size.height);
+    }
+}
+
+void core_restore_window(AwWindow* window) {
+    if (window->state.minimized || window->state.maximized) {
+        AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+        window->window_rect = mm->save_window_rect;
+        window->client_rect = mm->save_client_rect;
+        window->state.minimized = 0;
+        window->state.maximized = 0;
+        core_invalidate_window(window);
+    }
+}
+
 AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
                         const AwClass* wclass, AwWindowStyle style,
                         AwWindowState state,
@@ -815,6 +862,10 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
 
     if (state.active) {
         core_activate_window(window, true);
+    }
+
+    if (state.maximized) {
+        core_maximize_window(window);
     }
 
     return window;
@@ -1037,45 +1088,6 @@ void core_close_window(AwWindow* window) {
         free(window->extra_data);
     }
     free(window);
-}
-
-void core_minimize_window(AwWindow* window) {
-    if (!window->state.minimized) {
-        window->state.minimized = 1;
-        window->state.maximized = 0;
-        if (!window->state.maximized) {
-            AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
-            mm->save_window_rect = window->window_rect;
-            mm->save_client_rect = window->client_rect;
-        }
-        core_invalidate_window(window);
-    }
-}
-
-void core_maximize_window(AwWindow* window) {
-    if (!window->state.maximized) {
-        window->state.minimized = 0;
-        window->state.maximized = 1;
-        if (!window->state.minimized) {
-            AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
-            mm->save_window_rect = window->window_rect;
-            mm->save_client_rect = window->client_rect;
-        }
-        AwSize size = core_get_window_size(window->parent);
-        core_move_window(window, 0, 0);
-        core_resize_window(window, size.width, size.height);
-    }
-}
-
-void core_restore_window(AwWindow* window) {
-    if (window->state.minimized || window->state.maximized) {
-        window->state.minimized = 0;
-        window->state.maximized = 0;
-        AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
-        window->window_rect = mm->save_window_rect;
-        window->client_rect = mm->save_client_rect;
-        core_invalidate_window(window);
-    }
 }
 
 int32_t core_process_message(AwMsg* msg) {
