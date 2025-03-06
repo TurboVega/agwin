@@ -1043,9 +1043,11 @@ void core_minimize_window(AwWindow* window) {
     if (!window->state.minimized) {
         window->state.minimized = 1;
         window->state.maximized = 0;
-        AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
-        mm->save_window_rect = window->window_rect;
-        mm->save_client_rect = window->client_rect;
+        if (!window->state.maximized) {
+            AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+            mm->save_window_rect = window->window_rect;
+            mm->save_client_rect = window->client_rect;
+        }
         core_invalidate_window(window);
     }
 }
@@ -1054,9 +1056,11 @@ void core_maximize_window(AwWindow* window) {
     if (!window->state.maximized) {
         window->state.minimized = 0;
         window->state.maximized = 1;
-        AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
-        mm->save_window_rect = window->window_rect;
-        mm->save_client_rect = window->client_rect;
+        if (!window->state.minimized) {
+            AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+            mm->save_window_rect = window->window_rect;
+            mm->save_client_rect = window->client_rect;
+        }
         AwSize size = core_get_window_size(window->parent);
         core_move_window(window, 0, 0);
         core_resize_window(window, size.width, size.height);
