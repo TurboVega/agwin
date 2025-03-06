@@ -259,6 +259,12 @@ typedef struct tag_AwWindow {
     uint8_t         fg_color;       // color of text, espcially when drawn by core
 } AwWindow;
 
+typedef struct tag_AwMinMaxWindow {
+    AwWindow        window;         // Inherit all the attributes of a normal window
+    AwRect          save_window_rect; // place to save window.window_rect
+    AwRect          save_client_rect; // place to save window.client_rect;
+} AwMinMaxWindow;
+
 #pragma pack(pop)
 
 #ifdef __CPLUSPLUS

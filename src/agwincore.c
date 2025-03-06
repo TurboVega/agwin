@@ -765,7 +765,11 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
     }
 
     // Allocate memory for the window structure
-    AwWindow* window = (AwWindow*) malloc(sizeof(AwWindow));
+    size_t size = sizeof(AwWindow);
+    if (style.minimize_icon || style.maximize_icon) {
+        size = sizeof(AwMinMaxWindow);
+    }
+    AwWindow* window = (AwWindow*) malloc(size);
     if (window == NULL) {
         return NULL; // no memory
     }
@@ -1039,6 +1043,9 @@ void core_minimize_window(AwWindow* window) {
     if (!window->state.minimized) {
         window->state.minimized = 1;
         window->state.maximized = 0;
+        AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+        mm->save_window_rect = window->window_rect;
+        mm->save_client_rect = window->client_rect;
         core_invalidate_window(window);
     }
 }
@@ -1047,6 +1054,9 @@ void core_maximize_window(AwWindow* window) {
     if (!window->state.maximized) {
         window->state.minimized = 0;
         window->state.maximized = 1;
+        AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+        mm->save_window_rect = window->window_rect;
+        mm->save_client_rect = window->client_rect;
         AwSize size = core_get_window_size(window->parent);
         core_move_window(window, 0, 0);
         core_resize_window(window, size.width, size.height);
@@ -1057,6 +1067,9 @@ void core_restore_window(AwWindow* window) {
     if (window->state.minimized || window->state.maximized) {
         window->state.minimized = 0;
         window->state.maximized = 0;
+        AwMinMaxWindow* mm = (AwMinMaxWindow*) window;
+        window->window_rect = mm->save_window_rect;
+        window->client_rect = mm->save_client_rect;
         core_invalidate_window(window);
     }
 }
@@ -1702,6 +1715,10 @@ void core_initialize() {
 }
 
 void paint_windows(AwWindow* window) {
+    if (!window->state.visible) {
+        return;
+    }
+
     AwMsg msg;
 
     // Part of window may be dirty
@@ -1731,10 +1748,12 @@ void paint_windows(AwWindow* window) {
         core_process_message(&msg);
     }
 
-    window = window->first_child;
-    while (window) {
-        paint_windows(window);
-        window = window->next_sibling;
+    if (!window->state.minimized) {
+        window = window->first_child;
+        while (window) {
+            paint_windows(window);
+            window = window->next_sibling;
+        }
     }
 }
 
