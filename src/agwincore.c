@@ -786,6 +786,10 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
 
     core_move_window(window, x, y);
 
+    if (state.active) {
+        core_activate_window(window, true);
+    }
+
     return window;
 }
 
@@ -953,8 +957,8 @@ void core_activate_window(AwWindow* window, bool active) {
         }
     } else {
         if (window == active_window) {
-            window->state.active = 0;
             active_window = NULL;
+            window->state.active = 0;
             core_invalidate_window(window);
         }
     }
