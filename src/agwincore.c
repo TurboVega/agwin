@@ -764,7 +764,7 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
     vdp_logical_scr_dims(false);
 
     core_set_text(window, text);
-    core_link_child(parent, window);
+
     window->style = style;
     window->state = state;
     window->app = app;
@@ -773,6 +773,8 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
     window->window_rect.bottom = height;
     window->bg_color = AW_DFLT_BG_COLOR;
     window->fg_color = AW_DFLT_FG_COLOR;
+
+    core_link_child(parent, window);
 
     AwMsg msg;
     msg.on_window_created.window = window;
@@ -1728,7 +1730,10 @@ int core_load_app(const char* path) {
 
     if ((fp = fopen(path, "rb"))) {
         size_t byte_cnt = fread((void*)&app_header, 1, sizeof(app_header), fp);
-        if (byte_cnt == (size_t) sizeof(app_header)) {
+        if ((byte_cnt == (size_t) sizeof(app_header)) &&
+            app_header.marker[0] == 'W' &&
+            app_header.marker[1] == 'I' &&
+            app_header.marker[2] == 'N') {
             fseek(fp, 0, SEEK_END);
             long file_size = ftell(fp);
             fseek(fp, 0, SEEK_SET);
