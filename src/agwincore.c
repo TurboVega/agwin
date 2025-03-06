@@ -718,6 +718,29 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
         parent->last_child = child;
         child->next_sibling = NULL;
     }
+    child->parent = parent;
+}
+
+void core_unlink_child(AwWindow* child) {
+    AwWindow* parent = child->parent;
+    AwWindow* next_child = child->next_sibling;
+    if (parent->first_child == child) {
+        if (parent->last_child == child) {
+            parent->last_child = NULL;
+        }
+        parent->first_child = next_child;
+        if (next_child) {
+            next_child->prev_sibling = NULL;
+        }
+    } else {
+        AwWindow* prev_child = child->prev_sibling;
+        prev_child->next_sibling = next_child;
+        next_child->prev_sibling = prev_child;
+    }
+
+    child->parent = NULL;
+    child->next_sibling = NULL;
+    child->prev_sibling = NULL;
 }
 
 AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
@@ -913,6 +936,10 @@ AwRect core_get_restore_icon_rect(AwWindow* window) {
         if (window->style.close_icon) {
             rect.right -= AW_ICON_WIDTH;
         }
+        if ((window->style.minimize_icon && !window->state.minimized) ||
+            (window->style.maximize_icon && !window->state.maximized)) {
+            rect.right -= AW_ICON_WIDTH;
+        }
         rect.left = rect.right - AW_ICON_WIDTH;
         rect.top += thickness;
         rect.bottom = rect.top + AW_ICON_HEIGHT;
@@ -930,10 +957,10 @@ AwRect core_get_menu_icon_rect(AwWindow* window) {
         if (window->style.close_icon) {
             rect.right -= AW_ICON_WIDTH;
         }
-        if (window->style.minimize_icon && !window->state.minimized) {
+        if (window->style.minimize_icon || window->style.maximize_icon) {
             rect.right -= AW_ICON_WIDTH;
         }
-        if (window->style.maximize_icon && !window->state.maximized) {
+        if (window->style.minimize_icon && window->style.maximize_icon) {
             rect.right -= AW_ICON_WIDTH;
         }
         rect.left = rect.right - AW_ICON_WIDTH;
@@ -996,11 +1023,42 @@ void core_show_window(AwWindow* window, bool visible) {
 }
 
 void core_close_window(AwWindow* window) {
-    printf("close %p\r\n", window);
+    core_invalidate_window(window);
+    core_activate_window(window, false);
+    core_unlink_child(window);
+    if (window->text_size) {
+        free(window->text);
+    }
+    if (window->extra_data) {
+        free(window->extra_data);
+    }
+    free(window);
 }
 
-void core_destroy_window(AwWindow* window) {
-    printf("destroy %p\r\n", window);
+void core_minimize_window(AwWindow* window) {
+    if (!window->state.minimized) {
+        window->state.minimized = 1;
+        window->state.maximized = 0;
+        core_invalidate_window(window);
+    }
+}
+
+void core_maximize_window(AwWindow* window) {
+    if (!window->state.maximized) {
+        window->state.minimized = 0;
+        window->state.maximized = 1;
+        AwSize size = core_get_window_size(window->parent);
+        core_move_window(window, 0, 0);
+        core_resize_window(window, size.width, size.height);
+    }
+}
+
+void core_restore_window(AwWindow* window) {
+    if (window->state.minimized || window->state.maximized) {
+        window->state.minimized = 0;
+        window->state.maximized = 0;
+        core_invalidate_window(window);
+    }
 }
 
 int32_t core_process_message(AwMsg* msg) {
@@ -1045,13 +1103,29 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window,
         paint_flags->selected = 1;
     }
 
-    if (entire) {
+    if (window->state.minimized) {
         paint_flags->window = 1;
-        if (window->style.border) {
-            paint_flags->border = 1;
+        if (window->style.title_bar) {
+            paint_flags->title_bar = 1;
+            paint_flags->title = 1;
+        }
+        if (window->style.close_icon) {
+            paint_flags->close_icon = 1;
+        }
+        if (window->style.maximize_icon) {
+            paint_flags->maximize_icon = 1;
+        }
+        paint_flags->restore_icon = 1;
+        return;
+    } else {
+        if (entire) {
+            paint_flags->window = 1;
+            if (window->style.border && !window->state.maximized) {
+                paint_flags->border = 1;
+            }
         }
     }
-
+    
     if (entire || title) {
         if (window->style.title_bar) {
             paint_flags->title_bar = 1;
@@ -1099,8 +1173,8 @@ uint8_t get_border_color(AwWindow* window) {
 
 uint8_t get_title_bar_color(AwWindow* window) {
     return (window->state.active ?
-            AW_DFLT_ACTIVE_TITLE_BAR_COLOR | 0x80 :
-            AW_DFLT_INACTIVE_TITLE_BAR_COLOR | 0x80);
+            AW_DFLT_ACTIVE_TITLE_BAR_COLOR:
+            AW_DFLT_INACTIVE_TITLE_BAR_COLOR);
 }
 
 uint8_t get_title_color(AwWindow* window) {
@@ -1142,7 +1216,7 @@ void draw_title_bar(AwWindow* window) {
 
 void draw_title(AwWindow* window) {
     int16_t thickness = get_border_thickness(window);
-    vdp_set_graphics_colour(0, get_title_bar_color(window));
+    vdp_set_graphics_colour(0, get_title_bar_color(window) | 0x80 );
     vdp_set_graphics_colour(0, get_title_color(window));
     vdp_move_to(thickness + 2, thickness + 2);
     vdp_write_at_graphics_cursor();
@@ -1158,6 +1232,20 @@ void core_set_client_viewport(AwWindow* window) {
     local_vdp_set_graphics_viewport_via_plot();
 
     vdp_move_to(window->client_rect.left, window->client_rect.top);
+    local_vdp_set_text_viewport_via_plot();
+    local_vdp_set_graphics_origin_via_plot();
+}
+
+void core_set_title_viewport(AwWindow* window) {
+    vdp_context_select(0);
+    vdp_context_reset(0xFF); // all style set
+    vdp_logical_scr_dims(false);
+    AwRect rect = core_get_global_title_rect(window);
+    vdp_move_to(rect.left, rect.top);
+    vdp_move_to(rect.right-1, rect.bottom-1);
+    local_vdp_set_graphics_viewport_via_plot();
+
+    vdp_move_to(rect.left, rect.top);
     local_vdp_set_text_viewport_via_plot();
     local_vdp_set_graphics_origin_via_plot();
 }
@@ -1186,7 +1274,11 @@ void core_paint_window(AwMsg* msg) {
     AwPaintFlags* paint_flags = &paint_msg->flags;
 
     if (paint_flags->window) {
-        core_set_window_viewport(window);
+        if (window->state.minimized) {
+            core_set_title_viewport(window);
+        } else {
+            core_set_window_viewport(window);
+        }
 
         if (paint_flags->border) {
             draw_border(window);
@@ -1385,11 +1477,6 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
             break;
         }
 
-        case Aw_Do_DestroyWindow: {
-            core_destroy_window(msg->do_destroy_window.window);
-            break;
-        }
-
         case Aw_Do_ShowWindow: {
             core_show_window(msg->do_show_window.window,
                 msg->do_show_window.visible);
@@ -1465,6 +1552,27 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
                 }
 
                 case Aw_On_LeftButtonClick: {
+                    switch (msg->on_mouse_event.state.target) {
+                        case AwMtCloseIcon: {
+                            core_close_window(msg->on_mouse_event.window);
+                            break;
+                        }
+                        case AwMtMinimizeIcon: {
+                            core_minimize_window(msg->on_mouse_event.window);
+                            break;
+                        }
+                        case AwMtMaximizeIcon: {
+                            core_maximize_window(msg->on_mouse_event.window);
+                            break;
+                        }
+                        case AwMtRestoreIcon: {
+                            core_restore_window(msg->on_mouse_event.window);
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
                     break;
                 }
 
@@ -1659,7 +1767,6 @@ const AwFcnTable aw_core_functions = {
     core_activate_window,
     core_close_window,
     core_create_window,
-    core_destroy_window,
     core_enable_window,
     core_exit_app,
     core_expand_rect,
@@ -1712,6 +1819,7 @@ const AwFcnTable aw_core_functions = {
     core_resize_window,
     core_set_client_viewport,
     core_set_text,
+    core_set_title_viewport,
     core_set_window_viewport,
     core_show_window,
     core_terminate,

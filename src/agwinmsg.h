@@ -38,7 +38,6 @@ typedef union tag_AwMsg {
     AwDoMsgResizeWindow         do_resize_window;
     AwDoMsgMoveWindow           do_move_window;
     AwDoMsgCommon               do_close_window;
-    AwDoMsgCommon               do_destroy_window;
     AwDoMsgShowWindow           do_show_window;
     AwDoMsgEnableWindow         do_enable_window;
     AwDoMsgActivateWindow       do_activate_window;
@@ -56,7 +55,6 @@ typedef union tag_AwMsg {
     AwOnMsgCommon               on_window_resized;
     AwOnMsgCommon               on_window_moved;
     AwOnMsgCommon               on_window_created;
-    AwOnMsgCommon               on_window_destroyed;
     AwOnMsgCommon               on_window_shown;
     AwOnMsgCommon               on_terminate;
 

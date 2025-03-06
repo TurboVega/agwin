@@ -40,7 +40,6 @@ AwWindow*   core_create_window(AwApplication* app, AwWindow* parent,
                 const AwClass* wclass, AwWindowStyle style, AwWindowState state,
                 int16_t x, int16_t y, uint16_t width, uint16_t height,
                 const char* text, uint32_t extra_data_size);
-void        core_destroy_window(AwWindow* window);
 void        core_enable_window(AwWindow* window, bool enabled);
 void        core_exit_app(AwApplication* app);
 void        core_expand_rect(AwRect* rect, int16_t delta);
@@ -93,6 +92,7 @@ bool        core_rect_contains_point(const AwRect* rect, int16_t x, int16_t y);
 void        core_resize_window(AwWindow* window, int16_t width, int16_t height);
 void        core_set_client_viewport(AwWindow* window);
 void        core_set_text(AwWindow* window, const char* text);
+void        core_set_title_viewport(AwWindow* window);
 void        core_set_window_viewport(AwWindow* window);
 void        core_show_window(AwWindow* window, bool visible);
 void        core_terminate();
@@ -105,7 +105,6 @@ typedef AwWindow*   (*aw_core_create_window)(AwApplication* app, AwWindow* paren
                 const AwClass* wclass, AwWindowStyle style, AwWindowState state,
                 int16_t x, int16_t y, uint16_t width, uint16_t height,
                 const char* text, uint32_t extra_data_size);
-typedef void        (*aw_core_destroy_window)(AwWindow* window);
 typedef void        (*aw_core_enable_window)(AwWindow* window, bool enabled);
 typedef void        (*aw_core_exit_app)(AwApplication* app);
 typedef void        (*aw_core_expand_rect)(AwRect* rect, int16_t delta);
@@ -158,6 +157,7 @@ typedef bool        (*aw_core_rect_contains_point)(const AwRect* rect, int16_t x
 typedef void        (*aw_core_resize_window)(AwWindow* window, int16_t width, int16_t height);
 typedef void        (*aw_core_set_client_viewport)(AwWindow* window);
 typedef void        (*aw_core_set_text)(AwWindow* window, const char* text);
+typedef void        (*aw_core_set_title_viewport)(AwWindow* window);
 typedef void        (*aw_core_set_window_viewport)(AwWindow* window);
 typedef void        (*aw_core_show_window)(AwWindow* window, bool visible);
 typedef void        (*aw_core_terminate)();
@@ -166,7 +166,6 @@ typedef struct tag_AwFcnTable {
     aw_core_activate_window             activate_window;
     aw_core_close_window                close_window;
     aw_core_create_window               create_window;
-    aw_core_destroy_window              destroy_window;
     aw_core_enable_window               enable_window;
     aw_core_exit_app                    exit_app;
     aw_core_expand_rect                 expand_rect;
@@ -219,6 +218,7 @@ typedef struct tag_AwFcnTable {
     aw_core_resize_window               resize_window;
     aw_core_set_client_viewport         set_client_viewport;
     aw_core_set_text                    set_text;
+    aw_core_set_title_viewport          set_title_viewport;
     aw_core_set_window_viewport         set_window_viewport;
     aw_core_show_window                 show_window;
     aw_core_terminate                   terminate;

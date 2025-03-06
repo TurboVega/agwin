@@ -105,16 +105,16 @@ const uint8_t icon_maximize[AW_ICON_HEIGHT][AW_ICON_WIDTH] = {
 };
 
 const uint8_t icon_restore[AW_ICON_HEIGHT][AW_ICON_WIDTH] = {
-    { _,_,_,_,_,_,_,_,_,_ },
     { K,K,K,K,K,K,K,_,_,_ },
     { K,w,w,w,w,w,K,_,_,_ },
-    { K,w,K,K,K,w,K,_,_,_ },
-    { K,w,K,w,w,w,w,w,w,_ },
-    { K,w,K,w,K,K,K,K,w,_ },
-    { K,w,w,w,K,K,K,K,w,_ },
-    { _,_,_,w,K,K,K,K,w,_ },
-    { _,_,_,w,K,K,K,K,w,_ },
-    { _,_,_,w,w,w,w,w,w,_ },
+    { K,w,K,K,K,w,K,K,K,K },
+    { K,w,K,w,w,w,w,w,w,K },
+    { K,w,K,w,K,K,K,K,w,K },
+    { K,w,w,w,K,K,K,K,w,K },
+    { K,K,K,w,K,K,K,K,w,K },
+    { _,_,K,w,K,K,K,K,w,K },
+    { _,_,K,w,w,w,w,w,w,K },
+    { _,_,K,K,K,K,K,K,K,K },
 };
 
 void register_icon(uint16_t icon_id, const uint8_t* pixels) {

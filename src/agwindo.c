@@ -50,13 +50,6 @@ void aw_close_window(AwWindow* window) {
     core_post_message(&msg);
 }
 
-void aw_destroy_window(AwWindow* window) {
-    AwMsg msg;
-    msg.do_destroy_window.window = window;
-    msg.do_destroy_window.msg_type = Aw_Do_DestroyWindow;
-    core_post_message(&msg);
-}
-
 void aw_show_window(AwWindow* window, bool visible) {
     AwMsg msg;
     msg.do_show_window.window = window;

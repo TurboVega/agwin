@@ -121,8 +121,6 @@ void aw_move_window(AwWindow* window, int16_t x, int16_t y);
 
 void aw_close_window(AwWindow* window);
 
-void aw_destroy_window(AwWindow* window);
-
 void aw_show_window(AwWindow* window, bool visible);
 
 void aw_enable_window(AwWindow* window, bool enabled);
