@@ -91,7 +91,7 @@ int32_t aw_message_box_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt)
             break;
         }
 
-        case Aw_Do_Exit: {
+        case Aw_Do_UnloadApp: {
             break;
         }
 

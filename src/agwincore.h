@@ -41,7 +41,6 @@ AwWindow*   core_create_window(AwApplication* app, AwWindow* parent,
                 int16_t x, int16_t y, uint16_t width, uint16_t height,
                 const char* text, uint32_t extra_data_size);
 void        core_enable_window(AwWindow* window, bool enabled);
-void        core_exit_app(AwApplication* app);
 void        core_expand_rect(AwRect* rect, int16_t delta);
 void        core_expand_rect_height(AwRect* rect, int16_t delta);
 void        core_expand_rect_width(AwRect* rect, int16_t delta);
@@ -96,6 +95,7 @@ void        core_set_title_viewport(AwWindow* window);
 void        core_set_window_viewport(AwWindow* window);
 void        core_show_window(AwWindow* window, bool visible);
 void        core_terminate();
+void        core_unload_app(AwApplication* app);
 
 #endif // AGWIN_APP
 
@@ -106,7 +106,6 @@ typedef AwWindow*   (*aw_core_create_window)(AwApplication* app, AwWindow* paren
                 int16_t x, int16_t y, uint16_t width, uint16_t height,
                 const char* text, uint32_t extra_data_size);
 typedef void        (*aw_core_enable_window)(AwWindow* window, bool enabled);
-typedef void        (*aw_core_exit_app)(AwApplication* app);
 typedef void        (*aw_core_expand_rect)(AwRect* rect, int16_t delta);
 typedef void        (*aw_core_expand_rect_height)(AwRect* rect, int16_t delta);
 typedef void        (*aw_core_expand_rect_width)(AwRect* rect, int16_t delta);
@@ -161,13 +160,13 @@ typedef void        (*aw_core_set_title_viewport)(AwWindow* window);
 typedef void        (*aw_core_set_window_viewport)(AwWindow* window);
 typedef void        (*aw_core_show_window)(AwWindow* window, bool visible);
 typedef void        (*aw_core_terminate)();
+typedef void        (*aw_core_unload_app)(AwApplication* app);
 
 typedef struct tag_AwFcnTable {
     aw_core_activate_window             activate_window;
     aw_core_close_window                close_window;
     aw_core_create_window               create_window;
     aw_core_enable_window               enable_window;
-    aw_core_exit_app                    exit_app;
     aw_core_expand_rect                 expand_rect;
     aw_core_expand_rect_height          expand_rect_height;
     aw_core_expand_rect_width           expand_rect_width;
@@ -222,9 +221,11 @@ typedef struct tag_AwFcnTable {
     aw_core_set_window_viewport         set_window_viewport;
     aw_core_show_window                 show_window;
     aw_core_terminate                   terminate;
+    aw_core_unload_app                  unload_app;
 } AwFcnTable;
 
 typedef int (*AwStart)();
+typedef int (*AwStop)();
 
 typedef struct tag_AwAppHeader {
     uint8_t         jump_start[4];      // points to C initialization code
@@ -235,6 +236,7 @@ typedef struct tag_AwAppHeader {
     uint8_t*        load_address;       // where to load the application
     AwApplication*  app;                // points to the application structure
     const AwFcnTable* core_functions;   // points to the core function table
+    AwStop          stop;               // points to cleanup code to terminate app
 } AwAppHeader;
 
 #pragma pack(pop)

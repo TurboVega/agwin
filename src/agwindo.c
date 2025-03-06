@@ -104,11 +104,11 @@ void aw_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
     core_post_message(&msg);
 }
 
-void aw_exit(AwApplication* app) {
+void aw_unload_app(AwApplication* app) {
     AwMsg msg;
-    msg.do_exit.window = NULL;
-    msg.do_exit.msg_type = Aw_Do_Exit;
-    msg.do_exit.app = app;
+    msg.do_unload_app.window = NULL;
+    msg.do_unload_app.msg_type = Aw_Do_UnloadApp;
+    msg.do_unload_app.app = app;
     core_post_message(&msg);
 }
 

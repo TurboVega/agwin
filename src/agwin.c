@@ -57,6 +57,7 @@ void init_my_app() {
     style.menu_icon = 1;
     style.sizeable = 1;
     style.moveable = 1;
+    style.primary = 1;
 
     AwWindowState state;
     state.active = 0;

@@ -102,7 +102,8 @@ typedef struct tag_AwWindowStyle {
     uint16_t        menu_icon: 1;   // whether the window has the menu icon in the title bar
     uint16_t        sizeable : 1;   // whether the window can be resized
     uint16_t        moveable : 1;   // whether the window can be moved
-    uint16_t        reserved : 6;   // reserved
+    uint16_t        primary : 1;    // whether the window is the primary window of the app
+    uint16_t        reserved : 5;   // reserved
 } AwWindowStyle;
 
 typedef struct tag_AwWindowState {

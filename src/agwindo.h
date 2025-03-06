@@ -48,7 +48,7 @@ typedef enum : uint8_t {
     Aw_Do_InvalidateClientRect,
     Aw_Do_PaintWindow,
     Aw_Do_Terminate,
-    Aw_Do_Exit,
+    Aw_Do_UnloadApp,
 } AwDoMsgType;
 
 typedef struct tag_AwDoMsgCommon {
@@ -109,11 +109,11 @@ typedef struct tag_AwDoMsgInvalidateClientRect {
     AwRect          rect;
 } AwDoMsgInvalidateClientRect;
 
-typedef struct tag_AwDoMsgExit {
+typedef struct tag_AwDoMsgUnloadApp {
     AwWindow*       window;
     AwDoMsgType     msg_type;
     AwApplication*  app;
-} AwDoMsgExit;
+} AwDoMsgUnloadApp;
 
 void aw_resize_window(AwWindow* window, int16_t width, int16_t height);
 

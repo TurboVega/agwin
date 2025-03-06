@@ -47,6 +47,7 @@ extern "C" {
 #define AW_SCREEN_WIDTH         640
 #define AW_SCREEN_HEIGHT        480
 #define AW_MESSAGE_QUEUE_SIZE   128
+#define AW_APP_LIST_SIZE        16
 
 #define PLOT_MODE_FILLED_RECT   0x65
 #define FONT_SIZE               8
@@ -55,10 +56,16 @@ extern "C" {
 #define MOUSE_DBL_CLICK_TIME    40      // maximum centiseconds to be a double-click
 #define CORNER_CLOSENESS        4       // distance from physical corner where we assume wall
 
-AwWindow* root_window;
-AwWindow* active_window;
-AwRect    dirty_area;
+typedef struct tag_AwLoadedApp {
+    AwApplication*  app;
+    AwAppHeader*    hdr;
+} AwLoadedApp;
 
+AwWindow*   root_window;
+AwWindow*   active_window;
+AwRect      dirty_area;
+AwLoadedApp app_list[AW_APP_LIST_SIZE];
+uint8_t     app_count;
 AwMsg       message_queue[AW_MESSAGE_QUEUE_SIZE];
 uint8_t     msg_count;
 uint8_t     msg_read_index;
@@ -1077,7 +1084,33 @@ void core_show_window(AwWindow* window, bool visible) {
     }
 }
 
+void close_related_windows(AwWindow* window, AwApplication* app) {
+    while (window) {
+        close_related_windows(window->first_child, app);
+        AwWindow* next_sibling = window->next_sibling;
+        if (window->app == app) {
+            window->style.primary = 0; // prevent issues
+            core_close_window(window);
+        }
+        window = next_sibling;
+    }
+}
+
 void core_close_window(AwWindow* window) {
+    if (!window) {
+        return;
+    }
+
+    uint8_t primary = window->style.primary;
+    AwApplication* app = window->app;
+    AwWindow* child = window->first_child;
+    while (child) {
+        child->style.primary = 0; // avoid issues
+        AwWindow* next_sibling = child->next_sibling;
+        core_close_window(child);
+        child = next_sibling;
+    }
+
     core_invalidate_window(window);
     core_activate_window(window, false);
     core_unlink_child(window);
@@ -1088,6 +1121,11 @@ void core_close_window(AwWindow* window) {
         free(window->extra_data);
     }
     free(window);
+
+    if (primary) {
+        close_related_windows(root_window, app);
+        core_unload_app(app);
+    }
 }
 
 int32_t core_process_message(AwMsg* msg) {
@@ -1107,13 +1145,22 @@ int32_t core_process_message(AwMsg* msg) {
     return 0;
 }
 
-void core_exit_app(AwApplication* app) {
-    printf("exit %p\r\n", app);
+void core_terminate() {
 }
 
-void core_terminate() {
-    printf("terminate\r\n");
+void core_unload_app(AwApplication* app) {
+    for (uint8_t a = 0; a < AW_APP_LIST_SIZE; a++) {
+        if (app_list[a].app == app) {
+            AwLoadedApp* loaded_app = &app_list[a];
+            (*loaded_app->hdr->stop)();
+            loaded_app->app = NULL;
+            loaded_app->hdr = NULL;
+            app_count--;
+            break;
+        }
+    }
 }
+
 
 void core_set_paint_msg(AwMsg* msg, AwWindow* window,
                 bool entire, bool title, bool client) {
@@ -1556,8 +1603,8 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
             break;
         }
 
-        case Aw_Do_Exit: {
-            core_exit_app(msg->do_exit.app);
+        case Aw_Do_UnloadApp: {
+            core_unload_app(msg->do_unload_app.app);
             break;
         }
 
@@ -1803,7 +1850,6 @@ const AwFcnTable aw_core_functions = {
     core_close_window,
     core_create_window,
     core_enable_window,
-    core_exit_app,
     core_expand_rect,
     core_expand_rect_height,
     core_expand_rect_width,
@@ -1858,12 +1904,16 @@ const AwFcnTable aw_core_functions = {
     core_set_window_viewport,
     core_show_window,
     core_terminate,
+    core_unload_app
 };
 
 int core_load_app(const char* path) {
     AwAppHeader app_header;
 	FILE *fp;
     int rc = -1;
+    if (app_count >= AW_APP_LIST_SIZE) {
+        return rc;
+    }
 
     if ((fp = fopen(path, "rb"))) {
         size_t byte_cnt = fread((void*)&app_header, 1, sizeof(app_header), fp);
@@ -1879,6 +1929,15 @@ int core_load_app(const char* path) {
                 AwAppHeader* hdr = (AwAppHeader*) app_header.load_address;
                 hdr->core_functions = &aw_core_functions;
                 AwStart start = (AwStart) app_header.load_address;
+                for (uint8_t a = 0; a < AW_APP_LIST_SIZE; a++) {
+                    if (!app_list[a].app) {
+                        AwLoadedApp* loaded_app = &app_list[a];
+                        loaded_app->app = hdr->app;
+                        loaded_app->hdr = hdr;
+                        app_count++;
+                        break;
+                    }
+                }
                 rc = (*start)();
             }
         }

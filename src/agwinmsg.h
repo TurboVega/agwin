@@ -47,7 +47,7 @@ typedef union tag_AwMsg {
     AwDoMsgInvalidateClientRect do_invalidate_client_rect;
     AwDoMsgPaintWindow          do_paint_window;
     AwDoMsgCommon               do_terminate;
-    AwDoMsgExit                 do_exit;
+    AwDoMsgUnloadApp            do_unload_app;
 
     AwOnMsgCommon               on_common;
     AwOnMsgKeyEvent             on_key_event;
