@@ -55,7 +55,7 @@ extern "C" {
 #define MOUSE_LONG_CLICK_TIME   30      // minimum centiseconds to be a long click
 #define MOUSE_DBL_CLICK_TIME    40      // maximum centiseconds to be a double-click
 #define CORNER_CLOSENESS        4       // distance from physical corner where we assume wall
-#define RTC_CHECK_TICKS         30      // time between requests for RTC data
+#define RTC_CHECK_TICKS         90      // time between requests for RTC data
 
 typedef struct tag_AwLoadedApp {
     AwApplication*  app;
@@ -155,6 +155,14 @@ void update_rtc_state() {
         msg.on_real_time_clock_event.window = NULL;
         msg.on_real_time_clock_event.msg_type = Aw_On_RealTimeClockEvent;
         msg.on_real_time_clock_event.rtc.rtc_data = sys_var->rtc.rtc_data;
+        /*msg.on_real_time_clock_event.rtc.year=45;
+        msg.on_real_time_clock_event.rtc.month=3;
+        msg.on_real_time_clock_event.rtc.day=7;
+        msg.on_real_time_clock_event.rtc.hour=9;
+        msg.on_real_time_clock_event.rtc.minute=34;
+        msg.on_real_time_clock_event.rtc.second=16;
+        msg.on_real_time_clock_event.rtc.day_of_week=0;
+        msg.on_real_time_clock_event.rtc.day_of_year=0;*/
         sys_var->vdp_pflags &= ~vdp_pflag_rtc;
         emit_rtc_messages(root_window, &msg);
     }
@@ -1805,7 +1813,7 @@ void core_initialize() {
     running = true;
 }
 
-void paint_windows(AwWindow* window) {
+void paint_windows(AwWindow* window, AwRect* painted) {
     if (!window->state.visible) {
         return;
     }
@@ -1842,7 +1850,7 @@ void paint_windows(AwWindow* window) {
     if (!window->state.minimized) {
         window = window->first_child;
         while (window) {
-            paint_windows(window);
+            paint_windows(window, painted);
             window = window->next_sibling;
         }
     }
@@ -1862,16 +1870,17 @@ void core_message_loop() {
             AwSize size = core_get_rect_size(&dirty_area);
             if (size.width || size.height) {
                 // Something needs to be painted
-                paint_windows(root_window);
+                AwRect painted = core_get_empty_rect();
+                paint_windows(root_window, &painted);
                 dirty_area = core_get_empty_rect();
             } else {
+                update_rtc_state();
                 uint32_t now = (uint32_t) clock();
                 time_t ticks = now - last_rtc_request;
                 if (ticks >= RTC_CHECK_TICKS) {
                     last_rtc_request = now;
                     vdp_request_rtc(0);
                 }
-                update_rtc_state();
                 vdp_update_key_state();
                 update_mouse_state();
             }
