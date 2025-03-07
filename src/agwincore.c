@@ -1146,6 +1146,7 @@ int32_t core_process_message(AwMsg* msg) {
 }
 
 void core_terminate() {
+    running = false;
 }
 
 void core_unload_app(AwApplication* app) {
@@ -1160,7 +1161,6 @@ void core_unload_app(AwApplication* app) {
         }
     }
 }
-
 
 void core_set_paint_msg(AwMsg* msg, AwWindow* window,
                 bool entire, bool title, bool client) {
@@ -1854,6 +1854,7 @@ const AwFcnTable aw_core_functions = {
     core_expand_rect_height,
     core_expand_rect_width,
     core_expand_rect_unevenly,
+    core_free,
     core_get_active_window,
     core_get_client_size,
     core_get_close_icon_rect,
@@ -1890,12 +1891,14 @@ const AwFcnTable aw_core_functions = {
     core_invalidate_window,
     core_invalidate_window_rect,
     core_load_app,
+    core_malloc,
     core_message_loop,
     core_move_window,
     core_offset_rect,
     core_paint_window,
     core_post_message,
     core_process_message,
+    core_realloc,
     core_rect_contains_point,
     core_resize_window,
     core_set_client_viewport,
@@ -1944,6 +1947,18 @@ int core_load_app(const char* path) {
         fclose(fp);
     }
     return rc;
+}
+
+void* core_malloc(size_t size) {
+    return malloc(size);
+}
+
+void* core_realloc(void* ptr, size_t size) {
+    return realloc(ptr, size); 
+}
+
+void core_free(void* ptr) {
+    free(ptr);
 }
 
 #ifdef __CPLUSPLUS

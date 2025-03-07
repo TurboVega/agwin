@@ -115,30 +115,6 @@ typedef struct tag_AwDoMsgUnloadApp {
     AwApplication*  app;
 } AwDoMsgUnloadApp;
 
-void aw_resize_window(AwWindow* window, int16_t width, int16_t height);
-
-void aw_move_window(AwWindow* window, int16_t x, int16_t y);
-
-void aw_close_window(AwWindow* window);
-
-void aw_show_window(AwWindow* window, bool visible);
-
-void aw_enable_window(AwWindow* window, bool enabled);
-
-void aw_activate_window(AwWindow* window, bool active);
-
-void aw_invalidate_window(AwWindow* window);
-
-void aw_invalidate_window_rect(AwWindow* window, const AwRect* rect);
-
-void aw_invalidate_client(AwWindow* window);
-
-void aw_invalidate_client_rect(AwWindow* window, const AwRect* rect);
-
-void aw_exit(AwApplication* app);
-
-void aw_terminate();
-
 #ifdef __CPLUSPLUS
 } // extern "C"
 #endif
