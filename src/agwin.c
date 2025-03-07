@@ -58,6 +58,7 @@ void init_my_app() {
     style.sizeable = 1;
     style.moveable = 1;
     style.primary = 1;
+    style.need_rtc = 0;
 
     AwWindowState state;
     state.active = 0;

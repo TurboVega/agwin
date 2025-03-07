@@ -55,6 +55,7 @@ extern "C" {
 #define MOUSE_LONG_CLICK_TIME   30      // minimum centiseconds to be a long click
 #define MOUSE_DBL_CLICK_TIME    40      // maximum centiseconds to be a double-click
 #define CORNER_CLOSENESS        4       // distance from physical corner where we assume wall
+#define RTC_CHECK_TICKS         30      // time between requests for RTC data
 
 typedef struct tag_AwLoadedApp {
     AwApplication*  app;
@@ -73,6 +74,7 @@ uint8_t     msg_write_index;
 bool        running;
 uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
 AwMouseState last_mouse_state;
+uint32_t    last_rtc_request;
 uint32_t    last_left_btn_up;
 uint32_t    last_middle_btn_up;
 uint32_t    last_right_btn_up;
@@ -1863,6 +1865,13 @@ void core_message_loop() {
                 paint_windows(root_window);
                 dirty_area = core_get_empty_rect();
             } else {
+                uint32_t now = (uint32_t) clock();
+                time_t ticks = now - last_rtc_request;
+                if (ticks >= RTC_CHECK_TICKS) {
+                    last_rtc_request = now;
+                    vdp_request_rtc(0);
+                }
+                update_rtc_state();
                 vdp_update_key_state();
                 update_mouse_state();
             }
