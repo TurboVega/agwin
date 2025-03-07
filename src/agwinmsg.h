@@ -57,7 +57,7 @@ typedef union tag_AwMsg {
     AwOnMsgCommon               on_window_created;
     AwOnMsgCommon               on_window_shown;
     AwOnMsgCommon               on_terminate;
-
+    AwOnRealTimeClockEvent      on_real_time_clock_event;
 } AwMsg;
 
 #pragma pack(pop)

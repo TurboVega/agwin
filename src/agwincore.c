@@ -136,6 +136,28 @@ void local_vdp_set_graphics_viewport_via_plot( void ) { VDP_PUTS( vdu_set_graphi
 void local_vdp_set_graphics_origin_via_plot( void ) { VDP_PUTS( vdu_set_graphics_origin_via_plot ); }
 void local_vdp_move_graphics_origin_and_viewport( void ) { VDP_PUTS( vdu_move_graphics_origin_and_viewport ); }
 
+void emit_rtc_messages(AwWindow* window, AwMsg* msg) {
+    while (window) {
+        if (window->style.need_rtc) {
+            msg->on_real_time_clock_event.window = window;
+            core_post_message(msg);
+        }
+        emit_rtc_messages(window->first_child, msg);
+        window = window->next_sibling;
+    }
+}
+
+void update_rtc_state() {
+    if (sys_var->vdp_pflags & vdp_pflag_rtc) {
+        AwMsg msg;
+        msg.on_real_time_clock_event.window = NULL;
+        msg.on_real_time_clock_event.msg_type = Aw_On_RealTimeClockEvent;
+        msg.on_real_time_clock_event.rtc.rtc_data = sys_var->rtc.rtc_data;
+        sys_var->vdp_pflags &= ~vdp_pflag_rtc;
+        emit_rtc_messages(root_window, &msg);
+    }
+}
+
 void update_mouse_state() {
     if (sys_var->vdp_pflags & vdp_pflag_mouse) {
         uint32_t now = (uint32_t) clock();
@@ -1742,6 +1764,10 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
                 }
             
                 case Aw_On_Terminate: {
+                    break;
+                }
+
+                case Aw_On_RealTimeClockEvent: {
                     break;
                 }
 

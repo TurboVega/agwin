@@ -103,7 +103,8 @@ typedef struct tag_AwWindowStyle {
     uint16_t        sizeable : 1;   // whether the window can be resized
     uint16_t        moveable : 1;   // whether the window can be moved
     uint16_t        primary : 1;    // whether the window is the primary window of the app
-    uint16_t        reserved : 5;   // reserved
+    uint16_t        need_rtc : 1;   // whether the window needs real time clock events
+    uint16_t        reserved : 4;   // reserved
 } AwWindowStyle;
 
 typedef struct tag_AwWindowState {
@@ -158,6 +159,21 @@ typedef union tag_AwKeyState {
         uint8_t     down;           // whether the key is currently pressed
     };
 } AwKeyState;
+
+// This is a copy of the AgDev RTC_DATA
+typedef union tag_AwRtcData {
+    uint64_t rtc_data;
+    struct {
+        uint8_t year;               // offset since 1980
+        uint8_t month;              // (0-11)
+        uint8_t day;                // (1-31)
+        uint8_t day_of_year;        // (0-365) - *** but doesn't fit in 1 byte - wraps round ***
+        uint8_t day_of_week;        // (0-6)
+        uint8_t hour;               // (0-23)
+        uint8_t minute;             // (0-59)
+        uint8_t second;             // (0-59)
+    };
+} AwRtcData;
 
 // These come from the Console8 VDP document:
 // https://agonconsole8.github.io/agon-docs/vdp/System-Commands/

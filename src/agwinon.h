@@ -61,6 +61,7 @@ typedef enum : uint8_t {
     Aw_On_WindowEnabled,
     Aw_On_WindowActivated,
     Aw_On_Terminate,
+    Aw_On_RealTimeClockEvent,
 } AwOnMsgType;
 
 typedef struct tag_AwOnMsgCommon {
@@ -79,6 +80,12 @@ typedef struct tag_AwOnMsgMouseEvent {
     AwOnMsgType     msg_type;
     AwMouseState    state;
 } AwOnMsgMouseEvent;
+
+typedef struct tag_AwOnRealTimeClockEvent {
+    AwWindow*       window;
+    AwOnMsgType     msg_type;
+    AwRtcData       rtc;
+} AwOnRealTimeClockEvent;
 
 #ifdef __CPLUSPLUS
 } // extern "C"
