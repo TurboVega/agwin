@@ -108,16 +108,15 @@ void key_event_handler(KEY_EVENT key_event) {
 AwWindow* core_find_window_at_point(AwWindow* window, uint16_t x, uint16_t y) {
     if (window->state.visible && window->state.enabled &&
         core_rect_contains_point(&window->window_rect, x, y)) {
-        AwWindow* some_win = window;
         AwWindow* child = window->first_child;
         while (child) {
             AwWindow* win = core_find_window_at_point(child, x, y);
             if (win) {
-                some_win = win;
+                return win;
             }
             child = child->next_sibling;
         }
-        return some_win;
+        return window;
     }
     return NULL;
 }
@@ -155,14 +154,6 @@ void update_rtc_state() {
         msg.on_real_time_clock_event.window = NULL;
         msg.on_real_time_clock_event.msg_type = Aw_On_RealTimeClockEvent;
         msg.on_real_time_clock_event.rtc.rtc_data = sys_var->rtc.rtc_data;
-        /*msg.on_real_time_clock_event.rtc.year=45;
-        msg.on_real_time_clock_event.rtc.month=3;
-        msg.on_real_time_clock_event.rtc.day=7;
-        msg.on_real_time_clock_event.rtc.hour=9;
-        msg.on_real_time_clock_event.rtc.minute=34;
-        msg.on_real_time_clock_event.rtc.second=16;
-        msg.on_real_time_clock_event.rtc.day_of_week=0;
-        msg.on_real_time_clock_event.rtc.day_of_year=0;*/
         sys_var->vdp_pflags &= ~vdp_pflag_rtc;
         emit_rtc_messages(root_window, &msg);
     }
@@ -748,15 +739,18 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
     if (parent) {
         // Non-root window
         if (parent->first_child) {
-            parent->last_child->next_sibling = child;
-            child->prev_sibling = parent->last_child;
+            parent->first_child->prev_sibling = child;
+            child->next_sibling = parent->first_child;
         } else {
             parent->first_child = child;
-            child->prev_sibling = NULL;
+            parent->last_child = child;
+            child->next_sibling = NULL;
         }
-        parent->last_child = child;
+    } else {
+        // Root window
         child->next_sibling = NULL;
     }
+    child->prev_sibling = NULL;
     child->parent = parent;
 }
 
@@ -1818,6 +1812,20 @@ void paint_windows(AwWindow* window, AwRect* painted) {
         return;
     }
 
+    if (!window->state.minimized) {
+        AwWindow* child = window->first_child;
+        while (child) {
+            paint_windows(child, painted);
+            if (painted->left == dirty_area.left &&
+                painted->top == dirty_area.top &&
+                painted->right == dirty_area.right &&
+                painted->bottom == dirty_area.bottom) {
+                return;
+            }
+            child = child->next_sibling;
+        }
+    }
+
     AwMsg msg;
 
     // Part of window may be dirty
@@ -1847,13 +1855,7 @@ void paint_windows(AwWindow* window, AwRect* painted) {
         core_process_message(&msg);
     }
 
-    if (!window->state.minimized) {
-        window = window->first_child;
-        while (window) {
-            paint_windows(window, painted);
-            window = window->next_sibling;
-        }
-    }
+    *painted = core_get_union_rect(painted, &msg.do_paint_window.paint_rect);
 }
 
 void core_message_loop() {
