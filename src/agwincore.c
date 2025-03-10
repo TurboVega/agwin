@@ -757,19 +757,19 @@ void core_resize_window(AwWindow* window, int16_t width, int16_t height) {
 void core_link_child(AwWindow* parent, AwWindow* child) {
     if (parent) {
         // Non-root window
-        if (parent->first_child) {
-            parent->first_child->prev_sibling = child;
-            child->next_sibling = parent->first_child;
+        if (parent->last_child) {
+            child->prev_sibling = parent->last_child;
+            parent->last_child->next_sibling = child;
         } else {
-            parent->last_child = child;
-            child->next_sibling = NULL;
+            parent->first_child = child;
+            child->prev_sibling = NULL;
         }
-        parent->first_child = child;
+        parent->last_child = child;
     } else {
         // Root window
-        child->next_sibling = NULL;
+        child->prev_sibling = NULL;
     }
-    child->prev_sibling = NULL;
+    child->next_sibling = NULL;
     child->first_child = NULL;
     child->last_child = NULL;
     child->parent = parent;
