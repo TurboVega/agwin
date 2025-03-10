@@ -66,9 +66,9 @@ void init_my_app() {
     state.selected = 0;
     state.visible = 1;
 
-    for (uint16_t row = 0; row < 4; row++) {
+    for (uint16_t row = 2; row < 3; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
-        for (uint16_t col = 0; col < 4; col++) {
+        for (uint16_t col = 2; col < 3; col++) {
             uint16_t x = col * 155 + 5; // 5, 160, 315, 465
             uint16_t i = row * 4 + col;
             char text[10];

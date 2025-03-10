@@ -65,6 +65,12 @@ typedef struct tag_AwLoadedApp {
 AwWindow*   root_window;
 AwWindow*   active_window;
 AwRect      dirty_area;
+AwRect      pa1;
+AwRect      pa2;
+AwRect      pa3;
+AwRect      pa4;
+char        hits[600];
+uint16_t    ihit;
 AwLoadedApp app_list[AW_APP_LIST_SIZE];
 uint8_t     app_count;
 AwMsg       message_queue[AW_MESSAGE_QUEUE_SIZE];
@@ -662,11 +668,18 @@ void add_more_dirt(AwRect* rect) {
 }
 
 void core_invalidate_window(AwWindow* window) {
-    add_more_dirt(&window->window_rect);
+    if (window->state.minimized) {
+        AwRect rect = core_get_global_title_rect(window);
+        add_more_dirt(&rect);
+    } else {
+        add_more_dirt(&window->window_rect);
+    }
 }
 
 void core_invalidate_client(AwWindow* window) {
-    add_more_dirt(&window->client_rect);
+    if (!window->state.minimized) {
+        add_more_dirt(&window->client_rect);
+    }
 }
 
 void core_post_message(AwMsg* msg) {
@@ -757,6 +770,7 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
             parent->last_child = child;
             child->next_sibling = NULL;
         }
+        parent->first_child = child;
     } else {
         // Root window
         child->next_sibling = NULL;
@@ -765,7 +779,6 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
     child->first_child = NULL;
     child->last_child = NULL;
     child->parent = parent;
-    parent->first_child = child;
 }
 
 void core_unlink_child(AwWindow* child) {
@@ -1279,8 +1292,22 @@ void draw_background(AwWindow* window) {
     vdp_clear_graphics();
 }
 
+void hit(int line) {
+    if (ihit+6 <= sizeof(hits)) {
+        sprintf(&hits[ihit], " %i", line);
+        ihit += strlen(&hits[ihit]);
+    }
+}
+
 void draw_foreground(AwWindow* window) {
     (void)window; // unused
+    printf("%hu %hu %hu %hu\n", dirty_area.left, dirty_area.top, dirty_area.right, dirty_area.bottom);
+    printf("%hu %hu %hu %hu\n", window->client_rect.left, window->client_rect.top, window->client_rect.right, window->client_rect.bottom);
+    printf("1: %hu %hu %hu %hu\n", pa1.left, pa1.top, pa1.right, pa1.bottom);
+    printf("2: %hu %hu %hu %hu\n", pa2.left, pa2.top, pa2.right, pa2.bottom);
+    printf("3: %hu %hu %hu %hu\n", pa3.left, pa3.top, pa3.right, pa3.bottom);
+    printf("4: %hu %hu %hu %hu\n", pa4.left, pa4.top, pa4.right, pa4.bottom);
+    printf("%s", hits);
 }
 
 uint8_t get_border_color(AwWindow* window) {
@@ -1823,67 +1850,129 @@ void core_initialize() {
     running = true;
 }
 
-void paint_windows(AwWindow* window, AwRect* painted) {
+void paint_windows(AwWindow* window, AwRect* painted, bool can_paint) {
+hit(__LINE__);
+strcpy(&hits[ihit],window->text);ihit+=strlen(window->text);
     if (!window->state.visible) {
         return;
     }
 
-    AwMsg msg;
-    msg.do_paint_window.paint_rect = core_get_empty_rect();
-    bool send1 = false;
-    bool send2 = false;
-    bool send3 = false;
-
-    // Part of window may be dirty
-    AwRect title_rect = core_get_global_title_rect(window);
-    AwRect dirty_title_rect = core_get_intersect_rect(&dirty_area, &title_rect);
-    AwSize dirty_title_size = core_get_rect_size(&title_rect);
-
-    AwRect client_rect = core_get_global_client_rect(window);
-    AwRect dirty_client_rect = core_get_intersect_rect(&dirty_area, &client_rect);
-    AwSize dirty_client_size = core_get_rect_size(&client_rect);
-
-    AwRect window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
-    AwRect dirty_window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
-    AwSize dirty_window_size = core_get_rect_size(&window_rect);
-
-    if (dirty_window_size.width || (dirty_title_size.width && dirty_client_size.width)) {
-        send1 = true;
-    } else if (dirty_title_size.width) {
-        send2 = true;
-    } else if (dirty_client_size.width) {
-        send3 = true;
-    }
-
-    if (send1) {
-        msg.do_paint_window.paint_rect = dirty_window_rect;
-        core_set_paint_msg(&msg, window, true, false, false);
-        core_process_message(&msg);
-    } else if (send2) {
-        msg.do_paint_window.paint_rect = dirty_title_rect;
-        core_set_paint_msg(&msg, window, false, true, false);
-        core_process_message(&msg);
-    } else if (send3) {
-        msg.do_paint_window.paint_rect = dirty_client_rect;
-        core_set_paint_msg(&msg, window, false, false, true);
-        core_process_message(&msg);
-    }
-
+hit(__LINE__);
+    // See whether the dirty area becomes covered by this window's children
+    bool covered_by_kids = false;
     if (!window->state.minimized) {
+hit(__LINE__);
+        AwRect rect = core_get_empty_rect();
         AwWindow* child = window->first_child;
         while (child) {
-            paint_windows(child, painted);
-            if (painted->left == dirty_area.left &&
-                painted->top == dirty_area.top &&
-                painted->right == dirty_area.right &&
-                painted->bottom == dirty_area.bottom) {
-                return;
+hit(__LINE__);
+            paint_windows(child, &rect, false);
+            if (pa4.right - pa4.left == 0) pa4 = rect;
+            if (rect.left == dirty_area.left &&
+                rect.top == dirty_area.top &&
+                rect.right == dirty_area.right &&
+                rect.bottom == dirty_area.bottom) {
+hit(__LINE__);
+                covered_by_kids = true;
             }
+hit(__LINE__);
             child = child->next_sibling;
         }
     }
 
-    *painted = core_get_union_rect(painted, &msg.do_paint_window.paint_rect);
+hit(__LINE__);
+    // Determine the dirty area for this window, if any
+    AwMsg msg;
+    msg.do_paint_window.paint_rect = core_get_empty_rect();
+
+    AwRect title_rect = core_get_global_title_rect(window);
+    AwRect dirty_title_rect = core_get_intersect_rect(&dirty_area, &title_rect);
+    AwSize dirty_title_size = core_get_rect_size(&dirty_title_rect);
+
+    AwRect client_rect = core_get_global_client_rect(window);
+    AwRect dirty_client_rect = core_get_intersect_rect(&dirty_area, &client_rect);
+    AwSize dirty_client_size = core_get_rect_size(&dirty_client_rect);
+
+    AwRect window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
+    AwRect dirty_window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
+    AwSize dirty_window_size = core_get_rect_size(&dirty_window_rect);
+
+    sprintf(&hits[ihit],"(%hu %hu %hu %hu)", title_rect.left,title_rect.top,title_rect.right,title_rect.bottom);
+    ihit+=strlen(&hits[ihit]);
+    sprintf(&hits[ihit],"{%hu %hu %hu %hu}", dirty_title_rect.left,dirty_title_rect.top,dirty_title_rect.right,dirty_title_rect.bottom);
+    ihit+=strlen(&hits[ihit]);
+    sprintf(&hits[ihit], "[w%hu,%hu c%hu,%hu t%hu,%hu]",
+         dirty_window_size.width, dirty_window_size.height,
+         dirty_client_size.width, dirty_client_size.height,
+         dirty_title_size.width, dirty_title_size.height);
+    ihit+=strlen(&hits[ihit]);
+
+//    if (pa1.right - pa1.left == 0) pa1 = dirty_window_rect;
+//    if (pa2.right - pa2.left == 0) pa2 = dirty_title_rect;
+//    if (pa3.right - pa3.left == 0) pa3 = dirty_client_rect;
+
+    if (!covered_by_kids) {
+        bool any = true;
+        if (dirty_window_size.width || (dirty_title_size.width && dirty_client_size.width)) {
+    hit(__LINE__);
+    strcpy(&hits[ihit],window->text);ihit+=strlen(window->text);
+            msg.do_paint_window.paint_rect = dirty_window_rect;
+            if (pa1.right - pa1.left == 0) pa1 = dirty_window_rect;
+            if (can_paint) {
+    hit(__LINE__);
+                core_set_paint_msg(&msg, window, true, false, false);
+                core_process_message(&msg);
+            }
+        } else if (dirty_title_size.width) {
+    hit(__LINE__);
+    strcpy(&hits[ihit],window->text);ihit+=strlen(window->text);
+            msg.do_paint_window.paint_rect = dirty_title_rect;
+            if (pa2.right - pa2.left == 0) pa2 = dirty_title_rect;
+            if (can_paint) {
+    hit(__LINE__);
+                core_set_paint_msg(&msg, window, false, true, false);
+                core_process_message(&msg);
+            }
+        } else if (dirty_client_size.width) {
+    hit(__LINE__);
+    strcpy(&hits[ihit],window->text);ihit+=strlen(window->text);
+            msg.do_paint_window.paint_rect = dirty_client_rect;
+            if (pa3.right - pa3.left == 0) pa3 = dirty_client_rect;
+            if (can_paint) {
+    hit(__LINE__);
+                core_set_paint_msg(&msg, window, false, false, true);
+                core_process_message(&msg);
+            }
+        } else {
+            any = false;
+        }
+
+    hit(__LINE__);
+        if (any) {
+    hit(__LINE__);
+            // Add to the painted (covered) area
+            AwRect rect = core_get_union_rect(painted, &msg.do_paint_window.paint_rect);
+            *painted = rect;
+            hits[ihit]=((rect.left==0)?'?':'!');
+            hits[ihit+1]=((rect.top==0)?'?':'!');
+            hits[ihit+2]=((rect.right==0)?'?':'!');
+            hits[ihit+3]=((rect.bottom==0)?'?':'!');
+            hits[ihit+4]=0;
+            ihit+=4;
+        }
+    }
+
+    // Paint this window's children
+    if (can_paint && !window->state.minimized) {
+hit(__LINE__);
+        AwWindow* child = window->first_child;
+        while (child) {
+hit(__LINE__);
+            paint_windows(child, painted, true);
+            child = child->next_sibling;
+        }
+    }
+hit(__LINE__);
 }
 
 void core_message_loop() {
@@ -1901,7 +1990,10 @@ void core_message_loop() {
             if (size.width || size.height) {
                 // Something needs to be painted
                 AwRect painted = core_get_empty_rect();
-                paint_windows(root_window, &painted);
+                *hits = 0;
+                ihit = 0;
+                pa1 = core_get_empty_rect(); pa2=pa1; pa3=pa1; pa4=pa1;
+                paint_windows(root_window, &painted, true);
                 dirty_area = core_get_empty_rect();
             } else {
                 update_rtc_state();
