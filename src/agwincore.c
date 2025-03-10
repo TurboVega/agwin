@@ -1829,6 +1829,10 @@ void paint_windows(AwWindow* window, AwRect* painted) {
     }
 
     AwMsg msg;
+    msg.do_paint_window.paint_rect = core_get_empty_rect();
+    bool send1 = false;
+    bool send2 = false;
+    bool send3 = false;
 
     // Part of window may be dirty
     AwRect title_rect = core_get_global_title_rect(window);
@@ -1844,14 +1848,22 @@ void paint_windows(AwWindow* window, AwRect* painted) {
     AwSize dirty_window_size = core_get_rect_size(&window_rect);
 
     if (dirty_window_size.width || (dirty_title_size.width && dirty_client_size.width)) {
+        send1 = true;
+    } else if (dirty_title_size.width) {
+        send2 = true;
+    } else if (dirty_client_size.width) {
+        send3 = true;
+    }
+
+    if (send1) {
         msg.do_paint_window.paint_rect = dirty_window_rect;
         core_set_paint_msg(&msg, window, true, false, false);
         core_process_message(&msg);
-    } else if (dirty_title_size.width) {
+    } else if (send2) {
         msg.do_paint_window.paint_rect = dirty_title_rect;
         core_set_paint_msg(&msg, window, false, true, false);
         core_process_message(&msg);
-    } else if (dirty_client_size.width) {
+    } else if (send3) {
         msg.do_paint_window.paint_rect = dirty_client_rect;
         core_set_paint_msg(&msg, window, false, false, true);
         core_process_message(&msg);
