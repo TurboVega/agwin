@@ -545,6 +545,12 @@ bool core_rect_contains_point(const AwRect* rect, int16_t x, int16_t y) {
 }
 
 AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
+    if (rect1->right - rect1->left == 0) {
+        return *rect2;
+    }
+    if (rect2->right - rect2->left == 0) {
+        return *rect1;
+    }
     AwRect rect;
     rect.left = min(rect1->left, rect2->left);
     rect.top = min(rect1->top, rect2->top);
@@ -554,6 +560,12 @@ AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
 }
 
 AwRect core_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
+    if (rect1->right - rect1->left == 0) {
+        return core_get_empty_rect();
+    }
+    if (rect2->right - rect2->left == 0) {
+        return core_get_empty_rect();
+    }
     if (rect1->left >= rect2->right ||
         rect2->left >= rect1->right ||
         rect1->top >= rect2->bottom ||
@@ -742,7 +754,6 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
             parent->first_child->prev_sibling = child;
             child->next_sibling = parent->first_child;
         } else {
-            parent->first_child = child;
             parent->last_child = child;
             child->next_sibling = NULL;
         }
@@ -751,7 +762,10 @@ void core_link_child(AwWindow* parent, AwWindow* child) {
         child->next_sibling = NULL;
     }
     child->prev_sibling = NULL;
+    child->first_child = NULL;
+    child->last_child = NULL;
     child->parent = parent;
+    parent->first_child = child;
 }
 
 void core_unlink_child(AwWindow* child) {
@@ -771,6 +785,8 @@ void core_unlink_child(AwWindow* child) {
         next_child->prev_sibling = prev_child;
     }
 
+    child->first_child = NULL;
+    child->last_child = NULL;
     child->parent = NULL;
     child->next_sibling = NULL;
     child->prev_sibling = NULL;
@@ -1812,20 +1828,6 @@ void paint_windows(AwWindow* window, AwRect* painted) {
         return;
     }
 
-    if (!window->state.minimized) {
-        AwWindow* child = window->first_child;
-        while (child) {
-            paint_windows(child, painted);
-            if (painted->left == dirty_area.left &&
-                painted->top == dirty_area.top &&
-                painted->right == dirty_area.right &&
-                painted->bottom == dirty_area.bottom) {
-                return;
-            }
-            child = child->next_sibling;
-        }
-    }
-
     AwMsg msg;
 
     // Part of window may be dirty
@@ -1853,6 +1855,20 @@ void paint_windows(AwWindow* window, AwRect* painted) {
         msg.do_paint_window.paint_rect = dirty_client_rect;
         core_set_paint_msg(&msg, window, false, false, true);
         core_process_message(&msg);
+    }
+
+    if (!window->state.minimized) {
+        AwWindow* child = window->first_child;
+        while (child) {
+            paint_windows(child, painted);
+            if (painted->left == dirty_area.left &&
+                painted->top == dirty_area.top &&
+                painted->right == dirty_area.right &&
+                painted->bottom == dirty_area.bottom) {
+                return;
+            }
+            child = child->next_sibling;
+        }
     }
 
     *painted = core_get_union_rect(painted, &msg.do_paint_window.paint_rect);
