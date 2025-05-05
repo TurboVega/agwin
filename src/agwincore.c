@@ -82,6 +82,9 @@ bool        prior_left_click;
 bool        prior_middle_click;
 bool        prior_right_click;
 AwMouseCursor current_cursor = AwMcPointerSimple;
+uint16_t    next_context_id;
+uint16_t    next_buffer_id;
+uint16_t    next_bitmap_id;
 
 volatile SYSVAR * sys_var; // points to MOS system variables
 
@@ -846,6 +849,30 @@ void core_restore_window(AwWindow* window) {
     }
 }
 
+uint16_t get_next_context_id() {
+    if (next_context_id <= AW_CONTEXT_ID_HIGH) {
+        return next_context_id++;
+    } else {
+        return 0;
+    }
+}
+
+uint16_t get_next_buffer_id() {
+    if (next_buffer_id <= AW_BUFFER_ID_HIGH) {
+        return next_buffer_id++;
+    } else {
+        return 0;
+    }
+}
+
+uint16_t get_next_bitmap_id() {
+    if (next_bitmap_id <= AW_BITMAP_ID_HIGH) {
+        return next_bitmap_id++;
+    } else {
+        return 0;
+    }
+}
+
 AwWindow* core_create_window(AwCreateWindowParams* params) {
     if ((params->app == NULL) || (params->wclass == NULL) || (params->width < 0) || (params->height < 0)) {
         return NULL; // bad parameter(s)
@@ -861,6 +888,18 @@ AwWindow* core_create_window(AwCreateWindowParams* params) {
 
     if (params->parent == NULL) {
         params->parent = root_window;
+    }
+
+    if (params->context_id == AW_CONTEXT_ID_NEXT) {
+        params->context_id = get_next_context_id();
+    }
+
+    if (params->buffer_id == AW_BUFFER_ID_NEXT) {
+        params->buffer_id = get_next_buffer_id();
+    }
+
+    if (params->bitmap_id == AW_BITMAP_ID_NEXT) {
+        params->bitmap_id = get_next_bitmap_id();
     }
 
     // Allocate memory for the window structure
@@ -1821,6 +1860,9 @@ void core_initialize() {
     params.state.enabled = 1;
     params.state.selected = 0;
     params.state.visible = 1;
+    params.context_id = AW_CONTEXT_ID_NEXT;
+    params.buffer_id = AW_BUFFER_ID_NEXT;
+    params.bitmap_id = AW_BITMAP_ID_NEXT;
     params.x = 0;
     params.y = 0;
     params.width = AW_SCREEN_WIDTH;

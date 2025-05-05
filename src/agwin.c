@@ -75,6 +75,9 @@ void init_my_app() {
             params.state.enabled = 1;
             params.state.selected = 0;
             params.state.visible = 1;
+            params.context_id = AW_CONTEXT_ID_NEXT;
+            params.buffer_id = AW_BUFFER_ID_NEXT;
+            params.bitmap_id = AW_BITMAP_ID_NEXT;
             params.x = x;
             params.y = y;
             params.width = 150;

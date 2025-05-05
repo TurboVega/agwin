@@ -39,6 +39,15 @@ extern "C" {
 
 #define AW_CONTEXT_ID_LOW       0x8000  // lowest VDP context ID used by agwin
 #define AW_CONTEXT_ID_HIGH      0x8FFF  // highest VDP context ID used by agwin
+#define AW_CONTEXT_ID_NEXT      0       // indicates to use next available context ID
+
+#define AW_BUFFER_ID_LOW        0x8000  // lowest VDP buffer ID used by agwin
+#define AW_BUFFER_ID_HIGH       0x8FFF  // highest VDP buffer ID used by agwin
+#define AW_BUFFER_ID_NEXT       0       // indicates to use next available buffer ID
+
+#define AW_BITMAP_ID_LOW        0x9000  // lowest VDP bitmap ID used by agwin
+#define AW_BITMAP_ID_HIGH       0x9FFF  // highest VDP bitmap ID used by agwin
+#define AW_BITMAP_ID_NEXT       0       // indicates to use next available bitmap ID
 
 #define AW_BORDER_THICKNESS     2       // pixels
 #define AW_TITLE_BAR_HEIGHT     12      // pixels
@@ -268,6 +277,7 @@ typedef struct tag_AwWindow {
     char*           text;           // title of the window or text content
     AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
+    uint16_t        context_id;     // context used when drawing within the window
     uint16_t        buffer_id;      // buffer containing pixels as the window is drawn
     uint16_t        bitmap_id;      // bitmap used to copy the window contents to the screen
     AwWindowStyle   style;          // indicators describing the style of the window
@@ -290,6 +300,9 @@ typedef struct tag_AwCreateWindowParams {
     const AwClass*  wclass;             // points to the class of the window
     AwWindowStyle   style;              // contains window style information
     AwWindowState   state;              // contains initial window state information
+    uint16_t        context_id;         // context used when drawing within the window
+    uint16_t        buffer_id;          // buffer containing pixels as the window is drawn
+    uint16_t        bitmap_id;          // bitmap used to copy the window contents to the screen
     int16_t         x;                  // X coordinate of upper-left corner of window rectangle
     int16_t         y;                  // Y coordinate of upper-left corner of window rectangle
     uint16_t        width;              // width of window rectangle in pixels, including decorations
