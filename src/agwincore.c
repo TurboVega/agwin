@@ -846,30 +846,26 @@ void core_restore_window(AwWindow* window) {
     }
 }
 
-AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
-                        const AwClass* wclass, AwWindowStyle style,
-                        AwWindowState state,
-                        int16_t x, int16_t y, uint16_t width, uint16_t height,
-                        const char* text, uint32_t extra_data_size) {
-    if ((app == NULL) || (wclass == NULL) || (width < 0) || (height < 0)) {
+AwWindow* core_create_window(AwCreateWindowParams* params) {
+    if ((params->app == NULL) || (params->wclass == NULL) || (params->width < 0) || (params->height < 0)) {
         return NULL; // bad parameter(s)
     }
 
-    if (style.sizeable && !style.border) {
+    if (params->style.sizeable && !params->style.border) {
         return NULL; // pad parameter
     }
 
-    if (style.moveable && !style.title_bar) {
+    if (params->style.moveable && !params->style.title_bar) {
         return NULL; // pad parameter
     }
 
-    if (parent == NULL) {
-        parent = root_window;
+    if (params->parent == NULL) {
+        params->parent = root_window;
     }
 
     // Allocate memory for the window structure
     size_t size = sizeof(AwWindow);
-    if (style.minimize_icon || style.maximize_icon) {
+    if (params->style.minimize_icon || params->style.maximize_icon) {
         size = sizeof(AwMinMaxWindow);
     }
     AwWindow* window = (AwWindow*) malloc(size);
@@ -878,33 +874,33 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
     }
     memset(window, 0, sizeof(AwWindow));
 
-    if (extra_data_size) {
-        window->extra_data = malloc(extra_data_size);
+    if (params->extra_data_size) {
+        window->extra_data = malloc(params->extra_data_size);
         if (!window->extra_data) {
             free(window);
             return NULL; // no memory
         }
     }
 
-    if (state.active && active_window) {
+    if (params->state.active && active_window) {
         core_activate_window(active_window, false);
     }
 
     vdp_context_select(0);
     vdp_logical_scr_dims(false);
 
-    core_set_text(window, text);
+    core_set_text(window, params->text);
 
-    window->style = style;
-    window->state = state;
-    window->app = app;
-    window->window_class = wclass;
-    window->window_rect.right = width;
-    window->window_rect.bottom = height;
+    window->style = params->style;
+    window->state = params->state;
+    window->app = params->app;
+    window->window_class = params->wclass;
+    window->window_rect.right = params->width;
+    window->window_rect.bottom = params->height;
     window->bg_color = AW_DFLT_BG_COLOR;
     window->fg_color = AW_DFLT_FG_COLOR;
 
-    core_link_child(parent, window);
+    core_link_child(params->parent, window);
 
     AwMsg msg;
     msg.on_window_created.window = window;
@@ -914,13 +910,13 @@ AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
     msg.on_window_resized.msg_type = Aw_On_WindowResized;
     core_post_message(&msg);
 
-    core_move_window(window, x, y);
+    core_move_window(window, params->x, params->y);
 
-    if (state.active) {
+    if (params->state.active) {
         core_activate_window(window, true);
     }
 
-    if (state.maximized) {
+    if (params->state.maximized) {
         core_maximize_window(window);
     }
 
@@ -1809,24 +1805,31 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
 }
 
 void core_initialize() {
-    AwWindowStyle style;
-    style.border = 1;
-    style.title_bar = 0;
-    style.close_icon = 0;
-    style.minimize_icon = 0;
-    style.maximize_icon = 0;
-    style.menu_icon = 0;
-    style.sizeable = 0;
-    style.moveable = 0;
+    AwCreateWindowParams params;
+    params.app = &agwin_app;
+    params.parent = NULL;
+    params.wclass = &root_class;
+    params.style.border = 1;
+    params.style.title_bar = 0;
+    params.style.close_icon = 0;
+    params.style.minimize_icon = 0;
+    params.style.maximize_icon = 0;
+    params.style.menu_icon = 0;
+    params.style.sizeable = 0;
+    params.style.moveable = 0;
+    params.state.active = 0;
+    params.state.enabled = 1;
+    params.state.selected = 0;
+    params.state.visible = 1;
+    params.x = 0;
+    params.y = 0;
+    params.width = AW_SCREEN_WIDTH;
+    params.height = AW_SCREEN_HEIGHT;
+    params.text = "Agon Windows Root";
+    params.extra_data_size = 0;
 
-    AwWindowState state;
-    state.active = 0;
-    state.enabled = 1;
-    state.selected = 0;
-    state.visible = 1;
+    root_window = core_create_window(&params);
 
-    root_window = core_create_window(&agwin_app, NULL, &root_class, style, state,
-                        0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Root", 0);
     running = true;
 }
 

@@ -259,7 +259,7 @@ typedef struct tag_AwClass {
 
 typedef struct tag_AwWindow {
     AwApplication*  app;            // points to the app that owns the window
-    const AwClass*  window_class;   // points to the class of the app
+    const AwClass*  window_class;   // points to the class of the window
     AwWindow*       parent;         // points to the parent window
     AwWindow*       first_child;    // points to the first child window
     AwWindow*       last_child;     // points to the last child window
@@ -268,6 +268,8 @@ typedef struct tag_AwWindow {
     char*           text;           // title of the window or text content
     AwRect          window_rect;    // rectangle enclosing the entire window (relative to screen)
     AwRect          client_rect;    // rectangle enclosing the client area (relative to screen)
+    uint16_t        buffer_id;      // buffer containing pixels as the window is drawn
+    uint16_t        bitmap_id;      // bitmap used to copy the window contents to the screen
     AwWindowStyle   style;          // indicators describing the style of the window
     AwWindowState   state;          // indicators describing the current state of the window
     uint32_t        text_size;      // allocated space for text (not the text length)
@@ -281,6 +283,20 @@ typedef struct tag_AwMinMaxWindow {
     AwRect          save_window_rect; // place to save window.window_rect
     AwRect          save_client_rect; // place to save window.client_rect;
 } AwMinMaxWindow;
+
+typedef struct tag_AwCreateWindowParams {
+    AwApplication*  app;                // points to the app that owns the window
+    AwWindow*       parent;             // points to the parent window
+    const AwClass*  wclass;             // points to the class of the window
+    AwWindowStyle   style;              // contains window style information
+    AwWindowState   state;              // contains initial window state information
+    int16_t         x;                  // X coordinate of upper-left corner of window rectangle
+    int16_t         y;                  // Y coordinate of upper-left corner of window rectangle
+    uint16_t        width;              // width of window rectangle in pixels, including decorations
+    uint16_t        height;             // height of window rectangle in pixels, including decorations
+    const char*     text;               // initial text (often the title) of the window
+    uint32_t        extra_data_size;    // size of extra (custom) data for the window
+} AwCreateWindowParams;
 
 #pragma pack(pop)
 
