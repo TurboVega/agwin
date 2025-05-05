@@ -1835,6 +1835,13 @@ bool paint_windows(AwWindow* window, AwRect* painted, bool can_paint) {
         return false;
     }
 
+    // See whether the dirty area becomes covered by this window's siblings
+    if (window->next_sibling) {
+        if (paint_windows(window->next_sibling, painted, false)) {
+            return true;
+        }
+    }
+
     // See whether the dirty area becomes covered by this window's children
     bool covered_by_kids = false;
     if (!window->state.minimized) {
@@ -1908,7 +1915,7 @@ bool paint_windows(AwWindow* window, AwRect* painted, bool can_paint) {
         AwWindow* child = window->first_child;
         while (child) {
             if (paint_windows(child, painted, true)) {
-                return true;
+                covered_by_kids = true;
             }
             child = child->next_sibling;
         }
