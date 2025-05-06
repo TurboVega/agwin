@@ -146,7 +146,7 @@ typedef struct tag_AwPaintFlags {
     uint16_t        reserved3 : 1;  // reserved
 } AwPaintFlags;
 
-// This is more-or-less a copy of the AgDev KEY_EVENT
+// This is more-or-less a copy of the Agondev KEY_EVENT
 typedef union tag_AwKeyState {
     uint32_t        key_data;       // raw key data
     struct {
@@ -169,15 +169,13 @@ typedef union tag_AwKeyState {
     };
 } AwKeyState;
 
-// This is a copy of the AgDev RTC_DATA
+// This is a copy of the Agondev SYSVAR_RTCDATA
 typedef union tag_AwRtcData {
     uint64_t rtc_data;
     struct {
         uint8_t year;               // offset since 1980
         uint8_t month;              // (0-11)
         uint8_t day;                // (1-31)
-        uint8_t day_of_year;        // (0-365) - *** but doesn't fit in 1 byte - wraps round ***
-        uint8_t day_of_week;        // (0-6)
         uint8_t hour;               // (0-23)
         uint8_t minute;             // (0-59)
         uint8_t second;             // (0-59)
@@ -229,7 +227,7 @@ typedef enum : uint8_t {
     AwMtClientArea,
 } AwMouseTarget;
 
-// This comes from MOS system variables via AgDev SYSVAR
+// This comes from MOS system variables via Agondev SYSVAR
 // The "start_*" members only apply for drag/drop messages
 typedef struct tag_AwMouseState {
     AwWindow*   start_window;       // window under mouse when button first pressed

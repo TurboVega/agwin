@@ -128,8 +128,6 @@ int16_t get_border_thickness(AwWindow* window) {
     return (window->style.border ? AW_BORDER_THICKNESS : 0);
 }
 
-typedef struct { uint8_t A; uint8_t B; uint8_t CMD; } VDU_A_B_CMD;
-
 static VDU_A_B_CMD vdu_set_text_viewport_via_plot = { 23, 0, 0x9C };
 static VDU_A_B_CMD vdu_set_graphics_viewport_via_plot = { 23, 0, 0x9D };
 static VDU_A_B_CMD vdu_set_graphics_origin_via_plot = { 23, 0, 0x9E };
@@ -156,7 +154,7 @@ void update_rtc_state() {
         AwMsg msg;
         msg.on_real_time_clock_event.window = NULL;
         msg.on_real_time_clock_event.msg_type = Aw_On_RealTimeClockEvent;
-        msg.on_real_time_clock_event.rtc.rtc_data = sys_var->rtc.rtc_data;
+        msg.on_real_time_clock_event.rtc.rtc_data = ((AwRtcData*)&sys_var->rtc)->rtc_data;
         sys_var->vdp_pflags &= ~vdp_pflag_rtc;
         emit_rtc_messages(root_window, &msg);
     }
