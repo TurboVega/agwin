@@ -82,9 +82,11 @@ bool        prior_left_click;
 bool        prior_middle_click;
 bool        prior_right_click;
 AwMouseCursor current_cursor = AwMcPointerSimple;
+/*
 uint16_t    next_context_id;
 uint16_t    next_buffer_id;
 uint16_t    next_bitmap_id;
+*/
 
 volatile SYSVAR * sys_var; // points to MOS system variables
 
@@ -847,6 +849,7 @@ void core_restore_window(AwWindow* window) {
     }
 }
 
+/*
 uint16_t get_next_context_id() {
     if (next_context_id <= AW_CONTEXT_ID_HIGH) {
         return next_context_id++;
@@ -870,7 +873,8 @@ uint16_t get_next_bitmap_id() {
         return 0;
     }
 }
-
+*/
+/*
 AwWindow* core_create_window(const AwCreateWindowParams* params) {
     AwCreateWindowParams prms;
     prms = *params;
@@ -962,6 +966,89 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
 
     return window;
 }
+*/
+
+AwWindow* core_create_window(AwApplication* app, AwWindow* parent,
+                        const AwClass* wclass, AwWindowStyle style,
+                        AwWindowState state,
+                        int16_t x, int16_t y, uint16_t width, uint16_t height,
+                        const char* text, uint32_t extra_data_size) {
+    if ((app == NULL) || (wclass == NULL) || (width < 0) || (height < 0)) {
+        return NULL; // bad parameter(s)
+    }
+
+    if (style.sizeable && !style.border) {
+        return NULL; // pad parameter
+    }
+
+    if (style.moveable && !style.title_bar) {
+        return NULL; // pad parameter
+    }
+
+    if (parent == NULL) {
+        parent = root_window;
+    }
+
+    // Allocate memory for the window structure
+    size_t size = sizeof(AwWindow);
+    if (style.minimize_icon || style.maximize_icon) {
+        size = sizeof(AwMinMaxWindow);
+    }
+    AwWindow* window = (AwWindow*) malloc(size);
+    if (window == NULL) {
+        return NULL; // no memory
+    }
+    memset(window, 0, sizeof(AwWindow));
+
+    if (extra_data_size) {
+        window->extra_data = malloc(extra_data_size);
+        if (!window->extra_data) {
+            free(window);
+            return NULL; // no memory
+        }
+    }
+
+    if (state.active && active_window) {
+        core_activate_window(active_window, false);
+    }
+
+    vdp_context_select(0);
+    vdp_logical_scr_dims(false);
+
+    core_set_text(window, text);
+
+    window->style = style;
+    window->state = state;
+    window->app = app;
+    window->window_class = wclass;
+    window->window_rect.right = width;
+    window->window_rect.bottom = height;
+    window->bg_color = AW_DFLT_BG_COLOR;
+    window->fg_color = AW_DFLT_FG_COLOR;
+
+    core_link_child(parent, window);
+
+    AwMsg msg;
+    msg.on_window_created.window = window;
+    msg.on_window_created.msg_type = Aw_On_WindowCreated;
+    core_post_message(&msg);
+
+    msg.on_window_resized.msg_type = Aw_On_WindowResized;
+    core_post_message(&msg);
+
+    core_move_window(window, x, y);
+
+    if (state.active) {
+        core_activate_window(window, true);
+    }
+
+    if (state.maximized) {
+        core_maximize_window(window);
+    }
+
+    return window;
+}
+
 
 void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
     AwRect new_rect = *rect;
@@ -1845,7 +1932,30 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
 }
 
 void core_initialize() {
+/*
+    AwWindowStyle style;
+    style.border = 1;
+    style.title_bar = 0;
+    style.close_icon = 0;
+    style.minimize_icon = 0;
+    style.maximize_icon = 0;
+    style.menu_icon = 0;
+    style.sizeable = 0;
+    style.moveable = 0;
+
+    AwWindowState state;
+    state.active = 0;
+    state.enabled = 1;
+    state.selected = 0;
+    state.visible = 1;
+
+    root_window = core_create_window(&agwin_app, NULL, &root_class, style, state,
+                        0, 0, AW_SCREEN_WIDTH, AW_SCREEN_HEIGHT, "Agon Windows Root", 0);
+
+*/
+
     AwCreateWindowParams params;
+    memset(&params, 0, sizeof(params));
     params.app = &agwin_app;
     params.parent = NULL;
     params.wclass = &root_class;
@@ -1871,7 +1981,20 @@ void core_initialize() {
     params.text = "Agon Windows Root";
     params.extra_data_size = 0;
 
-    root_window = core_create_window(&params);
+//    root_window = core_create_window(&params);
+
+    root_window = core_create_window(
+        &agwin_app,
+        NULL,
+        &root_class,
+        params.style,
+        params.state,
+        params.x,
+        params.y,
+        params.width,
+        params.height,
+        params.text,
+        params.extra_data_size);
 
     running = true;
 }
