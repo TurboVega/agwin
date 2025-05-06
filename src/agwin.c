@@ -47,25 +47,6 @@ AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
 
 void init_my_app() {
     my_class.parent = core_get_root_class();
-/*
-    AwWindowStyle style;
-    style.border = 1;
-    style.title_bar = 1;
-    style.close_icon = 1;
-    style.minimize_icon = 1;
-    style.maximize_icon = 1;
-    style.menu_icon = 1;
-    style.sizeable = 1;
-    style.moveable = 1;
-    style.primary = 1;
-    style.need_rtc = 0;
-
-    AwWindowState state;
-    state.active = 0;
-    state.enabled = 1;
-    state.selected = 0;
-    state.visible = 1;
-*/
     for (uint16_t row = 0; row < 4; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
         for (uint16_t col = 0; col < 4; col++) {
@@ -73,12 +54,10 @@ void init_my_app() {
             uint16_t i = row * 4 + col;
             char text[10];
             sprintf(text, "Color #%02hu", i);
-            printf("%s\r\n", text);
 
             AwCreateWindowParams params;
             memset(&params, 0, sizeof(params));
             params.app = &my_app;
-            params.parent = NULL;
             params.wclass = &my_class;
             params.style.border = 1;
             params.style.title_bar = 1;
@@ -89,35 +68,15 @@ void init_my_app() {
             params.style.sizeable = 1;
             params.style.moveable = 1;
             params.style.primary = 1;
-            params.style.need_rtc = 0;
-            params.state.active = 0;
             params.state.enabled = 1;
-            params.state.selected = 0;
             params.state.visible = 1;
-            params.context_id = AW_CONTEXT_ID_NEXT;
-            params.buffer_id = AW_BUFFER_ID_NEXT;
-            params.bitmap_id = AW_BITMAP_ID_NEXT;
             params.x = x;
             params.y = y;
             params.width = 150;
             params.height = 112;
             params.text = text;
-            params.extra_data_size = 0;
 
-//            AwWindow* win = core_create_window(&params);
-
-            AwWindow* win = core_create_window(
-                &my_app,
-                NULL,
-				&my_class,
-                params.style,
-                params.state,
-                params.x,
-                params.y,
-                params.width,
-                params.height,
-                params.text,
-                params.extra_data_size);
+            AwWindow* win = core_create_window(&params);
 
             win->bg_color = i;
             win->fg_color = 15 - i;
