@@ -873,38 +873,41 @@ uint16_t get_next_bitmap_id() {
     }
 }
 
-AwWindow* core_create_window(AwCreateWindowParams* params) {
-    if ((params->app == NULL) || (params->wclass == NULL) || (params->width < 0) || (params->height < 0)) {
+AwWindow* core_create_window(const AwCreateWindowParams* params) {
+    AwCreateWindowParams prms;
+    prms = *params;
+
+    if ((prms.app == NULL) || (prms.wclass == NULL) || (prms.width < 0) || (prms.height < 0)) {
         return NULL; // bad parameter(s)
     }
 
-    if (params->style.sizeable && !params->style.border) {
+    if (prms.style.sizeable && !prms.style.border) {
         return NULL; // pad parameter
     }
 
-    if (params->style.moveable && !params->style.title_bar) {
+    if (prms.style.moveable && !prms.style.title_bar) {
         return NULL; // pad parameter
     }
 
-    if (params->parent == NULL) {
-        params->parent = root_window;
+    if (prms.parent == NULL) {
+        prms.parent = root_window;
     }
 
-    if (params->context_id == AW_CONTEXT_ID_NEXT) {
-        params->context_id = get_next_context_id();
+    if (prms.context_id == AW_CONTEXT_ID_NEXT) {
+        prms.context_id = get_next_context_id();
     }
 
-    if (params->buffer_id == AW_BUFFER_ID_NEXT) {
-        params->buffer_id = get_next_buffer_id();
+    if (prms.buffer_id == AW_BUFFER_ID_NEXT) {
+        prms.buffer_id = get_next_buffer_id();
     }
 
-    if (params->bitmap_id == AW_BITMAP_ID_NEXT) {
-        params->bitmap_id = get_next_bitmap_id();
+    if (prms.bitmap_id == AW_BITMAP_ID_NEXT) {
+        prms.bitmap_id = get_next_bitmap_id();
     }
 
     // Allocate memory for the window structure
     size_t size = sizeof(AwWindow);
-    if (params->style.minimize_icon || params->style.maximize_icon) {
+    if (prms.style.minimize_icon || prms.style.maximize_icon) {
         size = sizeof(AwMinMaxWindow);
     }
     AwWindow* window = (AwWindow*) malloc(size);
@@ -913,33 +916,33 @@ AwWindow* core_create_window(AwCreateWindowParams* params) {
     }
     memset(window, 0, sizeof(AwWindow));
 
-    if (params->extra_data_size) {
-        window->extra_data = malloc(params->extra_data_size);
+    if (prms.extra_data_size) {
+        window->extra_data = malloc(prms.extra_data_size);
         if (!window->extra_data) {
             free(window);
             return NULL; // no memory
         }
     }
 
-    if (params->state.active && active_window) {
+    if (prms.state.active && active_window) {
         core_activate_window(active_window, false);
     }
 
     vdp_context_select(0);
     vdp_logical_scr_dims(false);
 
-    core_set_text(window, params->text);
+    core_set_text(window, prms.text);
 
-    window->style = params->style;
-    window->state = params->state;
-    window->app = params->app;
-    window->window_class = params->wclass;
-    window->window_rect.right = params->width;
-    window->window_rect.bottom = params->height;
+    window->style = prms.style;
+    window->state = prms.state;
+    window->app = prms.app;
+    window->window_class = prms.wclass;
+    window->window_rect.right = prms.width;
+    window->window_rect.bottom = prms.height;
     window->bg_color = AW_DFLT_BG_COLOR;
     window->fg_color = AW_DFLT_FG_COLOR;
 
-    core_link_child(params->parent, window);
+    core_link_child(prms.parent, window);
 
     AwMsg msg;
     msg.on_window_created.window = window;
@@ -949,13 +952,13 @@ AwWindow* core_create_window(AwCreateWindowParams* params) {
     msg.on_window_resized.msg_type = Aw_On_WindowResized;
     core_post_message(&msg);
 
-    core_move_window(window, params->x, params->y);
+    core_move_window(window, prms.x, prms.y);
 
-    if (params->state.active) {
+    if (prms.state.active) {
         core_activate_window(window, true);
     }
 
-    if (params->state.maximized) {
+    if (prms.state.maximized) {
         core_maximize_window(window);
     }
 

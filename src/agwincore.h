@@ -36,7 +36,7 @@ extern "C" {
 
 void        core_activate_window(AwWindow* window, bool active);
 void        core_close_window(AwWindow* window);
-AwWindow*   core_create_window(AwCreateWindowParams* params);
+AwWindow*   core_create_window(const AwCreateWindowParams* params);
 void        core_enable_window(AwWindow* window, bool enabled);
 void        core_expand_rect(AwRect* rect, int16_t delta);
 void        core_expand_rect_height(AwRect* rect, int16_t delta);
@@ -101,7 +101,7 @@ void        core_unload_app(AwApplication* app);
 
 typedef void        (*aw_core_activate_window)(AwWindow* window, bool active);
 typedef void        (*aw_core_close_window)(AwWindow* window);
-typedef AwWindow*   (*aw_core_create_window)(AwCreateWindowParams* params);
+typedef AwWindow*   (*aw_core_create_window)(const AwCreateWindowParams* params);
 typedef void        (*aw_core_enable_window)(AwWindow* window, bool enabled);
 typedef void        (*aw_core_expand_rect)(AwRect* rect, int16_t delta);
 typedef void        (*aw_core_expand_rect_height)(AwRect* rect, int16_t delta);
