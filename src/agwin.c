@@ -55,7 +55,6 @@ void init_my_app() {
             uint16_t i = row * 4 + col;
             char text[10];
             sprintf(text, "Color #%02hu", i);
-            printf("%s\r\n", text);
 
             AwCreateWindowParams params;
             params.app = &my_app;
@@ -95,7 +94,7 @@ void init_my_app() {
         }
     }
 
-    core_load_app("winclock.bin");
+    //core_load_app("winclock.bin");
 }
 
 int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
