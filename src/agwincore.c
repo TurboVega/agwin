@@ -2055,7 +2055,7 @@ const AwFcnTable aw_core_functions = {
 int32_t core_load_app(const char* path) {
     AwAppHeader app_header;
 	FILE *fp;
-    int rc = -1;
+    int32_t rc = -1;
     if ((fp = fopen(path, "rb"))) {
         size_t byte_cnt = fread((void*)&app_header, 1, sizeof(app_header), fp);
         if ((byte_cnt == (size_t) sizeof(app_header)) &&
@@ -2071,7 +2071,7 @@ int32_t core_load_app(const char* path) {
             // The start of the executable code is typically immediately after the header,
             // so we can subtract the size of the header from the address given in the
             // JP instruction, to obtain the load address.
-            uint32_t load_address = (app_header.jump_address & 0x00FFFFFF) - sizeof(AwAppHeader);
+            uint32_t load_address = (app_header.jump_address >> 8) - sizeof(AwAppHeader);
             if (load_address < RAM_START+RAM_SIZE) {
                 // loading the app would clobber agwin
                 rc = -2;
@@ -2090,7 +2090,7 @@ int32_t core_load_app(const char* path) {
                     // there, but we can add the address of the agwin core function table.
                     //
                     char* args = hdr->program_name + strlen(hdr->program_name);
-                    sprintf(args, " %p", &aw_core_functions);
+                    sprintf(args, " %06X", (unsigned int) &aw_core_functions);
 
                     // Run the loaded app, which may cause window(s) to be created.
                     // It should return the address of its application structure, if

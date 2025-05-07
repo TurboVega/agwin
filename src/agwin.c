@@ -86,7 +86,7 @@ void init_my_app() {
         }
     }
 
-    //core_load_app("winclock.bin");
+    core_load_app("winclock.bin");
 }
 
 int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
