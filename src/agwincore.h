@@ -78,7 +78,7 @@ void        core_invalidate_client_rect(AwWindow* window, const AwRect* rect);
 void        core_invalidate_title_bar(AwWindow* window);
 void        core_invalidate_window(AwWindow* window);
 void        core_invalidate_window_rect(AwWindow* window, const AwRect* rect);
-int         core_load_app(const char* path);
+int32_t     core_load_app(const char* path);
 void*       core_malloc(size_t size);
 void        core_message_loop();
 void        core_move_window(AwWindow* window, int16_t x, int16_t y);
@@ -143,7 +143,7 @@ typedef void        (*aw_core_invalidate_client_rect)(AwWindow* window, const Aw
 typedef void        (*aw_core_invalidate_title_bar)(AwWindow* window);
 typedef void        (*aw_core_invalidate_window)(AwWindow* window);
 typedef void        (*aw_core_invalidate_window_rect)(AwWindow* window, const AwRect* rect);
-typedef int         (*aw_core_load_app)(const char* path);
+typedef int32_t     (*aw_core_load_app)(const char* path);
 typedef void*       (*aw_core_malloc)(size_t size);
 typedef void        (*aw_core_message_loop)();
 typedef void        (*aw_core_move_window)(AwWindow* window, int16_t x, int16_t y);
@@ -228,18 +228,16 @@ typedef struct tag_AwFcnTable {
 } AwFcnTable;
 
 typedef int (*AwStart)();
-typedef int (*AwStop)();
 
 typedef struct tag_AwAppHeader {
-    uint8_t         jump_start[4];      // points to C initialization code
+    union {
+    uint32_t        jump_address;       // points to C initialization code
+    uint8_t         jump_start[4];      // jumps to C initialization code
+    };
     char            program_name[60];   // used by argc
-    char            marker[3];          // contains 'WIN'
+    char            marker[3];          // contains 'MOS'
     uint8_t         version;            // version of header
     uint8_t         run_mode;           // 0=Z80, 1=ADL
-    uint8_t*        load_address;       // where to load the application
-    AwApplication*  app;                // points to the application structure
-    const AwFcnTable* core_functions;   // points to the core function table
-    AwStop          stop;               // points to cleanup code to terminate app
 } AwAppHeader;
 
 #pragma pack(pop)

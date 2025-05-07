@@ -1238,7 +1238,6 @@ void core_unload_app(AwApplication* app) {
     for (uint8_t a = 0; a < AW_APP_LIST_SIZE; a++) {
         if (app_list[a].app == app) {
             AwLoadedApp* loaded_app = &app_list[a];
-            (*loaded_app->hdr->stop)();
             loaded_app->app = NULL;
             loaded_app->hdr = NULL;
             app_count--;
@@ -2053,38 +2052,73 @@ const AwFcnTable aw_core_functions = {
     core_unload_app
 };
 
-int core_load_app(const char* path) {
+int32_t core_load_app(const char* path) {
     AwAppHeader app_header;
 	FILE *fp;
     int rc = -1;
-    if (app_count >= AW_APP_LIST_SIZE) {
-        return rc;
-    }
-
     if ((fp = fopen(path, "rb"))) {
         size_t byte_cnt = fread((void*)&app_header, 1, sizeof(app_header), fp);
         if ((byte_cnt == (size_t) sizeof(app_header)) &&
-            app_header.marker[0] == 'W' &&
-            app_header.marker[1] == 'I' &&
-            app_header.marker[2] == 'N') {
+            app_header.marker[0] == 'M' &&
+            app_header.marker[1] == 'O' &&
+            app_header.marker[2] == 'S' &&
+            app_header.version == 0 &&
+            app_header.run_mode == 1) {
             fseek(fp, 0, SEEK_END);
             long file_size = ftell(fp);
             fseek(fp, 0, SEEK_SET);
-            byte_cnt = fread(app_header.load_address, 1, file_size, fp);
-            if (byte_cnt == file_size) {
-                AwAppHeader* hdr = (AwAppHeader*) app_header.load_address;
-                hdr->core_functions = &aw_core_functions;
-                AwStart start = (AwStart) app_header.load_address;
-                for (uint8_t a = 0; a < AW_APP_LIST_SIZE; a++) {
-                    if (!app_list[a].app) {
-                        AwLoadedApp* loaded_app = &app_list[a];
-                        loaded_app->app = hdr->app;
-                        loaded_app->hdr = hdr;
-                        app_count++;
-                        break;
+
+            // The start of the executable code is typically immediately after the header,
+            // so we can subtract the size of the header from the address given in the
+            // JP instruction, to obtain the load address.
+            uint32_t load_address = (app_header.jump_address & 0x00FFFFFF) - sizeof(AwAppHeader);
+            if (load_address < RAM_START+RAM_SIZE) {
+                // loading the app would clobber agwin
+                rc = -2;
+                return rc;
+            } else if (load_address + file_size > RAM_END) {
+                // invalid app goes past end of RAM
+                rc = -3;
+                return rc;
+            } else {
+                byte_cnt = fread((void*) load_address, 1, file_size, fp);
+                if (byte_cnt == file_size) {
+                    AwAppHeader* hdr = (AwAppHeader*) load_address;
+
+                    // Modify the loaded header by adding a parameter to the command line
+                    // stored in the header. The compiler only places the name of the program
+                    // there, but we can add the address of the agwin core function table.
+                    //
+                    char* args = hdr->program_name + strlen(hdr->program_name);
+                    sprintf(args, " %p", &aw_core_functions);
+
+                    // Run the loaded app, which may cause window(s) to be created.
+                    // It should return the address of its application structure, if
+                    // the app wishes to stay resident and run like a normal window
+                    // app. Otherwise, it should return a result code, which would
+                    // normally be zero for no error, and nonzero for some error.
+                    //
+                    AwStart start = (AwStart) load_address;
+                    int app_rc = (*start)();
+                    if ((unsigned int) app_rc >= 0x040000 && (unsigned int) app_rc < RAM_END) {
+                        if (app_count >= AW_APP_LIST_SIZE) {
+                            rc = -4; // no room in list for app
+                        } else {
+                            for (uint8_t a = 0; a < AW_APP_LIST_SIZE; a++) {
+                                if (!app_list[a].app) {
+                                    AwLoadedApp* loaded_app = &app_list[a];
+                                    loaded_app->app = (AwApplication*) app_rc;
+                                    loaded_app->hdr = hdr;
+                                    app_count++;
+                                    rc = 0; // no error, and app stays resident
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        rc = app_rc; // app exits immediately
                     }
                 }
-                rc = (*start)();
             }
         }
         fclose(fp);
