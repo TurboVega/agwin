@@ -72,7 +72,6 @@ uint8_t     msg_count;
 uint8_t     msg_read_index;
 uint8_t     msg_write_index;
 bool        running;
-uint16_t    next_context_id = AW_CONTEXT_ID_LOW;
 AwMouseState last_mouse_state;
 uint32_t    last_rtc_request;
 uint32_t    last_left_btn_up;
@@ -82,7 +81,6 @@ bool        prior_left_click;
 bool        prior_middle_click;
 bool        prior_right_click;
 AwMouseCursor current_cursor = AwMcPointerSimple;
-uint16_t    next_context_id;
 uint16_t    next_buffer_id;
 uint16_t    next_bitmap_id;
 
@@ -847,14 +845,6 @@ void core_restore_window(AwWindow* window) {
     }
 }
 
-uint16_t get_next_context_id() {
-    if (next_context_id <= AW_CONTEXT_ID_HIGH) {
-        return next_context_id++;
-    } else {
-        return 0;
-    }
-}
-
 uint16_t get_next_buffer_id() {
     if (next_buffer_id <= AW_BUFFER_ID_HIGH) {
         return next_buffer_id++;
@@ -889,10 +879,6 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
 
     if (prms.parent == NULL) {
         prms.parent = root_window;
-    }
-
-    if (prms.context_id == AW_CONTEXT_ID_NEXT) {
-        prms.context_id = get_next_context_id();
     }
 
     if (prms.buffer_id == AW_BUFFER_ID_NEXT) {
