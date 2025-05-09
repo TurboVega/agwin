@@ -126,16 +126,6 @@ int16_t get_border_thickness(AwWindow* window) {
     return (window->style.border ? AW_BORDER_THICKNESS : 0);
 }
 
-static VDU_A_B_CMD vdu_set_text_viewport_via_plot = { 23, 0, 0x9C };
-static VDU_A_B_CMD vdu_set_graphics_viewport_via_plot = { 23, 0, 0x9D };
-static VDU_A_B_CMD vdu_set_graphics_origin_via_plot = { 23, 0, 0x9E };
-static VDU_A_B_CMD vdu_move_graphics_origin_and_viewport = { 23, 0, 0x9F };
-
-void local_vdp_set_text_viewport_via_plot( void ) { VDP_PUTS( vdu_set_text_viewport_via_plot ); }
-void local_vdp_set_graphics_viewport_via_plot( void ) { VDP_PUTS( vdu_set_graphics_viewport_via_plot ); }
-void local_vdp_set_graphics_origin_via_plot( void ) { VDP_PUTS( vdu_set_graphics_origin_via_plot ); }
-void local_vdp_move_graphics_origin_and_viewport( void ) { VDP_PUTS( vdu_move_graphics_origin_and_viewport ); }
-
 void emit_rtc_messages(AwWindow* window, AwMsg* msg) {
     while (window) {
         if (window->style.need_rtc) {
@@ -1457,11 +1447,11 @@ void core_set_client_viewport(AwWindow* window) {
     vdp_logical_scr_dims(false);
     vdp_move_to(window->client_rect.left, window->client_rect.top);
     vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
-    local_vdp_set_graphics_viewport_via_plot();
+    vdp_set_graphics_viewport_via_plot();
 
     vdp_move_to(window->client_rect.left, window->client_rect.top);
-    local_vdp_set_text_viewport_via_plot();
-    local_vdp_set_graphics_origin_via_plot();
+    vdp_set_text_viewport_via_plot();
+    vdp_set_graphics_origin_via_plot();
 }
 
 void core_set_title_viewport(AwWindow* window) {
@@ -1471,11 +1461,11 @@ void core_set_title_viewport(AwWindow* window) {
     AwRect rect = core_get_global_title_rect(window);
     vdp_move_to(rect.left, rect.top);
     vdp_move_to(rect.right-1, rect.bottom-1);
-    local_vdp_set_graphics_viewport_via_plot();
+    vdp_set_graphics_viewport_via_plot();
 
     vdp_move_to(rect.left, rect.top);
-    local_vdp_set_text_viewport_via_plot();
-    local_vdp_set_graphics_origin_via_plot();
+    vdp_set_text_viewport_via_plot();
+    vdp_set_graphics_origin_via_plot();
 }
 
 void core_set_window_viewport(AwWindow* window) {
@@ -1484,11 +1474,11 @@ void core_set_window_viewport(AwWindow* window) {
     vdp_logical_scr_dims(false);
     vdp_move_to(window->window_rect.left, window->window_rect.top);
     vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
-    local_vdp_set_graphics_viewport_via_plot();
+    vdp_set_graphics_viewport_via_plot();
 
     vdp_move_to(window->window_rect.left, window->window_rect.top);
-    local_vdp_set_text_viewport_via_plot();
-    local_vdp_set_graphics_origin_via_plot();
+    vdp_set_text_viewport_via_plot();
+    vdp_set_graphics_origin_via_plot();
 }
 
 void core_paint_window(AwMsg* msg) {
