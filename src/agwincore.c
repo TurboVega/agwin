@@ -676,6 +676,17 @@ void core_post_message(AwMsg* msg) {
     }
 }
 
+int16_t get_title_bar_height(AwWindow * window) {
+    int16_t top_deco_height = 0;
+    if (window->style.border) {
+        top_deco_height = AW_BORDER_THICKNESS;
+    }
+    if (window->style.title_bar) {
+        top_deco_height += AW_TITLE_BAR_HEIGHT;
+    }
+    return top_deco_height;
+}
+
 void core_move_window(AwWindow* window, int16_t x, int16_t y) {
     core_invalidate_window(window); // invalidate where the window was
 
@@ -716,6 +727,13 @@ void core_move_window(AwWindow* window, int16_t x, int16_t y) {
     msg.on_window_moved.window = window;
     msg.on_window_moved.msg_type = Aw_On_WindowMoved;
     core_post_message(&msg);
+}
+
+AwRect core_get_local_title_rect(AwWindow* window) {
+    AwRect rect = core_get_local_window_rect(window);
+    uint16_t height = get_title_bar_height(window);
+    rect.bottom = rect.top + height;
+    return rect;
 }
 
 AwRect core_get_local_window_rect(AwWindow* window) {
@@ -1057,12 +1075,28 @@ AwSize core_get_window_size(AwWindow* window) {
     return core_get_rect_size(&window->window_rect);
 }
 
+AwSize core_get_title_size(AwWindow* window) {
+    AwSize size = core_get_rect_size(&window->window_rect);
+    size.height = get_title_bar_height(window);
+    return size;
+}
+
 AwSize core_get_client_size(AwWindow* window) {
     return core_get_rect_size(&window->client_rect);
 }
 
 AwRect core_get_sizing_window_rect(AwWindow* window) {
     AwSize size = core_get_window_size(window);
+    AwRect rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = size.width;
+    rect.bottom = size.height;
+    return rect;
+}
+
+AwRect core_get_sizing_title_rect(AwWindow* window) {
+    AwSize size = core_get_title_size(window);
     AwRect rect;
     rect.left = 0;
     rect.top = 0;
@@ -1441,84 +1475,44 @@ void draw_title(AwWindow* window) {
     printf("%s", window->text);
 }
 
-void core_set_client_viewport_for_buffer(AwWindow* window) {
+void set_viewport_for_rect(AwRect * rect) {
     vdp_context_select(0);
     vdp_context_reset(0xFF); // all style set
     vdp_logical_scr_dims(false);
-    vdp_move_to(window->client_rect.left, window->client_rect.top);
-    vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
+    vdp_move_to(rect->left, rect->top);
+    vdp_move_to(rect->right-1, rect->bottom-1);
     vdp_set_graphics_viewport_via_plot();
-
-    vdp_move_to(window->client_rect.left, window->client_rect.top);
+    vdp_move_to(rect->left, rect->top);
     vdp_set_text_viewport_via_plot();
     vdp_set_graphics_origin_via_plot();
+}
+
+void core_set_client_viewport_for_buffer(AwWindow* window) {
+    AwRect client_rect = core_get_sizing_client_rect(window);
+    set_viewport_for_rect(&client_rect);
 }
 
 void core_set_client_viewport_for_screen(AwWindow* window) {
-    vdp_context_select(0);
-    vdp_context_reset(0xFF); // all style set
-    vdp_logical_scr_dims(false);
-    vdp_move_to(window->client_rect.left, window->client_rect.top);
-    vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
-    vdp_set_graphics_viewport_via_plot();
-
-    vdp_move_to(window->client_rect.left, window->client_rect.top);
-    vdp_set_text_viewport_via_plot();
-    vdp_set_graphics_origin_via_plot();
+    set_viewport_for_rect(&window->client_rect);
 }
 
 void core_set_title_viewport_for_buffer(AwWindow* window) {
-    vdp_context_select(0);
-    vdp_context_reset(0xFF); // all style set
-    vdp_logical_scr_dims(false);
-    AwRect rect = core_get_global_title_rect(window);
-    vdp_move_to(rect.left, rect.top);
-    vdp_move_to(rect.right-1, rect.bottom-1);
-    vdp_set_graphics_viewport_via_plot();
-
-    vdp_move_to(rect.left, rect.top);
-    vdp_set_text_viewport_via_plot();
-    vdp_set_graphics_origin_via_plot();
+    AwRect title_rect = core_get_sizing_title_rect(window);
+    set_viewport_for_rect(&title_rect);
 }
 
 void core_set_title_viewport_for_screen(AwWindow* window) {
-    vdp_context_select(0);
-    vdp_context_reset(0xFF); // all style set
-    vdp_logical_scr_dims(false);
-    AwRect rect = core_get_global_title_rect(window);
-    vdp_move_to(rect.left, rect.top);
-    vdp_move_to(rect.right-1, rect.bottom-1);
-    vdp_set_graphics_viewport_via_plot();
-
-    vdp_move_to(rect.left, rect.top);
-    vdp_set_text_viewport_via_plot();
-    vdp_set_graphics_origin_via_plot();
+    AwRect title_rect = core_get_global_title_rect(window);
+    set_viewport_for_rect(&title_rect);
 }
 
 void core_set_window_viewport_for_buffer(AwWindow* window) {
-    vdp_context_select(0);
-    vdp_context_reset(0xFF); // all style set
-    vdp_logical_scr_dims(false);
-    vdp_move_to(window->window_rect.left, window->window_rect.top);
-    vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
-    vdp_set_graphics_viewport_via_plot();
-
-    vdp_move_to(window->window_rect.left, window->window_rect.top);
-    vdp_set_text_viewport_via_plot();
-    vdp_set_graphics_origin_via_plot();
+    AwRect window_rect = core_get_sizing_window_rect(window);
+    set_viewport_for_rect(&window_rect);
 }
 
 void core_set_window_viewport_for_screen(AwWindow* window) {
-    vdp_context_select(0);
-    vdp_context_reset(0xFF); // all style set
-    vdp_logical_scr_dims(false);
-    vdp_move_to(window->window_rect.left, window->window_rect.top);
-    vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
-    vdp_set_graphics_viewport_via_plot();
-
-    vdp_move_to(window->window_rect.left, window->window_rect.top);
-    vdp_set_text_viewport_via_plot();
-    vdp_set_graphics_origin_via_plot();
+    set_viewport_for_rect(&window->window_rect);
 }
 
 void core_paint_window(AwMsg* msg) {
@@ -2104,6 +2098,7 @@ const AwFcnTable aw_core_functions = {
     core_get_global_window_rect,
     core_get_intersect_rect,
     core_get_local_client_rect,
+    core_get_local_title_rect,
     core_get_local_window_rect,
     core_get_maximize_icon_rect,
     core_get_menu_icon_rect,
@@ -2118,7 +2113,9 @@ const AwFcnTable aw_core_functions = {
     core_get_screen_rect,
     core_get_screen_size,
     core_get_sizing_client_rect,
+    core_get_sizing_title_rect,
     core_get_sizing_window_rect,
+    core_get_title_size,
     core_get_top_level_window,
     core_get_union_rect,
     core_get_version,
