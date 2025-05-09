@@ -1441,7 +1441,7 @@ void draw_title(AwWindow* window) {
     printf("%s", window->text);
 }
 
-void core_set_client_viewport(AwWindow* window) {
+void core_set_client_viewport_for_buffer(AwWindow* window) {
     vdp_context_select(0);
     vdp_context_reset(0xFF); // all style set
     vdp_logical_scr_dims(false);
@@ -1454,7 +1454,20 @@ void core_set_client_viewport(AwWindow* window) {
     vdp_set_graphics_origin_via_plot();
 }
 
-void core_set_title_viewport(AwWindow* window) {
+void core_set_client_viewport_for_screen(AwWindow* window) {
+    vdp_context_select(0);
+    vdp_context_reset(0xFF); // all style set
+    vdp_logical_scr_dims(false);
+    vdp_move_to(window->client_rect.left, window->client_rect.top);
+    vdp_move_to(window->client_rect.right-1, window->client_rect.bottom-1);
+    vdp_set_graphics_viewport_via_plot();
+
+    vdp_move_to(window->client_rect.left, window->client_rect.top);
+    vdp_set_text_viewport_via_plot();
+    vdp_set_graphics_origin_via_plot();
+}
+
+void core_set_title_viewport_for_buffer(AwWindow* window) {
     vdp_context_select(0);
     vdp_context_reset(0xFF); // all style set
     vdp_logical_scr_dims(false);
@@ -1468,7 +1481,34 @@ void core_set_title_viewport(AwWindow* window) {
     vdp_set_graphics_origin_via_plot();
 }
 
-void core_set_window_viewport(AwWindow* window) {
+void core_set_title_viewport_for_screen(AwWindow* window) {
+    vdp_context_select(0);
+    vdp_context_reset(0xFF); // all style set
+    vdp_logical_scr_dims(false);
+    AwRect rect = core_get_global_title_rect(window);
+    vdp_move_to(rect.left, rect.top);
+    vdp_move_to(rect.right-1, rect.bottom-1);
+    vdp_set_graphics_viewport_via_plot();
+
+    vdp_move_to(rect.left, rect.top);
+    vdp_set_text_viewport_via_plot();
+    vdp_set_graphics_origin_via_plot();
+}
+
+void core_set_window_viewport_for_buffer(AwWindow* window) {
+    vdp_context_select(0);
+    vdp_context_reset(0xFF); // all style set
+    vdp_logical_scr_dims(false);
+    vdp_move_to(window->window_rect.left, window->window_rect.top);
+    vdp_move_to(window->window_rect.right-1, window->window_rect.bottom-1);
+    vdp_set_graphics_viewport_via_plot();
+
+    vdp_move_to(window->window_rect.left, window->window_rect.top);
+    vdp_set_text_viewport_via_plot();
+    vdp_set_graphics_origin_via_plot();
+}
+
+void core_set_window_viewport_for_screen(AwWindow* window) {
     vdp_context_select(0);
     vdp_context_reset(0xFF); // all style set
     vdp_logical_scr_dims(false);
@@ -1493,9 +1533,9 @@ void core_paint_window(AwMsg* msg) {
 
     if (paint_flags->window) {
         if (window->state.minimized) {
-            core_set_title_viewport(window);
+            core_set_title_viewport_for_buffer(window);
         } else {
-            core_set_window_viewport(window);
+            core_set_window_viewport_for_buffer(window);
         }
 
         if (paint_flags->border) {
@@ -1540,7 +1580,7 @@ void core_paint_window(AwMsg* msg) {
     }
 
     if (paint_flags->client) {
-        core_set_client_viewport(window);
+        core_set_client_viewport_for_buffer(window);
 
         if (paint_flags->background) {
             draw_background(window);
@@ -2099,10 +2139,13 @@ const AwFcnTable aw_core_functions = {
     core_realloc,
     core_rect_contains_point,
     core_resize_window,
-    core_set_client_viewport,
+    core_set_client_viewport_for_buffer,
+    core_set_client_viewport_for_screen,
     core_set_text,
-    core_set_title_viewport,
-    core_set_window_viewport,
+    core_set_title_viewport_for_buffer,
+    core_set_title_viewport_for_screen,
+    core_set_window_viewport_for_buffer,
+    core_set_window_viewport_for_screen,
     core_show_window,
     core_terminate,
     core_unload_app
