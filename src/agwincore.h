@@ -34,6 +34,12 @@ extern "C" {
 
 #ifdef AGWIN_APP
 
+// Not in the public core function table:
+void core_create_palette_buffer(uint16_t buffer_id, uint8_t num_colors);
+void core_initialize();
+void core_message_loop();
+
+// In the public core function table:
 void        core_activate_window(AwWindow* window, bool active);
 void        core_close_window(AwWindow* window);
 AwWindow*   core_create_window(const AwCreateWindowParams* params);
@@ -72,7 +78,6 @@ AwRect      core_get_union_rect(const AwRect* rect1, const AwRect* rect2);
 uint8_t     core_get_version();
 AwSize      core_get_window_size(AwWindow* window);
 int32_t     core_handle_message(AwWindow* window, AwMsg* msg, bool* halt);
-void        core_initialize();
 void        core_invalidate_client(AwWindow* window);
 void        core_invalidate_client_rect(AwWindow* window, const AwRect* rect);
 void        core_invalidate_title_bar(AwWindow* window);
@@ -80,7 +85,6 @@ void        core_invalidate_window(AwWindow* window);
 void        core_invalidate_window_rect(AwWindow* window, const AwRect* rect);
 int32_t     core_load_app(const char* path);
 void*       core_malloc(size_t size);
-void        core_message_loop();
 void        core_move_window(AwWindow* window, int16_t x, int16_t y);
 void        core_offset_rect(AwRect* rect, int16_t dx, int16_t dy);
 void        core_paint_window(AwMsg* msg);
@@ -137,7 +141,6 @@ typedef AwRect      (*aw_core_get_union_rect)(const AwRect* rect1, const AwRect*
 typedef uint8_t     (*aw_core_get_version)();
 typedef AwSize      (*aw_core_get_window_size)(AwWindow* window);
 typedef int32_t     (*aw_core_handle_message)(AwWindow* window, AwMsg* msg, bool* halt);
-typedef void        (*aw_core_initialize)();
 typedef void        (*aw_core_invalidate_client)(AwWindow* window);
 typedef void        (*aw_core_invalidate_client_rect)(AwWindow* window, const AwRect* rect);
 typedef void        (*aw_core_invalidate_title_bar)(AwWindow* window);
@@ -145,7 +148,6 @@ typedef void        (*aw_core_invalidate_window)(AwWindow* window);
 typedef void        (*aw_core_invalidate_window_rect)(AwWindow* window, const AwRect* rect);
 typedef int32_t     (*aw_core_load_app)(const char* path);
 typedef void*       (*aw_core_malloc)(size_t size);
-typedef void        (*aw_core_message_loop)();
 typedef void        (*aw_core_move_window)(AwWindow* window, int16_t x, int16_t y);
 typedef void        (*aw_core_offset_rect)(AwRect* rect, int16_t dx, int16_t dy);
 typedef void        (*aw_core_paint_window)(AwMsg* msg);
@@ -201,7 +203,6 @@ typedef struct tag_AwFcnTable {
     aw_core_get_version                 get_version;
     aw_core_get_window_size             get_window_size;
     aw_core_handle_message              handle_message;
-    aw_core_initialize                  initialize;
     aw_core_invalidate_client           invalidate_client;
     aw_core_invalidate_client_rect      invalidate_client_rect;
     aw_core_invalidate_title_bar        invalidate_title_bar;
@@ -209,7 +210,6 @@ typedef struct tag_AwFcnTable {
     aw_core_invalidate_window_rect      invalidate_window_rect;
     aw_core_load_app                    load_app;
     aw_core_malloc                      malloc;
-    aw_core_message_loop                message_loop;
     aw_core_move_window                 move_window;
     aw_core_offset_rect                 offset_rect;
     aw_core_paint_window                paint_window;

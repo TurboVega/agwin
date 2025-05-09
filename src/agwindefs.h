@@ -45,10 +45,26 @@ extern "C" {
 #define AW_BITMAP_ID_HIGH       0x9FFF  // highest VDP bitmap ID used by agwin
 #define AW_BITMAP_ID_NEXT       0       // indicates to use next available bitmap ID
 
+#define AW_TMP_BUFFER_ID_0      ((uint16_t)63910)
+#define AW_TMP_BUFFER_ID_1      ((uint16_t)63911)
+#define AW_PALETTE_BUFFER       ((uint16_t)63912)
+
 #define AW_BORDER_THICKNESS     2       // pixels
 #define AW_TITLE_BAR_HEIGHT     12      // pixels
 #define AW_TTITLE_TEXT_HEIGHT   8       // pixels
+
 #define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
+#define AW_SCREEN_COLORS        16
+
+#define AW_SCREEN_COLOR_BITS    \
+        (AW_SCREEN_COLORS == 64 ? 6 : \
+         (AW_SCREEN_COLORS == 16 ? 4 : \
+          (AW_SCREEN_COLORS == 4 ? 2 : 1)))
+
+#define AW_PIXELS_PER_BYTE    \
+        (AW_SCREEN_COLORS == 2 ? 8 : \
+         (AW_SCREEN_COLORS == 4 ? 4 : \
+          (AW_SCREEN_COLORS == 16 ? 2 : 1)))
 
 #ifndef NULL
 #define NULL 0
@@ -119,7 +135,8 @@ typedef struct tag_AwWindowState {
     uint16_t        visible : 1;    // whether the window is visible
     uint16_t        minimized : 1;  // whether the window is minimized
     uint16_t        maximized : 1;  // whether the window is maximized
-    uint16_t        reserved : 10;  // reserved
+    uint16_t        painted : 1;    // whether the buffer was painted (and bitmap not updated)
+    uint16_t        reserved : 9;   // reserved
 } AwWindowState;
 
 typedef struct tag_AwPaintFlags {

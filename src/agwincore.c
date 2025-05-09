@@ -81,8 +81,8 @@ bool        prior_left_click;
 bool        prior_middle_click;
 bool        prior_right_click;
 AwMouseCursor current_cursor = AwMcPointerSimple;
-uint16_t    next_buffer_id;
-uint16_t    next_bitmap_id;
+uint16_t    next_buffer_id = AW_BUFFER_ID_LOW;
+uint16_t    next_bitmap_id = AW_BITMAP_ID_LOW;
 
 volatile SYSVAR * sys_var; // points to MOS system variables
 
@@ -861,6 +861,81 @@ uint16_t get_next_bitmap_id() {
     }
 }
 
+void core_create_palette_buffer(uint16_t buffer_id, uint8_t num_colors) {
+    uint8_t colors[64];
+    for (uint8_t c = 0; c < num_colors; c++) {
+        unsigned int color = (unsigned int) vdp_return_palette_entry_colour(c);
+        colors[c] = (uint8_t) (
+            ((color & 0x0000C0) >> (6+0)) | // R
+            ((color & 0x00C000) >> (6+8)) | // G
+            ((color & 0xC00000) >> (6+16)) | // B
+            0xC0C0C0 // alpha bits
+        );
+    }
+    vdp_adv_write_block_data(buffer_id, num_colors, (char*) colors);
+}
+
+void create_large_buffer(uint16_t buffer_id, int size) {
+    if (size < 0x0000FFFF) {
+        // We just need 1 buffer, up to 64KB-2 in size
+        vdp_adv_create(buffer_id, size);
+    } else {
+        // We need at least 1 block of size 16KB
+        int n = size >> 14; // size / 16KB
+        int rem = size & 0x00003FFF; // 16KB - 1
+        vdp_adv_create(AW_TMP_BUFFER_ID_0, 0x4000);
+        int m = 0;
+        if (rem) {
+            // We also need a block less than 16KB
+            vdp_adv_create(AW_TMP_BUFFER_ID_1, rem);
+            m = 1;
+        }
+
+        // The vdp_adv_copy_multiple_consolidate() function does not allow the
+        // array of buffer IDs to be passed by reference; it must be a series
+        // of parameters to that function (variable argument list). Because of
+        // that, we essentially duplicate much of that code here.
+
+        uint16_t buffer_list[14]; // big enough for 192KB buffer
+        VDU_ADV_CMD vdu_adv_copy_multiple_consolidate = { 23, 0, 0xA0, 0xFA00, 26 };
+        vdu_adv_copy_multiple_consolidate.BID = buffer_id;
+        for (int b = 0; b < n; b++) {
+            buffer_list[b] = AW_TMP_BUFFER_ID_0;
+        }
+        if (rem) {
+            buffer_list[n] = AW_TMP_BUFFER_ID_1;
+        }
+        buffer_list[n+m] = 0xFFFF; // Terminate the list
+        VDP_PUTS(vdu_adv_copy_multiple_consolidate);
+        mos_puts((char*)buffer_list, (n+m+1)*2, 0);
+
+        vdp_adv_clear_buffer(AW_TMP_BUFFER_ID_0);
+        vdp_adv_clear_buffer(AW_TMP_BUFFER_ID_1);
+    }
+}
+
+void expand_buffer_into_bitmap(AwWindow * window) {
+    //VDU 23, 0, &A0, bufferId; 72, options, sourceBufferId; [width;] <mappingDataBufferId; | mapping-data...>
+    static VDU_ADV_CMD_B_W vdu_expand_a_bitmap = { 23, 0, 0xA0, 0xFA00, 72, 0, 0xFA00 };
+    vdu_expand_a_bitmap.BID = window->bitmap_id;
+    vdu_expand_a_bitmap.b0 = (1<<4)|AW_SCREEN_COLOR_BITS;
+    if (AW_SCREEN_COLOR_BITS == 6) {
+        vdu_expand_a_bitmap.b0 |= (1<<3);
+    }
+    vdu_expand_a_bitmap.w1 = window->buffer_id;
+    VDP_PUTS(vdu_expand_a_bitmap);
+    if (AW_SCREEN_COLOR_BITS == 6) {
+        uint16_t width = 2;
+        VDP_PUTS(width);
+    }
+    uint16_t map_id = AW_PALETTE_BUFFER;
+    VDP_PUTS(map_id);
+
+    AwSize size = core_get_window_size(window);
+    vdp_adv_select_bitmap(window->bitmap_id);
+    vdp_adv_bitmap_from_buffer(size.width, size.height, 1); // AABBGGRR
+}
+
 AwWindow* core_create_window(const AwCreateWindowParams* params) {
     AwCreateWindowParams prms;
     prms = *params;
@@ -925,6 +1000,8 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
     window->window_rect.bottom = prms.height;
     window->bg_color = AW_DFLT_BG_COLOR;
     window->fg_color = AW_DFLT_FG_COLOR;
+    window->buffer_id = prms.buffer_id;
+    window->bitmap_id = prms.bitmap_id;
 
     core_link_child(prms.parent, window);
 
@@ -945,6 +1022,11 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
     if (prms.state.maximized) {
         core_maximize_window(window);
     }
+
+    AwSize wsize = core_get_window_size(window);
+    int total_size = ((int) wsize.width * (int) wsize.height) / AW_PIXELS_PER_BYTE;
+    create_large_buffer(window->buffer_id, total_size);
+    expand_buffer_into_bitmap(window);
 
     return window;
 }
@@ -2012,7 +2094,6 @@ const AwFcnTable aw_core_functions = {
     core_get_version,
     core_get_window_size,
     core_handle_message,
-    core_initialize,
     core_invalidate_client,
     core_invalidate_client_rect,
     core_invalidate_title_bar,
@@ -2020,7 +2101,6 @@ const AwFcnTable aw_core_functions = {
     core_invalidate_window_rect,
     core_load_app,
     core_malloc,
-    core_message_loop,
     core_move_window,
     core_offset_rect,
     core_paint_window,

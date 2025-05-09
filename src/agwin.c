@@ -47,9 +47,9 @@ AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
 
 void init_my_app() {
     my_class.parent = core_get_root_class();
-    for (uint16_t row = 0; row < 4; row++) {
+    for (uint16_t row = 0; row < 1; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
-        for (uint16_t col = 0; col < 4; col++) {
+        for (uint16_t col = 0; col < 1; col++) {
             uint16_t x = col * 155 + 5; // 5, 160, 315, 465
             uint16_t i = row * 4 + col;
             char text[10];
@@ -86,7 +86,7 @@ void init_my_app() {
         }
     }
 
-    core_load_app("winclock.bin");
+    //core_load_app("winclock.bin");
 }
 
 int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
@@ -117,7 +117,9 @@ int main( void )
 	AwPoint center = core_get_screen_center();
 	vdp_mouse_set_position(center.x, center.y);
 
+    core_create_palette_buffer(AW_PALETTE_BUFFER, AW_SCREEN_COLORS);
     core_initialize();
+
     aw_register_icons();
 	init_my_app();
 	core_message_loop();
