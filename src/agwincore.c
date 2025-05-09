@@ -1034,7 +1034,6 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
     AwSize wsize = core_get_window_size(window);
     int total_size = ((int) wsize.width * (int) wsize.height) / AW_PIXELS_PER_BYTE;
     create_large_buffer(window->buffer_id, total_size);
-    expand_buffer_into_bitmap(window);
 
     return window;
 }
@@ -1515,6 +1514,21 @@ void core_set_window_viewport_for_screen(AwWindow* window) {
     set_viewport_for_rect(&window->window_rect);
 }
 
+void redirect_drawing_to_buffer(AwWindow * window) {
+    VDU_ADV_CMD vdu_redirect = { 23, 0, 0xA0, 0xFA00, 0x31 };
+    vdu_redirect.BID = window->buffer_id;
+    VDP_PUTS(vdu_redirect);
+    AwSize size = core_get_window_size(window);
+    VDP_PUTS(size);
+    uint8_t colors = AW_SCREEN_COLORS;
+    VDP_PUTS(colors);
+}
+
+void redirect_drawing_to_screen() {
+    VDU_ADV_CMD vdu_redirect = { 23, 0, 0xA0, 0xFFFF, 0x31 };
+    VDP_PUTS(vdu_redirect);
+}
+
 void core_paint_window(AwMsg* msg) {
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
     AwWindow* window = paint_msg->window;
@@ -1522,6 +1536,8 @@ void core_paint_window(AwMsg* msg) {
     if (!window->state.visible) {
         return;
     }
+
+    redirect_drawing_to_buffer(window);
 
     AwPaintFlags* paint_flags = &paint_msg->flags;
 
@@ -1583,6 +1599,14 @@ void core_paint_window(AwMsg* msg) {
             draw_foreground(window);
         }
     }
+
+    redirect_drawing_to_screen();
+    vdp_context_select(0);
+    vdp_context_reset(0xFF); // all style set
+    vdp_logical_scr_dims(false);
+    expand_buffer_into_bitmap(window);
+    vdp_adv_select_bitmap(window->bitmap_id);
+    vdp_draw_bitmap(window->window_rect.left, window->window_rect.top);
 }
 
 int32_t on_mouse_dragged(AwMsg* msg) {
