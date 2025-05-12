@@ -156,7 +156,6 @@ typedef struct tag_AwPaintFlags {
     uint16_t        client : 1;     // whether painting inner client area
     uint16_t        reserved1 : 1;  // reserved
     uint16_t        reserved2 : 1;  // reserved
-    uint16_t        reserved3 : 1;  // reserved
 } AwPaintFlags;
 
 // This is more-or-less a copy of the Agondev KEY_EVENT

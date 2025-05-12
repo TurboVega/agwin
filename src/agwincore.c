@@ -872,12 +872,14 @@ uint16_t get_next_bitmap_id() {
 void core_create_palette_buffer(uint16_t buffer_id, uint8_t num_colors) {
     uint8_t colors[64];
     for (uint8_t c = 0; c < num_colors; c++) {
-        unsigned int color = (unsigned int) vdp_return_palette_entry_colour(c);
+        // Color is RGB8888 (1 byte per color component)
+        uint24_t color = vdp_return_palette_entry_colour(c);
+        // colors[c] is RGBA2222 (2 bits per color component)
         colors[c] = (uint8_t) (
             ((color & 0x0000C0) >> (6+0)) | // R
-            ((color & 0x00C000) >> (6+8)) | // G
-            ((color & 0xC00000) >> (6+16)) | // B
-            0xC0C0C0 // alpha bits
+            ((color & 0x00C000) >> (6+8-2)) | // G
+            ((color & 0xC00000) >> (6+16-4)) | // B
+            0xC0 // alpha bits
         );
     }
     vdp_adv_write_block_data(buffer_id, num_colors, (char*) colors);
@@ -1117,7 +1119,7 @@ AwRect core_get_sizing_client_rect(AwWindow* window) {
 AwRect core_get_close_icon_rect(AwWindow* window) {
     if (window->style.close_icon) {
         int16_t thickness = get_border_thickness(window);
-        AwRect rect = core_get_global_window_rect(window);
+        AwRect rect = core_get_sizing_window_rect(window);
         rect.right -= thickness;
         rect.left = rect.right - AW_ICON_WIDTH;
         rect.top += thickness;
@@ -1131,7 +1133,7 @@ AwRect core_get_close_icon_rect(AwWindow* window) {
 AwRect core_get_minimize_icon_rect(AwWindow* window) {
     if (window->style.minimize_icon && !window->state.minimized) {
         int16_t thickness = get_border_thickness(window);
-        AwRect rect = core_get_global_window_rect(window);
+        AwRect rect = core_get_sizing_window_rect(window);
         rect.right -= thickness;
         if (window->style.close_icon) {
             rect.right -= AW_ICON_WIDTH;
@@ -1148,7 +1150,7 @@ AwRect core_get_minimize_icon_rect(AwWindow* window) {
 AwRect core_get_maximize_icon_rect(AwWindow* window) {
     if (window->style.maximize_icon && !window->state.maximized) {
         int16_t thickness = get_border_thickness(window);
-        AwRect rect = core_get_global_window_rect(window);
+        AwRect rect = core_get_sizing_window_rect(window);
         rect.right -= thickness;
         if (window->style.close_icon) {
             rect.right -= AW_ICON_WIDTH;
@@ -1169,7 +1171,7 @@ AwRect core_get_restore_icon_rect(AwWindow* window) {
     if ((window->style.minimize_icon || window->style.maximize_icon) &&
         (window->state.minimized || window->state.maximized)) {
         int16_t thickness = get_border_thickness(window);
-        AwRect rect = core_get_global_window_rect(window);
+        AwRect rect = core_get_sizing_window_rect(window);
         rect.right -= thickness;
         if (window->style.close_icon) {
             rect.right -= AW_ICON_WIDTH;
@@ -1190,7 +1192,7 @@ AwRect core_get_restore_icon_rect(AwWindow* window) {
 AwRect core_get_menu_icon_rect(AwWindow* window) {
     if (window->style.menu_icon) {
         int16_t thickness = get_border_thickness(window);
-        AwRect rect = core_get_global_window_rect(window);
+        AwRect rect = core_get_sizing_window_rect(window);
         rect.right -= thickness;
         if (window->style.close_icon) {
             rect.right -= AW_ICON_WIDTH;
@@ -1414,6 +1416,15 @@ void draw_background(AwWindow* window) {
 
 void draw_foreground(AwWindow* window) {
     (void)window; // unused
+    vdp_set_text_colour(window->bg_color | 0x80);
+    vdp_set_text_colour(window->fg_color);
+    vdp_cursor_tab(0, 0);
+    printf("%s\r\n", window->text);
+    printf("Loc:    (%hu,%hu)\r\n", window->window_rect.left, window->window_rect.top);
+    AwSize size = core_get_window_size(window);
+    printf("Size:   %hux%hu\r\n", size.width, size.height);
+    printf("Buffer: 0x%04X\r\n", window->buffer_id);
+    printf("Bitmap: 0x%04X\r\n", window->bitmap_id);
 }
 
 uint8_t get_border_color(AwWindow* window) {
@@ -1448,11 +1459,11 @@ void draw_border(AwWindow* window) {
 
     // vertical left border
     vdp_move_to(0, AW_BORDER_THICKNESS);
-    vdp_filled_rect(AW_BORDER_THICKNESS-1, size.height-AW_BORDER_THICKNESS);
+    vdp_filled_rect(AW_BORDER_THICKNESS-1, size.height-AW_BORDER_THICKNESS-1);
 
     // vertical right border
     vdp_move_to(size.width-AW_BORDER_THICKNESS, AW_BORDER_THICKNESS);
-    vdp_filled_rect(size.width-1, size.height-AW_BORDER_THICKNESS);
+    vdp_filled_rect(size.width-1, size.height-AW_BORDER_THICKNESS-1);
 }
 
 void draw_title_bar(AwWindow* window) {
@@ -1462,7 +1473,7 @@ void draw_title_bar(AwWindow* window) {
 
     vdp_move_to(thickness, thickness);
     vdp_filled_rect(thickness + size.width - 1,
-                thickness + size.height - 1);
+                thickness + AW_TITLE_BAR_HEIGHT - 1);
 }
 
 void draw_title(AwWindow* window) {
@@ -1474,20 +1485,39 @@ void draw_title(AwWindow* window) {
     printf("%s", window->text);
 }
 
+static VDU_A_B_CMD vdu_set_text_viewport_via_plot = { 23, 0, 0x9C };
+static VDU_A_B_CMD vdu_set_graphics_viewport_via_plot = { 23, 0, 0x9D };
+static VDU_A_B_CMD vdu_set_graphics_origin_via_plot = { 23, 0, 0x9E };
+static VDU_A_B_CMD vdu_move_graphics_origin_and_viewport = { 23, 0, 0x9F };
+
+void local_vdp_set_text_viewport_via_plot( void ) { VDP_PUTS( vdu_set_text_viewport_via_plot ); }
+void local_vdp_set_graphics_viewport_via_plot( void ) { VDP_PUTS( vdu_set_graphics_viewport_via_plot ); }
+void local_vdp_set_graphics_origin_via_plot( void ) { VDP_PUTS( vdu_set_graphics_origin_via_plot ); }
+void local_vdp_move_graphics_origin_and_viewport( void ) { VDP_PUTS( vdu_move_graphics_origin_and_viewport ); }
+
 void set_viewport_for_rect(AwRect * rect) {
     vdp_context_select(0);
-    vdp_context_reset(0xFF); // all style set
+    vdp_context_reset(0);
     vdp_logical_scr_dims(false);
+
     vdp_move_to(rect->left, rect->top);
     vdp_move_to(rect->right-1, rect->bottom-1);
-    vdp_set_graphics_viewport_via_plot();
+    local_vdp_set_text_viewport_via_plot();
+
     vdp_move_to(rect->left, rect->top);
-    vdp_set_text_viewport_via_plot();
-    vdp_set_graphics_origin_via_plot();
+    vdp_move_to(rect->right-1, rect->bottom-1);
+    local_vdp_set_graphics_viewport_via_plot();
+
+    vdp_move_to(rect->left, rect->top);
+    local_vdp_set_graphics_origin_via_plot();
 }
 
 void core_set_client_viewport_for_buffer(AwWindow* window) {
-    AwRect client_rect = core_get_sizing_client_rect(window);
+    AwRect client_rect;
+    client_rect.left = window->client_rect.left - window->window_rect.left;
+    client_rect.top = window->client_rect.top - window->window_rect.top;
+    client_rect.right = window->client_rect.right - window->window_rect.left;
+    client_rect.bottom = window->client_rect.bottom - window->window_rect.top;
     set_viewport_for_rect(&client_rect);
 }
 
@@ -1601,9 +1631,12 @@ void core_paint_window(AwMsg* msg) {
     }
 
     redirect_drawing_to_screen();
-    vdp_context_select(0);
-    vdp_context_reset(0xFF); // all style set
-    vdp_logical_scr_dims(false);
+//    vdp_context_select(0);
+//    vdp_context_reset(0);
+//    vdp_logical_scr_dims(false);
+
+    core_set_window_viewport_for_screen(root_window);
+
     expand_buffer_into_bitmap(window);
     vdp_adv_select_bitmap(window->bitmap_id);
     vdp_draw_bitmap(window->window_rect.left, window->window_rect.top);
@@ -1811,21 +1844,13 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
         default: {
             switch (msg->on_common.msg_type) {
 
-                case Aw_On_Common: {
-                    break;
-                }
+                case Aw_On_Common: { break; }
 
-                case Aw_On_KeyEvent: {
-                    break;
-                }
+                case Aw_On_KeyEvent: { break; }
 
-                case Aw_On_LeftButtonDown: {
-                    break;
-                }
+                case Aw_On_LeftButtonDown: { break; }
 
-                case Aw_On_LeftButtonUp: {
-                    break;
-                }
+                case Aw_On_LeftButtonUp: { break; }
 
                 case Aw_On_LeftButtonClick: {
                     switch (msg->on_mouse_event.state.target) {
@@ -1852,57 +1877,31 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
                     break;
                 }
 
-                case Aw_On_LeftButtonLongClick: {
-                    break;
-                }
+                case Aw_On_LeftButtonLongClick: { break; }
 
-                case Aw_On_LeftButtonDoubleClick: {
-                    break;
-                }
+                case Aw_On_LeftButtonDoubleClick: { break; }
 
-                case Aw_On_MiddleButtonDown: {
-                    break;
-                }
+                case Aw_On_MiddleButtonDown: { break; }
 
-                case Aw_On_MiddleButtonUp: {
-                    break;
-                }
+                case Aw_On_MiddleButtonUp: { break; }
 
-                case Aw_On_MiddleButtonClick: {
-                    break;
-                }
+                case Aw_On_MiddleButtonClick: { break; }
 
-                case Aw_On_MiddleButtonLongClick: {
-                    break;
-                }
+                case Aw_On_MiddleButtonLongClick: { break; }
 
-                case Aw_On_MiddleButtonDoubleClick: {
-                    break;
-                }
+                case Aw_On_MiddleButtonDoubleClick: { break; }
 
-                case Aw_On_RightButtonDown: {
-                    break;
-                }
+                case Aw_On_RightButtonDown: { break; }
 
-                case Aw_On_RightButtonUp: {
-                    break;
-                }
+                case Aw_On_RightButtonUp: { break; }
 
-                case Aw_On_RightButtonClick: {
-                    break;
-                }
+                case Aw_On_RightButtonClick: { break; }
 
-                case Aw_On_RightButtonLongClick: {
-                    break;
-                }
+                case Aw_On_RightButtonLongClick: { break; }
 
-                case Aw_On_RightButtonDoubleClick: {
-                    break;
-                }
+                case Aw_On_RightButtonDoubleClick: { break; }
 
-                case Aw_On_MouseMoved: {
-                    break;
-                }
+                case Aw_On_MouseMoved: { break; }
 
                 case Aw_On_MouseDragged: {
                     return on_mouse_dragged(msg);
@@ -1913,45 +1912,25 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
                     break;
                 }
 
-                case Aw_On_WindowResized: {
-                    break;
-                }
+                case Aw_On_WindowResized: { break; }
 
-                case Aw_On_WindowMoved: {
-                    break;
-                }
+                case Aw_On_WindowMoved: { break; }
 
-                case Aw_On_WindowCreated: {
-                    break;
-                }
+                case Aw_On_WindowCreated: { break; }
 
-                case Aw_On_WindowDestroyed: {
-                    break;
-                }
+                case Aw_On_WindowDestroyed: { break; }
 
-                case Aw_On_WindowShown: {
-                    break;
-                }
+                case Aw_On_WindowShown: { break; }
 
-                case Aw_On_WindowEnabled: {
-                    break;
-                }
+                case Aw_On_WindowEnabled: { break; }
 
-                case Aw_On_WindowActivated: {
-                    break;
-                }
+                case Aw_On_WindowActivated: { break; }
             
-                case Aw_On_Terminate: {
-                    break;
-                }
+                case Aw_On_Terminate: { break; }
 
-                case Aw_On_RealTimeClockEvent: {
-                    break;
-                }
+                case Aw_On_RealTimeClockEvent: { break; }
 
-                default: {
-                    break;
-                }
+                default: { break; }
             }
         }
     }

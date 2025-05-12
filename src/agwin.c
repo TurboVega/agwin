@@ -46,10 +46,11 @@ AwClass my_class = { "myclass", NULL, my_handle_message };
 AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
 
 void init_my_app() {
+    return;
     my_class.parent = core_get_root_class();
-    for (uint16_t row = 0; row < 1; row++) {
+    for (uint16_t row = 0; row < 4; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
-        for (uint16_t col = 0; col < 1; col++) {
+        for (uint16_t col = 0; col < 4; col++) {
             uint16_t x = col * 155 + 5; // 5, 160, 315, 465
             uint16_t i = row * 4 + col;
             char text[10];
