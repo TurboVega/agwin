@@ -1377,7 +1377,7 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window,
         paint_flags->window = 1;
         if (window->style.title_bar) {
             paint_flags->title_bar = 1;
-            paint_flags->title = 1;
+            paint_flags->title_text = 1;
         }
         if (window->style.close_icon) {
             paint_flags->close_icon = 1;
@@ -1399,7 +1399,7 @@ void core_set_paint_msg(AwMsg* msg, AwWindow* window,
     if (entire || title) {
         if (window->style.title_bar) {
             paint_flags->title_bar = 1;
-            paint_flags->title = 1;
+            paint_flags->title_text = 1;
         }
         if (window->style.close_icon) {
             paint_flags->close_icon = 1;
@@ -1433,15 +1433,17 @@ void draw_background(AwWindow* window) {
 
 void draw_foreground(AwWindow* window) {
     (void)window; // unused
-    vdp_set_text_colour(window->bg_color | 0x80);
-    vdp_set_text_colour(window->fg_color);
-    vdp_cursor_tab(0, 0);
-    printf("%s\r\n", window->text);
-    printf("Loc:    (%hu,%hu)\r\n", window->window_rect.left, window->window_rect.top);
-    AwSize size = core_get_window_size(window);
-    printf("Size:   %hux%hu\r\n", size.width, size.height);
-    printf("Buffer: 0x%04X\r\n", window->buffer_id);
-    printf("Bitmap: 0x%04X\r\n", window->bitmap_id);
+    if (window->parent) {
+        vdp_set_text_colour(window->bg_color | 0x80);
+        vdp_set_text_colour(window->fg_color);
+        vdp_cursor_tab(0, 0);
+        printf("%s\r\n", window->text);
+        printf("Loc:    (%hu,%hu)\r\n", window->window_rect.left, window->window_rect.top);
+        AwSize size = core_get_window_size(window);
+        printf("Size:   %hux%hu\r\n", size.width, size.height);
+        printf("Buffer: 0x%04X\r\n", window->buffer_id);
+        printf("Bitmap: 0x%04X\r\n", window->bitmap_id);
+    }
 }
 
 uint8_t get_border_color(AwWindow* window) {
@@ -1493,7 +1495,7 @@ void draw_title_bar(AwWindow* window) {
                 thickness + AW_TITLE_BAR_HEIGHT - 1);
 }
 
-void draw_title(AwWindow* window) {
+void draw_title_text(AwWindow* window) {
     int16_t thickness = get_border_thickness(window);
     vdp_set_graphics_colour(0, get_title_bar_color(window) | 0x80 );
     vdp_set_graphics_colour(0, get_title_color(window));
@@ -1576,6 +1578,107 @@ void redirect_drawing_to_screen() {
     VDP_PUTS(vdu_redirect);
 }
 
+void core_paint_background(AwMsg* msg) {
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+    AwWindow* window = paint_msg->window;
+
+    if (paint_msg->flags.background) {
+        draw_background(window);
+    }
+}
+
+void core_paint_border(AwMsg* msg) {
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+    AwWindow* window = paint_msg->window;
+
+    if (paint_msg->flags.border) {
+        draw_border(window);
+    }
+}
+
+void core_paint_decorations(AwMsg* msg) {
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+
+    if (paint_msg->flags.border) {
+        paint_msg->msg_type = Aw_Do_PaintBorder;
+        core_process_message(msg);
+    }
+    if (paint_msg->flags.title_bar) {
+        paint_msg->msg_type = Aw_Do_PaintTitleBar;
+        core_process_message(msg);
+    }
+    if (paint_msg->flags.title_text) {
+        paint_msg->msg_type = Aw_Do_PaintTitleText;
+        core_process_message(msg);
+    }
+
+    paint_msg->msg_type = Aw_Do_PaintIcons;
+    core_process_message(msg);
+}
+
+void core_paint_foreground(AwMsg* msg) {
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+    AwWindow* window = paint_msg->window;
+
+    if (paint_msg->flags.foreground) {
+        draw_foreground(window);
+    }
+}
+
+void core_paint_icons(AwMsg* msg) {
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+    AwWindow* window = paint_msg->window;
+
+    if (paint_msg->flags.close_icon) {
+        AwRect rect = core_get_close_icon_rect(window);
+        if (rect.right) {
+            aw_draw_icon(AW_ICON_CLOSE, rect.left, rect.top);
+        }
+    }
+    if (paint_msg->flags.minimize_icon) {
+        AwRect rect = core_get_minimize_icon_rect(window);
+        if (rect.right) {
+            aw_draw_icon(AW_ICON_MINIMIZE, rect.left, rect.top);
+        }
+    }
+    if (paint_msg->flags.maximize_icon) {
+        AwRect rect = core_get_maximize_icon_rect(window);
+        if (rect.right) {
+            aw_draw_icon(AW_ICON_MAXIMIZE, rect.left, rect.top);
+        }
+    }
+    if (paint_msg->flags.restore_icon) {
+        AwRect rect = core_get_restore_icon_rect(window);
+        if (rect.right) {
+            aw_draw_icon(AW_ICON_RESTORE, rect.left, rect.top);
+        }
+    }
+    if (paint_msg->flags.menu_icon) {
+        AwRect rect = core_get_menu_icon_rect(window);
+        if (rect.right) {
+            aw_draw_icon(AW_ICON_MENU, rect.left, rect.top);
+        }
+    }
+}
+
+void core_paint_title_bar(AwMsg* msg) {
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+    AwWindow* window = paint_msg->window;
+
+    if (paint_msg->flags.title_bar) {
+        draw_title_bar(window);
+    }
+}
+
+void core_paint_title_text(AwMsg* msg) {
+    AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
+    AwWindow* window = paint_msg->window;
+
+    if (paint_msg->flags.title_text) {
+        draw_title_text(window);
+    }
+}
+
 void core_paint_window(AwMsg* msg) {
     AwDoMsgPaintWindow* paint_msg = &msg->do_paint_window;
     AwWindow* window = paint_msg->window;
@@ -1595,55 +1698,19 @@ void core_paint_window(AwMsg* msg) {
             core_set_window_viewport_for_buffer(window);
         }
 
-        if (paint_flags->border) {
-            draw_border(window);
-        }
-        if (paint_flags->title_bar) {
-            draw_title_bar(window);
-        }
-        if (paint_flags->title) {
-            draw_title(window);
-        }
-        if (paint_flags->close_icon) {
-            AwRect rect = core_get_close_icon_rect(window);
-            if (rect.right) {
-                aw_draw_icon(AW_ICON_CLOSE, rect.left, rect.top);
-            }
-        }
-        if (paint_flags->minimize_icon) {
-            AwRect rect = core_get_minimize_icon_rect(window);
-            if (rect.right) {
-                aw_draw_icon(AW_ICON_MINIMIZE, rect.left, rect.top);
-            }
-        }
-        if (paint_flags->maximize_icon) {
-            AwRect rect = core_get_maximize_icon_rect(window);
-            if (rect.right) {
-                aw_draw_icon(AW_ICON_MAXIMIZE, rect.left, rect.top);
-            }
-        }
-        if (paint_flags->restore_icon) {
-            AwRect rect = core_get_restore_icon_rect(window);
-            if (rect.right) {
-                aw_draw_icon(AW_ICON_RESTORE, rect.left, rect.top);
-            }
-        }
-        if (paint_flags->menu_icon) {
-            AwRect rect = core_get_menu_icon_rect(window);
-            if (rect.right) {
-                aw_draw_icon(AW_ICON_MENU, rect.left, rect.top);
-            }
-        }
+        core_paint_decorations(msg);
     }
 
     if (paint_flags->client) {
         core_set_client_viewport_for_buffer(window);
 
         if (paint_flags->background) {
-            draw_background(window);
+            paint_msg->msg_type = Aw_Do_PaintBackground;
+            core_process_message(msg);
         }
         if (paint_flags->foreground) {
-            draw_foreground(window);
+            paint_msg->msg_type = Aw_Do_PaintForeground;
+            core_process_message(msg);
         }
     }
 
@@ -1839,6 +1906,41 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
         case Aw_Do_InvalidateClientRect: {
             core_invalidate_client_rect(msg->do_invalidate_client_rect.window,
                 &msg->do_invalidate_client_rect.rect);
+            break;
+        }
+
+        case Aw_Do_PaintBackground: {
+            core_paint_background(msg);
+            break;
+        }
+
+        case Aw_Do_PaintBorder: {
+            core_paint_border(msg);
+            break;
+        }
+
+        case Aw_Do_PaintDecorations: {
+            core_paint_decorations(msg);
+            break;
+        }
+
+        case Aw_Do_PaintForeground: {
+            core_paint_foreground(msg);
+            break;
+        }
+
+        case Aw_Do_PaintIcons: {
+            core_paint_icons(msg);
+            break;
+        }
+
+        case Aw_Do_PaintTitleBar: {
+            core_paint_title_bar(msg);
+            break;
+        }
+
+        case Aw_Do_PaintTitleText: {
+            core_paint_title_text(msg);
             break;
         }
 
@@ -2149,6 +2251,13 @@ const AwFcnTable aw_core_functions = {
     core_malloc,
     core_move_window,
     core_offset_rect,
+    core_paint_background,
+    core_paint_border,
+    core_paint_decorations,
+    core_paint_foreground,
+    core_paint_icons,
+    core_paint_title_bar,
+    core_paint_title_text,
     core_paint_window,
     core_post_message,
     core_process_message,

@@ -47,7 +47,7 @@ AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
 
 void init_my_app() {
     my_class.parent = core_get_root_class();
-    for (uint16_t row = 0; row < 2; row++) {
+    for (uint16_t row = 0; row < 4; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
         for (uint16_t col = 0; col < 4; col++) {
             uint16_t x = col * 155 + 5; // 5, 160, 315, 465
@@ -86,7 +86,7 @@ void init_my_app() {
         }
     }
 
-    //core_load_app("winclock.bin");
+    core_load_app("winclock.bin");
 }
 
 int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {

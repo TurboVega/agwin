@@ -54,13 +54,15 @@ extern "C" {
 #define AW_TITLE_BAR_HEIGHT     12      // pixels
 #define AW_TTITLE_TEXT_HEIGHT   8       // pixels
 
-//#define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
-//#define AW_SCREEN_COLORS        16
-//#define AW_SCREEN_HEIGHT        480
-#define AW_SCREEN_MODE          3       // 640x240x60Hz, 64 colors
+#define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
 #define AW_SCREEN_WIDTH         640
-#define AW_SCREEN_HEIGHT        240
-#define AW_SCREEN_COLORS        64
+#define AW_SCREEN_HEIGHT        480
+#define AW_SCREEN_COLORS        16
+
+//#define AW_SCREEN_MODE          3       // 640x240x60Hz, 64 colors
+//#define AW_SCREEN_WIDTH         640
+//#define AW_SCREEN_HEIGHT        240
+//#define AW_SCREEN_COLORS        64
 
 #define AW_SCREEN_COLOR_BITS    \
         (AW_SCREEN_COLORS == 64 ? 6 : \
@@ -148,7 +150,7 @@ typedef struct tag_AwWindowState {
 typedef struct tag_AwPaintFlags {
     uint16_t        border : 1;     // paint the border
     uint16_t        title_bar : 1;  // paint the title bar
-    uint16_t        title : 1;      // paint the title
+    uint16_t        title_text : 1; // paint the title text
     uint16_t        close_icon: 1;  // paint the close icon in the title bar
     uint16_t        minimize_icon: 1;  // paint the minimize icon in the title bar
     uint16_t        maximize_icon: 1;  // paint the maximize icon in the title bar
