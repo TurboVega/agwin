@@ -648,28 +648,43 @@ void add_more_dirt(AwRect* rect) {
     dirty_area = filth2;
 }
 
+void set_dirty_window_flag(AwWindow* window) {
+    window->state.window_dirty = 1;
+    window->state.title_dirty = 0;
+    window->state.client_dirty = 0;
+}
+
+void set_dirty_title_flag(AwWindow* window) {
+    if (window->state.client_dirty) {
+        set_dirty_window_flag(window);
+    } else {
+        window->state.title_dirty = 1;
+    }
+}
+
+void set_dirty_client_flag(AwWindow* window) {
+    if (window->state.title_dirty) {
+        set_dirty_window_flag(window);
+    } else {
+        window->state.client_dirty = 1;
+    }
+}
+
 void core_invalidate_window(AwWindow* window) {
     if (window->state.minimized) {
         AwRect rect = core_get_global_title_rect(window);
         add_more_dirt(&rect);
-
-        if (!window->state.window_dirty) {
-            window->state.title_dirty = 1;
-        }
+        set_dirty_title_flag(window);
     } else {
         add_more_dirt(&window->window_rect);
-        window->state.window_dirty = 1;
-        window->state.title_dirty = 0;
-        window->state.client_dirty = 0;
+        set_dirty_window_flag(window);
     }
 }
 
 void core_invalidate_client(AwWindow* window) {
     if (!window->state.minimized) {
         add_more_dirt(&window->client_rect);
-        if (!window->state.window_dirty) {
-            window->state.client_dirty = 1;
-        }
+        set_dirty_client_flag(window);
     }
 }
 
@@ -1072,6 +1087,7 @@ void core_invalidate_window_rect(AwWindow* window, const AwRect* rect) {
     core_offset_rect(&new_rect, window->window_rect.left, window->window_rect.top);
     AwRect extra_rect = core_get_intersect_rect(&window->window_rect, &new_rect);
     add_more_dirt(&extra_rect);
+    set_dirty_window_flag(window);
 }
 
 void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
@@ -1079,11 +1095,13 @@ void core_invalidate_client_rect(AwWindow* window, const AwRect* rect) {
     core_offset_rect(&new_rect, window->client_rect.left, window->client_rect.top);
     AwRect extra_rect = core_get_intersect_rect(&window->window_rect, &new_rect);
     add_more_dirt(&extra_rect);
+    set_dirty_client_flag(window);
 }
 
 void core_invalidate_title_bar(AwWindow* window) {
     AwRect title_rect = core_get_global_title_rect(window);
     add_more_dirt(&title_rect);
+    set_dirty_title_flag(window);
 }
 
 AwRect core_get_local_client_rect(AwWindow* window) {
