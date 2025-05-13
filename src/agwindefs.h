@@ -143,8 +143,10 @@ typedef struct tag_AwWindowState {
     uint16_t        visible : 1;    // whether the window is visible
     uint16_t        minimized : 1;  // whether the window is minimized
     uint16_t        maximized : 1;  // whether the window is maximized
-    uint16_t        painted : 1;    // whether the buffer was painted (and bitmap not updated)
-    uint16_t        reserved : 9;   // reserved
+    uint16_t        window_dirty : 1; // whether the window needs painting
+    uint16_t        title_dirty : 1; // whether the title area needs painting
+    uint16_t        client_dirty : 1; // whether the client area needs painting
+    uint16_t        reserved : 8;   // reserved
 } AwWindowState;
 
 typedef struct tag_AwPaintFlags {

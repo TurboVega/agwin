@@ -652,14 +652,24 @@ void core_invalidate_window(AwWindow* window) {
     if (window->state.minimized) {
         AwRect rect = core_get_global_title_rect(window);
         add_more_dirt(&rect);
+
+        if (!window->state.window_dirty) {
+            window->state.title_dirty = 1;
+        }
     } else {
         add_more_dirt(&window->window_rect);
+        window->state.window_dirty = 1;
+        window->state.title_dirty = 0;
+        window->state.client_dirty = 0;
     }
 }
 
 void core_invalidate_client(AwWindow* window) {
     if (!window->state.minimized) {
         add_more_dirt(&window->client_rect);
+        if (!window->state.window_dirty) {
+            window->state.client_dirty = 1;
+        }
     }
 }
 
@@ -2074,97 +2084,45 @@ void core_initialize() {
     running = true;
 }
 
-bool paint_windows(AwWindow* window, AwRect* painted, bool can_paint) {
+void paint_windows(AwWindow* window) {
     if (!window->state.visible) {
-        return false;
+        return;
     }
 
-    // See whether the dirty area becomes covered by this window's siblings
-    if (window->next_sibling) {
-        if (paint_windows(window->next_sibling, painted, false)) {
-            return true;
-        }
-    }
-
-    // See whether the dirty area becomes covered by this window's children
-    bool covered_by_kids = false;
-    if (!window->state.minimized) {
-        AwRect rect = core_get_empty_rect();
-        AwWindow* child = window->first_child;
-        while (child) {
-            if (paint_windows(child, &rect, false)) {
-                covered_by_kids = true;
-                break;
-            }
-            if (rect.left == dirty_area.left &&
-                rect.top == dirty_area.top &&
-                rect.right == dirty_area.right &&
-                rect.bottom == dirty_area.bottom) {
-                covered_by_kids = true;
-                break;
-            }
-            child = child->next_sibling;
-        }
-    }
-
-    // Determine the dirty area for this window, if any
-    AwMsg msg;
-    msg.do_paint_window.paint_rect = core_get_empty_rect();
-
-    AwRect title_rect = core_get_global_title_rect(window);
-    AwRect dirty_title_rect = core_get_intersect_rect(&dirty_area, &title_rect);
-    AwSize dirty_title_size = core_get_rect_size(&dirty_title_rect);
-
-    AwRect client_rect = core_get_global_client_rect(window);
-    AwRect dirty_client_rect = core_get_intersect_rect(&dirty_area, &client_rect);
-    AwSize dirty_client_size = core_get_rect_size(&dirty_client_rect);
-
-    AwRect window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
-    AwRect dirty_window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
-    AwSize dirty_window_size = core_get_rect_size(&dirty_window_rect);
-
-    if (!covered_by_kids) {
-        bool any = true;
-        if (dirty_window_size.width || (dirty_title_size.width && dirty_client_size.width)) {
-            msg.do_paint_window.paint_rect = dirty_window_rect;
-            if (can_paint) {
-                core_set_paint_msg(&msg, window, true, false, false);
-                core_process_message(&msg);
-            }
-        } else if (dirty_title_size.width) {
-            msg.do_paint_window.paint_rect = dirty_title_rect;
-            if (can_paint) {
-                core_set_paint_msg(&msg, window, false, true, false);
-                core_process_message(&msg);
-            }
-        } else if (dirty_client_size.width) {
-            msg.do_paint_window.paint_rect = dirty_client_rect;
-            if (can_paint) {
-                core_set_paint_msg(&msg, window, false, false, true);
-                core_process_message(&msg);
-            }
-        } else {
-            any = false;
-        }
-
-        if (any) {
-            // Add to the painted (covered) area
-            AwRect rect = core_get_union_rect(painted, &msg.do_paint_window.paint_rect);
-            *painted = rect;
-        }
+    if (window->state.window_dirty) {
+        AwRect window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
+        AwRect dirty_window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
+        AwMsg msg;
+        msg.do_paint_window.paint_rect = dirty_window_rect;
+        core_set_paint_msg(&msg, window, true, false, false);
+        core_process_message(&msg);
+        window->state.window_dirty = 0;
+    } else if (window->state.title_dirty) {
+        AwRect title_rect = core_get_global_title_rect(window);
+        AwRect dirty_title_rect = core_get_intersect_rect(&dirty_area, &title_rect);
+        AwMsg msg;
+        msg.do_paint_window.paint_rect = dirty_title_rect;
+        core_set_paint_msg(&msg, window, false, true, false);
+        core_process_message(&msg);
+        window->state.title_dirty = 0;
+    } else if (window->state.client_dirty) {
+        AwRect client_rect = core_get_global_client_rect(window);
+        AwRect dirty_client_rect = core_get_intersect_rect(&dirty_area, &client_rect);
+        AwMsg msg;
+        msg.do_paint_window.paint_rect = dirty_client_rect;
+        core_set_paint_msg(&msg, window, false, false, true);
+        core_process_message(&msg);
+        window->state.client_dirty = 0;
     }
 
     // Paint this window's children
-    if (can_paint && !window->state.minimized) {
+    if (!window->state.minimized) {
         AwWindow* child = window->first_child;
         while (child) {
-            if (paint_windows(child, painted, true)) {
-                covered_by_kids = true;
-            }
+            paint_windows(child);
             child = child->next_sibling;
         }
     }
-    return covered_by_kids;
 }
 
 void core_message_loop() {
@@ -2181,8 +2139,7 @@ void core_message_loop() {
             AwSize size = core_get_rect_size(&dirty_area);
             if (size.width || size.height) {
                 // Something needs to be painted
-                AwRect painted = core_get_empty_rect();
-                paint_windows(root_window, &painted, true);
+                paint_windows(root_window);
                 dirty_area = core_get_empty_rect();
             } else {
                 update_rtc_state();
