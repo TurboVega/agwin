@@ -44,8 +44,6 @@ SOFTWARE.
 extern "C" {
 #endif
 
-#define AW_SCREEN_WIDTH         640
-#define AW_SCREEN_HEIGHT        480
 #define AW_MESSAGE_QUEUE_SIZE   128
 #define AW_APP_LIST_SIZE        16
 
@@ -885,7 +883,15 @@ void core_create_palette_buffer(uint16_t buffer_id, uint8_t num_colors) {
     vdp_adv_write_block_data(buffer_id, num_colors, (char*) colors);
 }
 
-void create_large_buffer(uint16_t buffer_id, int size) {
+void create_large_buffer(AwWindow * window) {
+    AwSize wsize = core_get_window_size(window);
+    int size = ((int) wsize.width * (int) wsize.height) / AW_PIXELS_PER_BYTE;
+
+    uint16_t buffer_id = window->buffer_id;
+    if (buffer_id == AW_BUFFER_ID_USE_BMP) {
+        buffer_id = window->bitmap_id;
+    }
+
     if (size < 0x0000FFFF) {
         // We just need 1 buffer, up to 64KB-2 in size
         vdp_adv_create(buffer_id, size);
@@ -925,23 +931,27 @@ void create_large_buffer(uint16_t buffer_id, int size) {
 }
 
 void expand_buffer_into_bitmap(AwWindow * window) {
+    AwSize size = core_get_window_size(window);
+
+    if (AW_SCREEN_COLORS == 64) {
+        if (window->buffer_id != window->bitmap_id) {
+            vdp_adv_select_bitmap(window->bitmap_id);
+            vdp_adv_bitmap_from_buffer(size.width, size.height, 1); // AABBGGRR
+            window->buffer_id = window->bitmap_id; // use the bitmap from now on
+        }
+        return;
+    }
+
     //VDU 23, 0, &A0, bufferId; 72, options, sourceBufferId; [width;] <mappingDataBufferId; | mapping-data...>
     static VDU_ADV_CMD_B_W vdu_expand_a_bitmap = { 23, 0, 0xA0, 0xFA00, 72, 0, 0xFA00 };
     vdu_expand_a_bitmap.BID = window->bitmap_id;
     vdu_expand_a_bitmap.b0 = (1<<4)|AW_SCREEN_COLOR_BITS;
-    if (AW_SCREEN_COLOR_BITS == 6) {
-        vdu_expand_a_bitmap.b0 |= (1<<3);
-    }
     vdu_expand_a_bitmap.w1 = window->buffer_id;
     VDP_PUTS(vdu_expand_a_bitmap);
-    if (AW_SCREEN_COLOR_BITS == 6) {
-        uint16_t width = 2;
-        VDP_PUTS(width);
-    }
+
     uint16_t map_id = AW_PALETTE_BUFFER;
     VDP_PUTS(map_id);
 
-    AwSize size = core_get_window_size(window);
     vdp_adv_select_bitmap(window->bitmap_id);
     vdp_adv_bitmap_from_buffer(size.width, size.height, 1); // AABBGGRR
 }
@@ -966,13 +976,18 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
         prms.parent = root_window;
     }
 
-    if (prms.buffer_id == AW_BUFFER_ID_NEXT) {
-        prms.buffer_id = get_next_buffer_id();
-    }
-
     if (prms.bitmap_id == AW_BITMAP_ID_NEXT) {
         prms.bitmap_id = get_next_bitmap_id();
     }
+
+    if (prms.buffer_id == AW_BUFFER_ID_NEXT) {
+        if (AW_SCREEN_COLORS == 64) {
+            prms.buffer_id = AW_BUFFER_ID_USE_BMP;
+        } else {
+            prms.buffer_id = get_next_buffer_id();
+        }
+    }
+
 
     // Allocate memory for the window structure
     size_t size = sizeof(AwWindow);
@@ -1033,9 +1048,11 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
         core_maximize_window(window);
     }
 
-    AwSize wsize = core_get_window_size(window);
-    int total_size = ((int) wsize.width * (int) wsize.height) / AW_PIXELS_PER_BYTE;
-    create_large_buffer(window->buffer_id, total_size);
+    create_large_buffer(window);
+
+    if (AW_SCREEN_COLORS == 64) {
+        expand_buffer_into_bitmap(window);
+    }
 
     return window;
 }
@@ -1636,7 +1653,6 @@ void core_paint_window(AwMsg* msg) {
 //    vdp_logical_scr_dims(false);
 
     core_set_window_viewport_for_screen(root_window);
-
     expand_buffer_into_bitmap(window);
     vdp_adv_select_bitmap(window->bitmap_id);
     vdp_draw_bitmap(window->window_rect.left, window->window_rect.top);

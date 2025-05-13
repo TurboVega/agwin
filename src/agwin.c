@@ -47,11 +47,11 @@ AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
 
 void init_my_app() {
     my_class.parent = core_get_root_class();
-    for (uint16_t row = 0; row < 4; row++) {
+    for (uint16_t row = 0; row < 2; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
         for (uint16_t col = 0; col < 4; col++) {
             uint16_t x = col * 155 + 5; // 5, 160, 315, 465
-            uint16_t i = row * 4 + col;
+            uint16_t i = (AW_SCREEN_COLORS == 64 ? (row * 13 + col * 3) : (row * 4 + col));
             char text[10];
             sprintf(text, "Color #%02hu", i);
 
@@ -72,7 +72,7 @@ void init_my_app() {
             params.state.visible = 1;
             params.x = x;
             params.y = y;
-            params.width = 150;
+            params.width = 148;
             params.height = 112;
             params.text = text;
 
@@ -108,7 +108,6 @@ int main( void )
 
 	vdp_context_select(0);
     vdp_context_save();
-
 	vdp_cursor_enable(false);
 	vdp_mouse_reset();
 	vdp_mouse_enable();
@@ -117,7 +116,10 @@ int main( void )
 	AwPoint center = core_get_screen_center();
 	vdp_mouse_set_position(center.x, center.y);
 
-    core_create_palette_buffer(AW_PALETTE_BUFFER, AW_SCREEN_COLORS);
+    if (AW_SCREEN_COLORS < 64) {
+        core_create_palette_buffer(AW_PALETTE_BUFFER, AW_SCREEN_COLORS);
+    }
+
     core_initialize();
 
     aw_register_icons();

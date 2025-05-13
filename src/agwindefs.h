@@ -40,6 +40,7 @@ extern "C" {
 #define AW_BUFFER_ID_LOW        0x8000  // lowest VDP buffer ID used by agwin
 #define AW_BUFFER_ID_HIGH       0x8FFF  // highest VDP buffer ID used by agwin
 #define AW_BUFFER_ID_NEXT       0       // indicates to use next available buffer ID
+#define AW_BUFFER_ID_USE_BMP    1       // indicates to use the bitmap ID
 
 #define AW_BITMAP_ID_LOW        0x9000  // lowest VDP bitmap ID used by agwin
 #define AW_BITMAP_ID_HIGH       0x9FFF  // highest VDP bitmap ID used by agwin
@@ -53,8 +54,13 @@ extern "C" {
 #define AW_TITLE_BAR_HEIGHT     12      // pixels
 #define AW_TTITLE_TEXT_HEIGHT   8       // pixels
 
-#define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
-#define AW_SCREEN_COLORS        16
+//#define AW_SCREEN_MODE          0       // 640x480x60Hz, 16 colors
+//#define AW_SCREEN_COLORS        16
+//#define AW_SCREEN_HEIGHT        480
+#define AW_SCREEN_MODE          3       // 640x240x60Hz, 64 colors
+#define AW_SCREEN_WIDTH         640
+#define AW_SCREEN_HEIGHT        240
+#define AW_SCREEN_COLORS        64
 
 #define AW_SCREEN_COLOR_BITS    \
         (AW_SCREEN_COLORS == 64 ? 6 : \
