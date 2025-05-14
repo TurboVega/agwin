@@ -1743,14 +1743,13 @@ void core_paint_window(AwMsg* msg) {
     }
 
     redirect_drawing_to_screen();
-//    vdp_context_select(0);
-//    vdp_context_reset(0);
-//    vdp_logical_scr_dims(false);
+    vdp_context_select(0);
+    vdp_context_reset(0);
+    vdp_logical_scr_dims(false);
 
-    core_set_window_viewport_for_screen(root_window);
     expand_buffer_into_bitmap(window);
     vdp_adv_select_bitmap(window->bitmap_id);
-    vdp_draw_bitmap(window->window_rect.left, window->window_rect.top);
+    vdp_plot(0xED, window->window_rect.left, window->window_rect.top);
 }
 
 int32_t on_mouse_dragged(AwMsg* msg) {
