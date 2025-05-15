@@ -46,7 +46,10 @@ AwClass my_class = { "myclass", NULL, my_handle_message };
 AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
 
 void init_my_app() {
+    AwCreateWindowParams params;
+
     my_class.parent = core_get_root_class();
+
     for (uint16_t row = 0; row < 4; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
         for (uint16_t col = 0; col < 4; col++) {
@@ -55,7 +58,6 @@ void init_my_app() {
             char text[10];
             sprintf(text, "Color #%02hu", i);
 
-            AwCreateWindowParams params;
             memset(&params, 0, sizeof(params));
             params.app = &my_app;
             params.wclass = &my_class;
@@ -87,6 +89,32 @@ void init_my_app() {
     }
 
     core_load_app("winclock.bin");
+
+    memset(&params, 0, sizeof(params));
+    params.app = &my_app;
+    params.wclass = &my_class;
+    params.style.border = 1;
+    params.style.title_bar = 1;
+    params.style.close_icon = 1;
+    params.style.minimize_icon = 1;
+    params.style.maximize_icon = 1;
+    params.style.menu_icon = 1;
+    params.style.sizeable = 1;
+    params.style.moveable = 1;
+    params.style.primary = 1;
+    params.style.need_rtc = 1;
+    params.state.enabled = 1;
+    params.state.visible = 1;
+    params.x = 99;
+    params.y = 99;
+    params.width = 148;
+    params.height = 112;
+    params.text = "I'm Over All!";
+
+    AwWindow* win = core_create_window(&params);
+
+    win->bg_color = 14;
+    win->fg_color = 0;
 }
 
 int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {

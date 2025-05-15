@@ -94,6 +94,7 @@ typedef struct tag_AwApplication AwApplication;
 typedef struct tag_AwClass AwClass;
 typedef struct tag_AwWindow AwWindow;
 typedef union tag_AwMsg AwMsg;
+typedef struct tag_AwRegion AwRegion;
 
 // The window may be the same window as specified in the message,
 // or may be an ancestor window. The return value may depend on
@@ -119,6 +120,11 @@ typedef struct tag_AwSize {
     int16_t     width;      // horizontal size
     int16_t     height;     // vertical size
 } AwSize;
+
+typedef struct tag_AwRegion {
+    AwRect      rect;       // one section of the region
+    AwRegion*   next;       // next section of the region
+} AwRegion;
 
 typedef struct tag_AwWindowStyle {
     uint16_t        top_level : 1;  // whether the window is a top-level window
