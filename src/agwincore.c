@@ -2298,25 +2298,12 @@ AwRegion* core_get_intersect_region(AwRegion* region, const AwRect* rect) {
     return result;
 }
 
-void showit(AwWindow* window, AwRegion* must_cover) {
-    printf("%s: ", window->text);
-    while (must_cover) {
-        printf(" %hi %hi %hi %hi\r\n",
-            must_cover->rect.left,
-            must_cover->rect.top,
-            must_cover->rect.right,
-            must_cover->rect.bottom);
-        must_cover = must_cover->next;
-    }
-    printf("\r\n");
-}
-
 void display_windows(AwWindow* window, AwRegion** must_cover) {
     if (window->state.visible && must_cover && *must_cover) {
         AwRegion* intersect_rgn = core_get_intersect_region(*must_cover, &window->window_rect);
         if (intersect_rgn) {
             // This window does intersect the remaining dirty area
-showit(window, *must_cover);
+
             // Display this window's children
             if (!window->state.minimized) {
                 AwWindow* child = window->first_child;
