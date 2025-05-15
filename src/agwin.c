@@ -50,9 +50,9 @@ void init_my_app() {
 
     my_class.parent = core_get_root_class();
 
-    for (uint16_t row = 0; row < 4; row++) {
+    for (uint16_t row = 0; row < 1; row++) {
         uint16_t y = row * 116 + 5; // 5, 121, 237, 348
-        for (uint16_t col = 0; col < 4; col++) {
+        for (uint16_t col = 0; col < 1; col++) {
             uint16_t x = col * 155 + 5; // 5, 160, 315, 465
             uint16_t i = (AW_SCREEN_COLORS == 64 ? (row * 13 + col * 3) : (row * 4 + col));
             char text[10];
@@ -102,7 +102,6 @@ void init_my_app() {
     params.style.sizeable = 1;
     params.style.moveable = 1;
     params.style.primary = 1;
-    params.style.need_rtc = 1;
     params.state.enabled = 1;
     params.state.visible = 1;
     params.x = 99;

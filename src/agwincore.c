@@ -826,7 +826,7 @@ void core_unlink_child(AwWindow* child) {
         }
         parent->first_child = next_child;
         if (next_child) {
-            next_child->prev_sibling = child->prev_sibling;
+            next_child->prev_sibling = NULL;
         }
     } else {
         prev_child->next_sibling = next_child;
@@ -1090,6 +1090,10 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
 
     if (AW_SCREEN_COLORS == 64) {
         expand_buffer_into_bitmap(window);
+    }
+
+    if (window->state.visible) {
+        core_invalidate_window(window);
     }
 
     return window;
@@ -2120,6 +2124,7 @@ void paint_windows(AwWindow* window) {
         core_set_paint_msg(&msg, window, true, false, false);
         core_process_message(&msg);
         window->state.window_dirty = 0;
+        window->state.bitmap_dirty = 1;
     } else if (window->state.title_dirty) {
         AwRect title_rect = core_get_global_title_rect(window);
         AwRect dirty_title_rect = core_get_intersect_rect(&dirty_area, &title_rect);
@@ -2128,6 +2133,7 @@ void paint_windows(AwWindow* window) {
         core_set_paint_msg(&msg, window, false, true, false);
         core_process_message(&msg);
         window->state.title_dirty = 0;
+        window->state.bitmap_dirty = 1;
     } else if (window->state.client_dirty) {
         AwRect client_rect = core_get_global_client_rect(window);
         AwRect dirty_client_rect = core_get_intersect_rect(&dirty_area, &client_rect);
@@ -2136,6 +2142,7 @@ void paint_windows(AwWindow* window) {
         core_set_paint_msg(&msg, window, false, false, true);
         core_process_message(&msg);
         window->state.client_dirty = 0;
+        window->state.bitmap_dirty = 1;
     }
 
     // Paint this window's children
@@ -2217,7 +2224,7 @@ AwRegion* core_subtract_rect_from_rect(const AwRect* rect1, const AwRect* rect2)
             if (rect1->top < intersection.top) {
                 core_add_coords_to_region(&result,
                     rect1->left, rect1->top,
-                    rect1->right, intersection.bottom
+                    rect1->right, intersection.top
                 );
             }
 
@@ -2291,12 +2298,25 @@ AwRegion* core_get_intersect_region(AwRegion* region, const AwRect* rect) {
     return result;
 }
 
+void showit(AwWindow* window, AwRegion* must_cover) {
+    printf("%s: ", window->text);
+    while (must_cover) {
+        printf(" %hi %hi %hi %hi\r\n",
+            must_cover->rect.left,
+            must_cover->rect.top,
+            must_cover->rect.right,
+            must_cover->rect.bottom);
+        must_cover = must_cover->next;
+    }
+    printf("\r\n");
+}
+
 void display_windows(AwWindow* window, AwRegion** must_cover) {
     if (window->state.visible && must_cover && *must_cover) {
         AwRegion* intersect_rgn = core_get_intersect_region(*must_cover, &window->window_rect);
         if (intersect_rgn) {
             // This window does intersect the remaining dirty area
-
+showit(window, *must_cover);
             // Display this window's children
             if (!window->state.minimized) {
                 AwWindow* child = window->first_child;
@@ -2309,27 +2329,26 @@ void display_windows(AwWindow* window, AwRegion** must_cover) {
                 }
             }
 
-            if (*must_cover) {
-                // Show part(s) of this window
-                vdp_context_select(0);
-                vdp_context_reset(0);
-                vdp_logical_scr_dims(false);
+            // Show part(s) of this window
+            vdp_context_select(0);
+            vdp_context_reset(0);
+            vdp_logical_scr_dims(false);
+            if (window->state.bitmap_dirty) {
                 expand_buffer_into_bitmap(window);
-                vdp_adv_select_bitmap(window->bitmap_id);
-
-                AwRegion* coverage = *must_cover;
-                while (coverage) {
-                    AwRect rect = core_get_intersect_rect(&coverage->rect, &window->window_rect);
-                    if (!core_rect_is_empty(&rect)) {
-                        vdp_move_to(rect.left, rect.top);
-                        vdp_move_to(rect.right-1, rect.bottom-1);
-                        local_vdp_set_graphics_viewport_via_plot();
-                        vdp_plot(0xED, window->window_rect.left, window->window_rect.top);
-                        core_subtract_rect_from_region(must_cover, &rect);
-                    }
-                    coverage = coverage->next;
-                }
+                window->state.bitmap_dirty = 0;
             }
+            vdp_adv_select_bitmap(window->bitmap_id);
+
+            AwRegion* coverage = core_get_intersect_region(*must_cover, &window->window_rect);
+            while (coverage && *must_cover) {
+                vdp_move_to(coverage->rect.left, coverage->rect.top);
+                vdp_move_to(coverage->rect.right-1, coverage->rect.bottom-1);
+                local_vdp_set_graphics_viewport_via_plot();
+                vdp_plot(0xED, window->window_rect.left, window->window_rect.top);
+                core_subtract_rect_from_region(must_cover, &coverage->rect);
+                coverage = coverage->next;
+            }
+            core_delete_region(coverage);
         }
     }
 }

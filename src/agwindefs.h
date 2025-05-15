@@ -152,7 +152,8 @@ typedef struct tag_AwWindowState {
     uint16_t        window_dirty : 1; // whether the window needs painting
     uint16_t        title_dirty : 1; // whether the title area needs painting
     uint16_t        client_dirty : 1; // whether the client area needs painting
-    uint16_t        reserved : 8;   // reserved
+    uint16_t        bitmap_dirty : 1; // whether the bitmap needs to be redone
+    uint16_t        reserved : 7;   // reserved
 } AwWindowState;
 
 typedef struct tag_AwPaintFlags {
