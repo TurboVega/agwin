@@ -515,6 +515,10 @@ AwPoint core_get_screen_center() {
     return pt;
 }
 
+bool core_rect_is_empty(const AwRect* rect) {
+    return (rect->right == rect->left || rect->bottom == rect->top);
+}
+
 AwRect core_get_empty_rect() {
     AwRect rect;
     rect.left = 0;
@@ -532,10 +536,10 @@ bool core_rect_contains_point(const AwRect* rect, int16_t x, int16_t y) {
 }
 
 AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
-    if (rect1->right == rect1->left || rect1->bottom == rect1->top) {
+    if (core_rect_is_empty(rect1)) {
         return *rect2;
     }
-    if (rect2->right == rect2->left || rect2->bottom == rect2->top) {
+    if (core_rect_is_empty(rect2)) {
         return *rect1;
     }
     AwRect rect;
@@ -547,10 +551,10 @@ AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
 }
 
 AwRect core_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
-    if (rect1->right == rect1->left || rect1->bottom == rect1->top) {
+    if (core_rect_is_empty(rect1)) {
         return core_get_empty_rect();
     }
-    if (rect2->right == rect2->left || rect2->bottom == rect2->top) {
+    if (core_rect_is_empty(rect2)) {
         return core_get_empty_rect();
     }
     if (rect1->left >= rect2->right ||
@@ -2150,7 +2154,7 @@ AwRegion* core_create_region() {
     return region;
 }
 
-AwRegion* core_convert_rect_to_region(AwRect* rect) {
+AwRegion* core_convert_rect_to_region(const AwRect* rect) {
     if (rect) {
         AwRegion* region = (AwRegion*) malloc(sizeof(AwRegion));
         region->rect = *rect;
@@ -2178,7 +2182,7 @@ void core_add_region_to_region(AwRegion* base, AwRegion* addition) {
     }
 }
 
-void core_add_rect_to_region(AwRegion* region, AwRect* rect) {
+void core_add_rect_to_region(AwRegion* region, const AwRect* rect) {
     if (region && rect) {
         AwRegion* addition = core_convert_rect_to_region(rect);
         core_add_region_to_region(region, addition);
@@ -2203,7 +2207,7 @@ void core_add_coords_to_region(AwRegion** region,
     }
 }
 
-AwRegion* core_subtract_rect_from_rect(AwRect* rect1, AwRect* rect2) {
+AwRegion* core_subtract_rect_from_rect(const AwRect* rect1, const AwRect* rect2) {
     AwRegion* result = NULL;
     if (rect1 && rect2) {
         AwRect intersection = core_get_intersect_rect(rect1, rect2);
@@ -2244,7 +2248,7 @@ AwRegion* core_subtract_rect_from_rect(AwRect* rect1, AwRect* rect2) {
     return result;
 }
 
-void core_subtract_rect_from_region(AwRegion** region, AwRect* rect) {
+void core_subtract_rect_from_region(AwRegion** region, const AwRect* rect) {
     if (region && *region && rect) {
         AwRegion* result = NULL;
         AwRegion* section = *region;
@@ -2273,38 +2277,39 @@ void core_subtract_region_from_region(AwRegion** minuend, AwRegion* subtrahend) 
     }
 }
 
-AwRegion* display_windows(AwWindow* window) {
-    AwRegion* window_covered = NULL;
-    if (window->state.visible) {
-        AwRect dirty_window_rect = core_get_intersect_rect(&dirty_area, &window->window_rect);
-        if (dirty_window_rect.right > dirty_window_rect.left &&
-            dirty_window_rect.bottom > dirty_window_rect.top) {
+AwRegion* core_get_intersect_region(AwRegion* region, const AwRect* rect) {
+    AwRegion* result = NULL;
+    while (region) {
+        AwRect intersection = core_get_intersect_rect(&region->rect, rect);
+        if (!core_rect_is_empty(&intersection)) {
+            core_add_coords_to_region(&result,
+                    intersection.left, intersection.top,
+                    intersection.right, intersection.bottom);
+        }
+        region = region->next;
+    }
+    return result;
+}
 
-            // This window does intersect the dirty area
+void display_windows(AwWindow* window, AwRegion** must_cover) {
+    if (window->state.visible && must_cover && *must_cover) {
+        AwRegion* intersect_rgn = core_get_intersect_region(*must_cover, &window->window_rect);
+        if (intersect_rgn) {
+            // This window does intersect the remaining dirty area
 
             // Display this window's children
-            AwRegion* kids_covered = NULL;
             if (!window->state.minimized) {
                 AwWindow* child = window->first_child;
                 while (child) {
-                    AwRegion* child_covered = display_windows(child);
-                    if (kids_covered) {
-                        core_add_region_to_region(kids_covered, child_covered);
-                    } else {
-                        kids_covered = child_covered;
+                    display_windows(child, must_cover);
+                    if (!(*must_cover)) {
+                        return; // ignore remaining children
                     }
                     child = child->next_sibling;
                 }
             }
 
-            // Add the area covered by kids to the area covered by this window
-            window_covered = kids_covered;
-
-            // Determine which areas should be covered by this window itself
-            AwRegion* must_cover = core_convert_rect_to_region(&dirty_area);
-            core_subtract_region_from_region(&must_cover, kids_covered);
-
-            if (must_cover) {
+            if (*must_cover) {
                 // Show part(s) of this window
                 vdp_context_select(0);
                 vdp_context_reset(0);
@@ -2312,27 +2317,21 @@ AwRegion* display_windows(AwWindow* window) {
                 expand_buffer_into_bitmap(window);
                 vdp_adv_select_bitmap(window->bitmap_id);
 
-                AwRegion* coverage = must_cover;
+                AwRegion* coverage = *must_cover;
                 while (coverage) {
                     AwRect rect = core_get_intersect_rect(&coverage->rect, &window->window_rect);
-                    if (rect.right > rect.left && rect.bottom > rect.top) {
+                    if (!core_rect_is_empty(&rect)) {
                         vdp_move_to(rect.left, rect.top);
                         vdp_move_to(rect.right-1, rect.bottom-1);
                         local_vdp_set_graphics_viewport_via_plot();
                         vdp_plot(0xED, window->window_rect.left, window->window_rect.top);
+                        core_subtract_rect_from_region(must_cover, &rect);
                     }
                     coverage = coverage->next;
-                }
-
-                if (window_covered) {
-                    core_add_region_to_region(window_covered, must_cover);
-                } else {
-                    window_covered = must_cover;
                 }
             }
         }
     }
-    return window_covered;
 }
 
 void core_message_loop() {
@@ -2350,8 +2349,9 @@ void core_message_loop() {
             if (size.width || size.height) {
                 // Something needs to be painted
                 paint_windows(root_window);
-                AwRegion* region = display_windows(root_window);
-                core_delete_region(region);
+                AwRegion* must_cover = core_convert_rect_to_region(&dirty_area);
+                display_windows(root_window, &must_cover);
+                core_delete_region(must_cover);
                 dirty_area = core_get_empty_rect();
             } else {
                 update_rtc_state();
