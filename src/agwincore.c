@@ -53,7 +53,8 @@ extern "C" {
 #define MOUSE_LONG_CLICK_TIME   30      // minimum centiseconds to be a long click
 #define MOUSE_DBL_CLICK_TIME    40      // maximum centiseconds to be a double-click
 #define CORNER_CLOSENESS        4       // distance from physical corner where we assume wall
-#define RTC_CHECK_TICKS         90      // time between requests for RTC data
+#define RTC_CHECK_TICKS         40      // time between requests for RTC data
+#define TIMER_CHECK_TICKS       10      // time between emitting timer events
 
 typedef struct tag_AwLoadedApp {
     AwApplication*  app;
@@ -72,6 +73,7 @@ uint8_t     msg_write_index;
 bool        running;
 AwMouseState last_mouse_state;
 uint32_t    last_rtc_request;
+uint32_t    last_timer_event;
 uint32_t    last_left_btn_up;
 uint32_t    last_middle_btn_up;
 uint32_t    last_right_btn_up;
@@ -144,6 +146,23 @@ void update_rtc_state() {
         sys_var->vdp_pflags &= ~vdp_pflag_rtc;
         emit_rtc_messages(root_window, &msg);
     }
+}
+
+void emit_timer_messages(AwWindow* window, AwMsg* msg) {
+    while (window) {
+        if (window->style.need_timer) {
+            msg->on_timer_event.window = window;
+            core_post_message(msg);
+        }
+        emit_timer_messages(window->first_child, msg);
+        window = window->next_sibling;
+    }
+}
+
+void on_timer_hit() {
+    AwMsg msg;
+    msg.on_timer_event.msg_type = Aw_On_TimerEvent;
+    emit_timer_messages(root_window, &msg);
 }
 
 void update_mouse_state() {
@@ -692,6 +711,21 @@ void core_invalidate_client(AwWindow* window) {
     }
 }
 
+void core_invalidate_window_area(AwWindow* window) {
+    if (window->state.minimized) {
+        AwRect rect = core_get_global_title_rect(window);
+        add_more_dirt(&rect);
+    } else {
+        add_more_dirt(&window->window_rect);
+    }
+}
+
+void core_invalidate_client_area(AwWindow* window) {
+    if (!window->state.minimized) {
+        add_more_dirt(&window->client_rect);
+    }
+}
+
 void core_post_message(AwMsg* msg) {
     if (msg_count < AW_MESSAGE_QUEUE_SIZE) {
         AwMsg* pmsg = &message_queue[msg_write_index++];
@@ -715,7 +749,7 @@ int16_t get_title_bar_height(AwWindow * window) {
 }
 
 void core_move_window(AwWindow* window, int16_t x, int16_t y) {
-    core_invalidate_window(window); // invalidate where the window was
+    core_invalidate_window_area(window); // invalidate where the window was
 
     AwRect parent_rect;
     if (window->parent) {
@@ -748,7 +782,7 @@ void core_move_window(AwWindow* window, int16_t x, int16_t y) {
     window->client_rect.right = window->client_rect.left + client_size.width;
     window->client_rect.bottom = window->client_rect.top + client_size.height;
 
-    core_invalidate_window(window); // invalidate where the window is now
+    core_invalidate_window_area(window); // invalidate where the window is now
 
     AwMsg msg;
     msg.on_window_moved.window = window;
@@ -2085,6 +2119,8 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
 
                 case Aw_On_RealTimeClockEvent: { break; }
 
+                case Aw_On_TimerEvent: { break; }
+
                 default: { break; }
             }
         }
@@ -2362,10 +2398,18 @@ void core_message_loop() {
             } else {
                 update_rtc_state();
                 uint32_t now = (uint32_t) clock();
-                time_t ticks = now - last_rtc_request;
+
+                uint32_t ticks = now - last_rtc_request;
                 if (ticks >= RTC_CHECK_TICKS) {
                     last_rtc_request = now;
                     vdp_request_rtc(0);
+                }
+
+                ticks = now - last_timer_event;
+                if (ticks >= TIMER_CHECK_TICKS) {
+                    last_timer_event = now;
+                    on_timer_hit();
+
                 }
                 vdp_update_key_state();
                 update_mouse_state();

@@ -320,6 +320,10 @@ int32_t aw_icon_win_msg_handler(AwWindow* window, AwMsg* msg, bool* halt) {
                     break;
                 }
 
+                case Aw_On_TimerEvent: {
+                    break;
+                }
+
                 default: {
                     break;
                 }

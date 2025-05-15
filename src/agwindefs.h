@@ -139,7 +139,8 @@ typedef struct tag_AwWindowStyle {
     uint16_t        moveable : 1;   // whether the window can be moved
     uint16_t        primary : 1;    // whether the window is the primary window of the app
     uint16_t        need_rtc : 1;   // whether the window needs real time clock events
-    uint16_t        reserved : 4;   // reserved
+    uint16_t        need_timer : 1; // whether the window needs simple timer events
+    uint16_t        reserved : 3;   // reserved
 } AwWindowStyle;
 
 typedef struct tag_AwWindowState {

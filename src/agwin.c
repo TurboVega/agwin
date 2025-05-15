@@ -102,6 +102,7 @@ void init_my_app() {
     params.style.sizeable = 1;
     params.style.moveable = 1;
     params.style.primary = 1;
+    params.style.need_timer = 1;
     params.state.enabled = 1;
     params.state.visible = 1;
     params.x = 170;
@@ -116,10 +117,33 @@ void init_my_app() {
     win->fg_color = 0;
 }
 
+char dir = 1;
+
 int32_t my_handle_message(AwWindow* window, AwMsg* msg, bool* halt) {
-    (void)window; // presently unused
-    (void)msg; // presently unused
     (void)halt; // presently unused
+
+    switch (msg->on_common.msg_type) {
+        case Aw_On_TimerEvent: {
+            if (dir > 0) {
+                if (window->window_rect.left < 200) {
+                    core_move_window(window, window->window_rect.left + 4, window->window_rect.top + 4);
+                } else {
+                    dir = -1;
+                }
+            } else {
+                if (window->window_rect.left > 50 && window->window_rect.top > 20) {
+                    core_move_window(window, window->window_rect.left - 4, window->window_rect.top - 4);
+                } else {
+                    dir = 1;
+                }
+            }
+        }
+
+        default: {
+            break;
+        }
+    }
+
 	return 0; // default to core processing
 }
 

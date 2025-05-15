@@ -62,6 +62,7 @@ typedef enum : uint8_t {
     Aw_On_WindowActivated,
     Aw_On_Terminate,
     Aw_On_RealTimeClockEvent,
+    Aw_On_TimerEvent,
 } AwOnMsgType;
 
 typedef struct tag_AwOnMsgCommon {
