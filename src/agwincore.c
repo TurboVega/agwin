@@ -532,10 +532,10 @@ bool core_rect_contains_point(const AwRect* rect, int16_t x, int16_t y) {
 }
 
 AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
-    if (rect1->right - rect1->left == 0) {
+    if (rect1->right == rect1->left || rect1->bottom == rect1->top) {
         return *rect2;
     }
-    if (rect2->right - rect2->left == 0) {
+    if (rect2->right == rect2->left || rect2->bottom == rect2->top) {
         return *rect1;
     }
     AwRect rect;
@@ -547,10 +547,10 @@ AwRect core_get_union_rect(const AwRect* rect1, const AwRect* rect2) {
 }
 
 AwRect core_get_intersect_rect(const AwRect* rect1, const AwRect* rect2) {
-    if (rect1->right - rect1->left == 0) {
+    if (rect1->right == rect1->left || rect1->bottom == rect1->top) {
         return core_get_empty_rect();
     }
-    if (rect2->right - rect2->left == 0) {
+    if (rect2->right == rect2->left || rect2->bottom == rect2->top) {
         return core_get_empty_rect();
     }
     if (rect1->left >= rect2->right ||
@@ -2237,6 +2237,8 @@ AwRegion* core_subtract_rect_from_rect(AwRect* rect1, AwRect* rect2) {
                     rect1->right, intersection.bottom
                 );
             }
+        } else {
+            result = core_convert_rect_to_region(rect1);
         }
     }
     return result;
@@ -2275,8 +2277,8 @@ AwRegion* display_windows(AwWindow* window) {
     AwRegion* window_covered = NULL;
     if (window->state.visible) {
         AwRect dirty_window_rect = core_get_intersect_rect(&dirty_area, &window->window_rect);
-        if (dirty_window_rect.right - dirty_window_rect.left &&
-            dirty_window_rect.bottom - dirty_window_rect.top) {
+        if (dirty_window_rect.right > dirty_window_rect.left &&
+            dirty_window_rect.bottom > dirty_window_rect.top) {
 
             // This window does intersect the dirty area
 
@@ -2321,7 +2323,12 @@ AwRegion* display_windows(AwWindow* window) {
                     }
                     coverage = coverage->next;
                 }
-                core_delete_region(must_cover);
+
+                if (window_covered) {
+                    core_add_region_to_region(window_covered, must_cover);
+                } else {
+                    window_covered = must_cover;
+                }
             }
         }
     }
