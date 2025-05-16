@@ -600,23 +600,21 @@ AwWindow* core_get_active_window() {
 }
 
 AwWindow* core_get_top_level_window(AwWindow* window) {
-    while (true)
+    while (window)
     {
         if (window->style.top_level) {
             return window;
         }
-        if (window->parent) {
-            window = window->parent;
-        } else {
-            return NULL;
-        }
+        window = window->parent;
     }
+    return NULL;
 }
 
 const char* empty_text = "";
 
 void core_set_text(AwWindow* window, const char* text) {
-    if (text == NULL) {
+    if (text == NULL || !(*text)) {
+        // Setting to empty text.
         if (window->text != empty_text) {
             free(window->text);
         }
@@ -625,6 +623,7 @@ void core_set_text(AwWindow* window, const char* text) {
         return;
     }
 
+    // Setting to non-empty text.
     uint32_t size = strlen(text) + 1;
     if (size <= window->text_size) {
         // Text fits in allocated space
