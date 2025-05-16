@@ -46,6 +46,7 @@ AwClass my_class = { "myclass", NULL, my_handle_message };
 AwApplication my_app = { "myapp", 0, 0, &my_class, NULL, 1 };
 
 void init_my_app() {
+#if DEBUG
     AwCreateWindowParams params;
 
     my_class.parent = core_get_root_class();
@@ -88,7 +89,11 @@ void init_my_app() {
         }
     }
 
-    core_load_app("winclock.bin");
+    int rc = core_load_app("winclock.bin");
+    if (rc < 0) {
+        printf("[LOAD %i]", rc);
+        while (1);
+    }
 
     memset(&params, 0, sizeof(params));
     params.app = &my_app;
@@ -115,6 +120,7 @@ void init_my_app() {
 
     win->bg_color = 11;
     win->fg_color = 0;
+#endif
 }
 
 char dir = 1;

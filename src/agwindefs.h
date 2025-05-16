@@ -37,6 +37,8 @@ extern "C" {
 #define AW_MINOR        1
 #define AW_VERSION      ((AW_MAJOR << 4) | AW_MINOR)
 
+#define AW_WINDOW_MARKER        0x216E6957 // 'Win!'
+
 #define AW_BUFFER_ID_LOW        0x8000  // lowest VDP buffer ID used by agwin
 #define AW_BUFFER_ID_HIGH       0x8FFF  // highest VDP buffer ID used by agwin
 #define AW_BUFFER_ID_NEXT       0       // indicates to use next available buffer ID
@@ -295,6 +297,7 @@ typedef struct tag_AwClass {
 } AwClass;
 
 typedef struct tag_AwWindow {
+    uint32_t        marker;         // contains marker for checking pointer
     AwApplication*  app;            // points to the app that owns the window
     const AwClass*  window_class;   // points to the class of the window
     AwWindow*       parent;         // points to the parent window

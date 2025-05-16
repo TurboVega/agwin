@@ -84,6 +84,10 @@ AwMouseCursor current_cursor = AwMcPointerSimple;
 uint16_t    next_buffer_id = AW_BUFFER_ID_LOW;
 uint16_t    next_bitmap_id = AW_BITMAP_ID_LOW;
 
+#if DEBUG
+#define STACK_CHECK_VALUE   ((uint32_t) 0xABCD1234)
+#endif
+
 volatile SYSVAR * sys_var; // points to MOS system variables
 
 int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt);
@@ -91,6 +95,22 @@ int32_t core_handle_message(AwWindow* window, AwMsg* msg, bool* halt);
 AwClass root_class = { "root", NULL, core_handle_message };
 
 AwApplication agwin_app = { "agwin", 0, 0, &root_class, NULL, 1 };
+
+#if DEBUG
+void leave(int line, uint32_t marker) {
+    if (marker != STACK_CHECK_VALUE) {
+        printf("[STACK %i %08lX]", line, marker);
+        while (1);
+    }
+}
+
+void check_marker(AwWindow * window) {
+    if (window->marker != AW_WINDOW_MARKER) {
+        printf("[TRASH! %p, 0x%08lX]", window, window->marker);
+        while (1);
+    }
+}
+#endif
 
 void key_event_handler(KEY_EVENT key_event) {
     if (active_window) {
@@ -733,6 +753,9 @@ void core_post_message(AwMsg* msg) {
         }
         *pmsg = *msg;
         msg_count++;
+    } else {
+        printf("[QUEUE FULL]");
+        while (1);
     }
 }
 
@@ -1088,6 +1111,7 @@ AwWindow* core_create_window(const AwCreateWindowParams* params) {
 
     core_set_text(window, prms.text);
 
+    window->marker = AW_WINDOW_MARKER;
     window->style = prms.style;
     window->state = prms.state;
     window->app = prms.app;
@@ -1373,7 +1397,10 @@ void core_close_window(AwWindow* window) {
     if (!window) {
         return;
     }
-
+#if DEBUG
+    uint32_t marker = STACK_CHECK_VALUE;
+    check_marker(window);
+#endif
     uint8_t primary = window->style.primary;
     AwApplication* app = window->app;
     AwWindow* child = window->first_child;
@@ -1393,28 +1420,44 @@ void core_close_window(AwWindow* window) {
     if (window->extra_data) {
         free(window->extra_data);
     }
+    window->marker = 0;
     free(window);
 
     if (primary) {
         close_related_windows(root_window, app);
         core_unload_app(app);
     }
+#if DEBUG
+    leave(__LINE__, marker);
+#endif
 }
 
 int32_t core_process_message(AwMsg* msg) {
     AwWindow* window = msg->do_common.window;
+#if DEBUG
+    if (window) {
+        check_marker(window);
+    }
+    uint32_t marker = STACK_CHECK_VALUE;
+#endif
     bool halt = false;
     while (window) {
         const AwClass* wclass = window->window_class;
         while (wclass) {
             int32_t result = (*wclass->msg_handler)(window, msg, &halt);
             if (halt) {
+#if DEBUG
+                leave(__LINE__, marker);
+#endif
                 return result;
             }
             wclass = wclass->parent;
         }
         window = window->parent;
     }
+#if DEBUG
+    leave(__LINE__, marker);
+#endif
     return 0;
 }
 
@@ -2146,11 +2189,16 @@ void core_initialize() {
     running = true;
 }
 
-void paint_windows(AwWindow* window) {
+void paint_windows(AwWindow* window, int level) {
+#if DEBUG
+    check_marker(window);
+#endif
     if (!window->state.visible) {
         return;
     }
-
+#if DEBUG
+    uint32_t marker = STACK_CHECK_VALUE;
+#endif
     if (window->state.window_dirty) {
         AwRect window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
         AwRect dirty_window_rect = core_get_intersect_rect(&dirty_area, &window_rect);
@@ -2184,10 +2232,13 @@ void paint_windows(AwWindow* window) {
     if (!window->state.minimized) {
         AwWindow* child = window->first_child;
         while (child) {
-            paint_windows(child);
+            paint_windows(child, level+1);
             child = child->next_sibling;
         }
     }
+#if DEBUG
+    leave(__LINE__, marker);
+#endif
 }
 
 AwRegion* core_create_region() {
@@ -2311,11 +2362,9 @@ void core_subtract_rect_from_region(AwRegion** region, const AwRect* rect) {
 }
 
 void core_subtract_region_from_region(AwRegion** minuend, AwRegion* subtrahend) {
-    if (minuend && *minuend) {
-        while (subtrahend) {
-            core_subtract_rect_from_region(minuend, &subtrahend->rect);
-            subtrahend = subtrahend->next;
-        }
+    if (minuend && *minuend && subtrahend) {
+        core_subtract_rect_from_region(minuend, &subtrahend->rect);
+        subtrahend = subtrahend->next;
     }
 }
 
@@ -2333,18 +2382,26 @@ AwRegion* core_get_intersect_region(AwRegion* region, const AwRect* rect) {
     return result;
 }
 
-void display_windows(AwWindow* window, AwRegion** must_cover) {
+void display_windows(AwWindow* window, AwRegion** must_cover, int level) {
+#if DEBUG
+    check_marker(window);
+    uint32_t marker = STACK_CHECK_VALUE;
+#endif
     if (window->state.visible && must_cover && *must_cover) {
         AwRegion* intersect_rgn = core_get_intersect_region(*must_cover, &window->window_rect);
         if (intersect_rgn) {
             // This window does intersect the remaining dirty area
+            core_delete_region(intersect_rgn);
 
             // Display this window's children
             if (!window->state.minimized) {
                 AwWindow* child = window->first_child;
                 while (child) {
-                    display_windows(child, must_cover);
+                    display_windows(child, must_cover, level+1);
                     if (!(*must_cover)) {
+#if DEBUG
+                        leave(__LINE__, marker);
+#endif
                         return; // ignore remaining children
                     }
                     child = child->next_sibling;
@@ -2373,6 +2430,9 @@ void display_windows(AwWindow* window, AwRegion** must_cover) {
             core_delete_region(coverage);
         }
     }
+#if DEBUG
+    leave(__LINE__, marker);
+#endif
 }
 
 void core_message_loop() {
@@ -2389,9 +2449,9 @@ void core_message_loop() {
             AwSize size = core_get_rect_size(&dirty_area);
             if (size.width || size.height) {
                 // Something needs to be painted
-                paint_windows(root_window);
+                paint_windows(root_window, 0);
                 AwRegion* must_cover = core_convert_rect_to_region(&dirty_area);
-                display_windows(root_window, &must_cover);
+                display_windows(root_window, &must_cover, 0);
                 core_delete_region(must_cover);
                 dirty_area = core_get_empty_rect();
             } else {
@@ -2542,7 +2602,8 @@ int32_t core_load_app(const char* path) {
                     //
                     AwStart start = (AwStart) load_address;
                     int app_rc = (*start)();
-                    if ((unsigned int) app_rc >= 0x040000 && (unsigned int) app_rc < RAM_END) {
+                    if ((unsigned int) app_rc >= RAM_START+RAM_SIZE &&
+                        (unsigned int) app_rc < RAM_END) {
                         if (app_count >= AW_APP_LIST_SIZE) {
                             rc = -4; // no room in list for app
                         } else {
