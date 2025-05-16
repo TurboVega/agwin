@@ -7,6 +7,8 @@ This repository contains an experimental Agon application that displays windows 
 
 ><b>NOTE!</b> This is not a complete window system in terms of providing common widgets, etc. It is a framework for drawing windows, which may be enhanced to include various widgets and typical window-based applications.
 
+><b>NOTE!</b> When <b>agwin</b> was modified to use VDP buffers, it was not edited to redo the buffer(s) when a window is resized. At some point, that aspect must be fixed in order to make <b>agwin</b> more useful. At present, a window should not be resized, including being maximized, because doing so will likely cause issues. I don't expect the fix to be a huge one, likely just deleting and recreating the buffers, but it is important.
+
 <b>agwin</b> provides a set of commmon "core" functions that may be called by applications. Some of them are intended to be called directly, using pointers from a jump table. Some may be used indirectly via window messages.
 
 <b>agwin</b> is built using AgonDev, from this repository:
